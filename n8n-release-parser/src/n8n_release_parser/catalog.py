@@ -3,7 +3,7 @@ Node catalog storage.
 
 Manages persistence for the versioned node catalog, supporting storage
 across multiple n8n releases and lookup by (nodeType, typeVersion) pairs.
-Uses a directory of JSON files as the storage backend.
+Delegates raw I/O to a :class:`~n8n_release_parser.storage.StorageBackend`.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from pathlib import Path
 
 from n8n_release_parser.differ import build_cumulative_catalog
 from n8n_release_parser.models import NodeApiMapping, NodeCatalog, NodeTypeEntry
+from n8n_release_parser.storage import LocalStorageBackend, StorageBackend
 
 _API_MAPPINGS_FILENAME = "api_mappings.json"
 
@@ -38,24 +39,27 @@ def _filename_to_version(stem: str) -> str:
 
 
 class NodeCatalogStore:
-    """Manages catalog persistence using JSON files."""
+    """Manages catalog persistence via a pluggable storage backend."""
 
-    def __init__(self, store_dir: Path) -> None:
-        """Initialize with the storage directory."""
-        self._store_dir = store_dir
-        self._store_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, store_dir_or_backend: Path | StorageBackend) -> None:
+        """Initialize with a directory path or a storage backend."""
+        if isinstance(store_dir_or_backend, Path):
+            self._backend: StorageBackend = LocalStorageBackend(store_dir_or_backend)
+        else:
+            self._backend = store_dir_or_backend
 
-    def save_catalog(self, catalog: NodeCatalog) -> Path:
+    def save_catalog(self, catalog: NodeCatalog) -> str:
         """
-        Save a catalog to disk.
+        Save a catalog.
 
         Filename: ``catalog_{n8n_version}.json`` where dots in the version
         are replaced with underscores.
+
+        Returns the location identifier (path or URI).
         """
         safe_version = _version_to_filename(catalog.n8n_version)
-        path = self._store_dir / f"catalog_{safe_version}.json"
-        path.write_text(catalog.model_dump_json(indent=2), encoding="utf-8")
-        return path
+        key = f"catalog_{safe_version}.json"
+        return self._backend.write(key, catalog.model_dump_json(indent=2))
 
     def load_catalog(self, n8n_version: str) -> NodeCatalog | None:
         """
@@ -64,24 +68,26 @@ class NodeCatalogStore:
         Returns ``None`` if no file exists for the requested version.
         """
         safe_version = _version_to_filename(n8n_version)
-        path = self._store_dir / f"catalog_{safe_version}.json"
-        if not path.exists():
+        key = f"catalog_{safe_version}.json"
+        content = self._backend.read(key)
+        if content is None:
             return None
-        return NodeCatalog.model_validate_json(path.read_text(encoding="utf-8"))
+        return NodeCatalog.model_validate_json(content)
 
     def list_catalogs(self) -> list[tuple[str, datetime]]:
         """
         List all stored catalogs with release dates, sorted newest-first.
 
-        Scans for ``catalog_*.json`` files, deserialises each, and returns
+        Scans for ``catalog_*.json`` keys, deserialises each, and returns
         ``(n8n_version, release_date)`` tuples ordered by ``release_date``
         descending.
         """
         results: list[tuple[str, datetime]] = []
-        for path in self._store_dir.glob("catalog_*.json"):
-            catalog = NodeCatalog.model_validate_json(
-                path.read_text(encoding="utf-8"),
-            )
+        for key in self._backend.list_keys("catalog_"):
+            content = self._backend.read(key)
+            if content is None:
+                continue
+            catalog = NodeCatalog.model_validate_json(content)
             results.append((catalog.n8n_version, catalog.release_date))
         results.sort(key=lambda item: item[1], reverse=True)
         return results
@@ -94,13 +100,14 @@ class NodeCatalogStore:
         """
         now = datetime.now(tz=UTC)
         pruned: list[str] = []
-        for path in self._store_dir.glob("catalog_*.json"):
-            catalog = NodeCatalog.model_validate_json(
-                path.read_text(encoding="utf-8"),
-            )
+        for key in self._backend.list_keys("catalog_"):
+            content = self._backend.read(key)
+            if content is None:
+                continue
+            catalog = NodeCatalog.model_validate_json(content)
             age_days = (now - catalog.release_date).days
             if age_days > months * 30:
-                path.unlink()
+                self._backend.delete(key)
                 pruned.append(catalog.n8n_version)
         return pruned
 
@@ -113,23 +120,21 @@ class NodeCatalogStore:
         :func:`~n8n_release_parser.differ.build_cumulative_catalog`.
         """
         catalogs: list[NodeCatalog] = []
-        for path in self._store_dir.glob("catalog_*.json"):
-            catalogs.append(
-                NodeCatalog.model_validate_json(
-                    path.read_text(encoding="utf-8"),
-                ),
-            )
+        for key in self._backend.list_keys("catalog_"):
+            content = self._backend.read(key)
+            if content is None:
+                continue
+            catalogs.append(NodeCatalog.model_validate_json(content))
         catalogs.sort(key=lambda c: c.release_date)
         return build_cumulative_catalog(catalogs)
 
-    def save_api_mappings(self, mappings: list[NodeApiMapping]) -> Path:
+    def save_api_mappings(self, mappings: list[NodeApiMapping]) -> str:
         """Save API spec mappings to ``api_mappings.json``."""
         from pydantic import TypeAdapter
 
         adapter = TypeAdapter(list[NodeApiMapping])
-        path = self._store_dir / _API_MAPPINGS_FILENAME
-        path.write_text(adapter.dump_json(mappings).decode(), encoding="utf-8")
-        return path
+        content = adapter.dump_json(mappings).decode()
+        return self._backend.write(_API_MAPPINGS_FILENAME, content)
 
     def load_api_mappings(self) -> list[NodeApiMapping]:
         """
@@ -139,8 +144,8 @@ class NodeCatalogStore:
         """
         from pydantic import TypeAdapter
 
-        path = self._store_dir / _API_MAPPINGS_FILENAME
-        if not path.exists():
+        content = self._backend.read(_API_MAPPINGS_FILENAME)
+        if content is None:
             return []
         adapter = TypeAdapter(list[NodeApiMapping])
-        return list(adapter.validate_json(path.read_text(encoding="utf-8")))
+        return list(adapter.validate_json(content))

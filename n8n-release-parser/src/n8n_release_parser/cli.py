@@ -14,6 +14,7 @@ from typing import Annotated
 import typer
 
 from n8n_release_parser.catalog import NodeCatalogStore
+from n8n_release_parser.storage import create_backend
 
 app = typer.Typer()
 
@@ -64,13 +65,14 @@ def diff(
     old_version: Annotated[str, typer.Argument()],
     new_version: Annotated[str, typer.Argument()],
     store_dir: Annotated[
-        Path, typer.Option(help="Catalog store directory.")
-    ] = Path(".n8n-catalog"),
+        str, typer.Option(help="Catalog store directory or s3:// URI.")
+    ] = ".n8n-catalog",
 ) -> None:
     """Diff two n8n release catalogs."""
     from n8n_release_parser import differ
 
-    store = NodeCatalogStore(store_dir)
+    backend = create_backend(store_dir)
+    store = NodeCatalogStore(backend)
 
     old_cat = store.load_catalog(old_version)
     if old_cat is None:
@@ -105,15 +107,22 @@ def diff(
 def build_index(
     specs_dir: Annotated[Path, typer.Argument()],
     output: Annotated[
-        Path, typer.Option(help="Output path for the index JSON.")
-    ] = Path("spec_index.json"),
+        str, typer.Option(help="Output path or s3:// URI for the index JSON.")
+    ] = "spec_index.json",
 ) -> None:
     """Build an API spec index from a directory of OpenAPI/Swagger files."""
     from n8n_release_parser import spec_index
 
     try:
         index = spec_index.build_spec_index(specs_dir)
-        spec_index.save_index(index, output)
+        if output.startswith("s3://"):
+            from n8n_release_parser.spec_index import save_index_to_backend
+
+            backend = create_backend(output.rsplit("/", 1)[0] if "/" in output[5:] else output)
+            key = output.rsplit("/", 1)[1] if "/" in output[5:] else "spec_index.json"
+            save_index_to_backend(index, backend, key)
+        else:
+            spec_index.save_index(index, Path(output))
     except Exception as exc:
         typer.echo(f"Error: failed to build spec index: {exc}")
         raise typer.Exit(1) from exc
@@ -124,34 +133,43 @@ def build_index(
 @app.command()
 def match(
     store_dir: Annotated[
-        Path, typer.Option(help="Catalog store directory.")
-    ] = Path(".n8n-catalog"),
+        str, typer.Option(help="Catalog store directory or s3:// URI.")
+    ] = ".n8n-catalog",
     index_file: Annotated[
-        Path, typer.Option(help="Path to the spec index JSON.")
-    ] = Path("spec_index.json"),
+        str, typer.Option(help="Path or s3:// URI to the spec index JSON.")
+    ] = "spec_index.json",
     version: Annotated[
         str, typer.Option(help="n8n version to match.")
     ] = ...,
 ) -> None:
     """Match catalog nodes against API specs."""
     from n8n_release_parser import matcher
-    from n8n_release_parser.spec_index import load_index
+    from n8n_release_parser.spec_index import load_index, load_index_from_backend
 
-    store = NodeCatalogStore(store_dir)
+    backend = create_backend(store_dir)
+    store = NodeCatalogStore(backend)
     catalog = store.load_catalog(version)
     if catalog is None:
         typer.echo(f"Error: catalog for version {version} not found in {store_dir}")
         raise typer.Exit(1)
 
-    if not index_file.exists():
-        typer.echo(f"Error: spec index file not found: {index_file}")
-        raise typer.Exit(1)
-
-    try:
-        index = load_index(index_file)
-    except Exception as exc:
-        typer.echo(f"Error: failed to load spec index: {exc}")
-        raise typer.Exit(1) from exc
+    if index_file.startswith("s3://"):
+        idx_backend = create_backend(index_file.rsplit("/", 1)[0] if "/" in index_file[5:] else index_file)
+        idx_key = index_file.rsplit("/", 1)[1] if "/" in index_file[5:] else "spec_index.json"
+        index = load_index_from_backend(idx_backend, idx_key)
+        if index is None:
+            typer.echo(f"Error: spec index file not found: {index_file}")
+            raise typer.Exit(1)
+    else:
+        index_path = Path(index_file)
+        if not index_path.exists():
+            typer.echo(f"Error: spec index file not found: {index_file}")
+            raise typer.Exit(1)
+        try:
+            index = load_index(index_path)
+        except Exception as exc:
+            typer.echo(f"Error: failed to load spec index: {exc}")
+            raise typer.Exit(1) from exc
 
     mappings = matcher.match_all_nodes(catalog, index)
     store.save_api_mappings(mappings)
@@ -169,14 +187,15 @@ def match(
 def lookup(
     node_type: Annotated[str, typer.Argument()],
     store_dir: Annotated[
-        Path, typer.Option(help="Catalog store directory.")
-    ] = Path(".n8n-catalog"),
+        str, typer.Option(help="Catalog store directory or s3:// URI.")
+    ] = ".n8n-catalog",
     type_version: Annotated[
         int | None, typer.Option("--version", help="Specific type version to look up.")
     ] = None,
 ) -> None:
     """Look up a node type across stored catalogs."""
-    store = NodeCatalogStore(store_dir)
+    backend = create_backend(store_dir)
+    store = NodeCatalogStore(backend)
 
     try:
         all_entries = store.build_lookup()
@@ -206,13 +225,14 @@ def lookup(
 @app.command()
 def report(
     store_dir: Annotated[
-        Path, typer.Option(help="Catalog store directory.")
-    ] = Path(".n8n-catalog"),
+        str, typer.Option(help="Catalog store directory or s3:// URI.")
+    ] = ".n8n-catalog",
 ) -> None:
     """Generate priority coverage report from the latest catalog."""
     from n8n_release_parser import priority
 
-    store = NodeCatalogStore(store_dir)
+    backend = create_backend(store_dir)
+    store = NodeCatalogStore(backend)
 
     catalogs = store.list_catalogs()
     if not catalogs:

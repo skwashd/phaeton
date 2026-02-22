@@ -15,6 +15,7 @@ from pathlib import Path
 import yaml
 
 from n8n_release_parser.models import ApiSpecEntry, ApiSpecIndex, SpecEndpoint
+from n8n_release_parser.storage import StorageBackend
 
 
 def normalize_base_url(url: str) -> str:
@@ -218,4 +219,24 @@ def save_index(index: ApiSpecIndex, path: Path) -> None:
 def load_index(path: Path) -> ApiSpecIndex:
     """Load a previously saved spec index from JSON."""
     content = path.read_text(encoding="utf-8")
+    return ApiSpecIndex.model_validate_json(content)
+
+
+def save_index_to_backend(
+    index: ApiSpecIndex,
+    backend: StorageBackend,
+    key: str = "spec_index.json",
+) -> str:
+    """Serialize the spec index to a storage backend and return the location."""
+    return backend.write(key, index.model_dump_json(indent=2))
+
+
+def load_index_from_backend(
+    backend: StorageBackend,
+    key: str = "spec_index.json",
+) -> ApiSpecIndex | None:
+    """Load a spec index from a storage backend.  Returns ``None`` if not found."""
+    content = backend.read(key)
+    if content is None:
+        return None
     return ApiSpecIndex.model_validate_json(content)

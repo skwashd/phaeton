@@ -6,11 +6,14 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import boto3
+from moto import mock_aws
 from typer.testing import CliRunner
 
 from n8n_release_parser.catalog import NodeCatalogStore
 from n8n_release_parser.cli import app
 from n8n_release_parser.models import NodeCatalog, NodeTypeEntry
+from n8n_release_parser.storage_s3 import S3StorageBackend
 
 
 def _make_entry(
@@ -184,3 +187,74 @@ class TestVerboseFlag:
         runner = CliRunner()
         result = runner.invoke(app, ["--verbose", "fetch-releases", "--help"])
         assert result.exit_code == 0
+
+
+_S3_BUCKET = "test-cli-bucket"
+_S3_REGION = "us-east-1"
+
+
+class TestS3StoreDir:
+    def test_diff_with_s3_store_dir(self) -> None:
+        with mock_aws():
+            client = boto3.client("s3", region_name=_S3_REGION)
+            client.create_bucket(Bucket=_S3_BUCKET)
+
+            backend = S3StorageBackend(
+                bucket=_S3_BUCKET, prefix="catalogs", region_name=_S3_REGION,
+            )
+            store = NodeCatalogStore(backend)
+
+            store.save_catalog(
+                _make_catalog(
+                    "1.19.0",
+                    datetime(2025, 1, 1, tzinfo=UTC),
+                    entries=[_make_entry("n8n-nodes-base.slack", 1, "Slack")],
+                ),
+            )
+            store.save_catalog(
+                _make_catalog(
+                    "1.20.0",
+                    datetime(2025, 2, 1, tzinfo=UTC),
+                    entries=[_make_entry("n8n-nodes-base.slack", 1, "Slack Updated")],
+                ),
+            )
+
+            runner = CliRunner()
+            result = runner.invoke(
+                app,
+                [
+                    "diff", "1.19.0", "1.20.0",
+                    "--store-dir", f"s3://{_S3_BUCKET}/catalogs",
+                ],
+            )
+            assert result.exit_code == 0
+            assert "Diff" in result.output
+
+    def test_lookup_with_s3_store_dir(self) -> None:
+        with mock_aws():
+            client = boto3.client("s3", region_name=_S3_REGION)
+            client.create_bucket(Bucket=_S3_BUCKET)
+
+            runner = CliRunner()
+            result = runner.invoke(
+                app,
+                [
+                    "lookup", "n8n-nodes-base.nonexistent",
+                    "--store-dir", f"s3://{_S3_BUCKET}/catalogs",
+                ],
+            )
+            assert result.exit_code == 0
+            assert "No entries found" in result.output
+
+    def test_report_with_s3_empty_store(self) -> None:
+        with mock_aws():
+            client = boto3.client("s3", region_name=_S3_REGION)
+            client.create_bucket(Bucket=_S3_BUCKET)
+
+            runner = CliRunner()
+            result = runner.invoke(
+                app,
+                ["report", "--store-dir", f"s3://{_S3_BUCKET}/catalogs"],
+            )
+            assert result.exit_code != 0
+            assert "no catalogs found" in result.output.lower()

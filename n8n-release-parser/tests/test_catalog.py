@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+import boto3
+import pytest
+from moto import mock_aws
 
 from n8n_release_parser.catalog import NodeCatalogStore
 from n8n_release_parser.models import (
@@ -11,6 +16,7 @@ from n8n_release_parser.models import (
     NodeCatalog,
     NodeTypeEntry,
 )
+from n8n_release_parser.storage_s3 import S3StorageBackend
 
 
 def _make_catalog(
@@ -49,9 +55,9 @@ class TestNodeCatalogStore:
             entries=[_make_entry()],
         )
 
-        saved_path = store.save_catalog(cat)
-        assert saved_path.exists()
-        assert "catalog_1_20_0.json" in saved_path.name
+        saved_loc = store.save_catalog(cat)
+        assert isinstance(saved_loc, str)
+        assert "catalog_1_20_0.json" in saved_loc
 
         loaded = store.load_catalog("1.20.0")
         assert loaded is not None
@@ -182,9 +188,9 @@ class TestNodeCatalogStore:
             ),
         ]
 
-        saved_path = store.save_api_mappings(mappings)
-        assert saved_path.exists()
-        assert saved_path.name == "api_mappings.json"
+        saved_loc = store.save_api_mappings(mappings)
+        assert isinstance(saved_loc, str)
+        assert "api_mappings.json" in saved_loc
 
         loaded = store.load_api_mappings()
         assert len(loaded) == 2
@@ -202,3 +208,79 @@ class TestNodeCatalogStore:
         assert store.build_lookup() == {}
         assert store.load_api_mappings() == []
         assert store.prune_old_catalogs() == []
+
+
+_S3_BUCKET = "test-catalog-bucket"
+_S3_REGION = "us-east-1"
+
+
+@pytest.fixture
+def s3_store() -> Generator[NodeCatalogStore]:
+    with mock_aws():
+        client = boto3.client("s3", region_name=_S3_REGION)
+        client.create_bucket(Bucket=_S3_BUCKET)
+        backend = S3StorageBackend(
+            bucket=_S3_BUCKET,
+            prefix="catalogs",
+            region_name=_S3_REGION,
+        )
+        yield NodeCatalogStore(backend)
+
+
+class TestNodeCatalogStoreWithS3:
+    def test_save_load_roundtrip(self, s3_store: NodeCatalogStore) -> None:
+        cat = _make_catalog(
+            "1.20.0",
+            datetime(2025, 1, 15, tzinfo=UTC),
+            entries=[_make_entry()],
+        )
+
+        saved_loc = s3_store.save_catalog(cat)
+        assert saved_loc.startswith("s3://")
+        assert "catalog_1_20_0.json" in saved_loc
+
+        loaded = s3_store.load_catalog("1.20.0")
+        assert loaded is not None
+        assert loaded.n8n_version == cat.n8n_version
+        assert len(loaded.entries) == 1
+
+    def test_load_nonexistent_returns_none(self, s3_store: NodeCatalogStore) -> None:
+        assert s3_store.load_catalog("99.99.99") is None
+
+    def test_list_catalogs_ordering(self, s3_store: NodeCatalogStore) -> None:
+        dates = [
+            ("1.18.0", datetime(2024, 11, 1, tzinfo=UTC)),
+            ("1.20.0", datetime(2025, 1, 15, tzinfo=UTC)),
+            ("1.19.0", datetime(2024, 12, 1, tzinfo=UTC)),
+        ]
+        for version, dt in dates:
+            s3_store.save_catalog(_make_catalog(version, dt))
+
+        listing = s3_store.list_catalogs()
+        assert len(listing) == 3
+        assert listing[0][0] == "1.20.0"
+        assert listing[1][0] == "1.19.0"
+        assert listing[2][0] == "1.18.0"
+
+    def test_save_load_api_mappings(self, s3_store: NodeCatalogStore) -> None:
+        mappings = [
+            NodeApiMapping(
+                node_type="n8n-nodes-base.slack",
+                type_version=1,
+                api_spec="slack_openapi.json",
+                spec_format="openapi3",
+            ),
+        ]
+
+        saved_loc = s3_store.save_api_mappings(mappings)
+        assert saved_loc.startswith("s3://")
+
+        loaded = s3_store.load_api_mappings()
+        assert len(loaded) == 1
+        assert loaded[0].node_type == "n8n-nodes-base.slack"
+
+    def test_empty_store(self, s3_store: NodeCatalogStore) -> None:
+        assert s3_store.list_catalogs() == []
+        assert s3_store.build_lookup() == {}
+        assert s3_store.load_api_mappings() == []
+        assert s3_store.prune_old_catalogs() == []
