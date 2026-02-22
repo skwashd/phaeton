@@ -287,7 +287,7 @@ class TestValidationErrors:
 
     def test_missing_required_fields(self):
         with pytest.raises(ValidationError):
-            PackagerInput()  # type: ignore[call-arg]
+            PackagerInput()
 
     def test_empty_workflow_name(self):
         with pytest.raises(ValidationError):
