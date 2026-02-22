@@ -1,0 +1,954 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "definitions": {
+    "state-machine": {
+      "type": "object",
+      "properties": {
+        "Comment": {
+          "type": "string"
+        },
+        "StartAt": {
+          "type": "string"
+        },
+        "States": {
+          "type": "object",
+          "patternProperties": {
+            "^.{1,128}$": {
+              "$ref": "#/definitions/state"
+            }
+          },
+          "additionalProperties": false
+        },
+        "Version": {
+          "type": "string"
+        },
+        "TimeoutSeconds": {
+          "type": ["integer", "string"],
+          "minimum": 0
+        },
+        "QueryLanguage": {
+          "type": "string",
+          "enum": ["JSONata"]
+        }
+      },
+      "additionalProperties": false,
+      "required": ["StartAt", "States"]
+    },
+    "choice": {
+      "definitions": {
+        "Operator": {
+          "type": "object",
+          "properties": {
+            "Variable": {
+              "type": "string"
+            },
+            "Next": {
+              "type": "string",
+              "pattern": "^.{1,128}$"
+            },
+            "Condition": {
+              "type": "string"
+            },
+            "Comment": {
+              "type": "string"
+            },
+            "Assign": {
+              "type": "object"
+            },
+            "And": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/choice/definitions/Operator"
+              }
+            },
+            "Or": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/choice/definitions/Operator"
+              }
+            },
+            "Not": {
+              "$ref": "#/definitions/choice/definitions/Operator"
+            },
+            "BooleanEquals": {
+              "type": "boolean"
+            },
+            "BooleanEqualsPath": {
+              "type": "string"
+            },
+            "IsBoolean": {
+              "type": "boolean"
+            },
+            "IsNull": {
+              "type": "boolean"
+            },
+            "IsNumeric": {
+              "type": "boolean"
+            },
+            "IsPresent": {
+              "type": "boolean"
+            },
+            "IsString": {
+              "type": "boolean"
+            },
+            "IsTimestamp": {
+              "type": "boolean"
+            },
+            "NumericEquals": {
+              "type": "number"
+            },
+            "NumericEqualsPath": {
+              "type": "string"
+            },
+            "NumericGreaterThan": {
+              "type": "number"
+            },
+            "NumericGreaterThanPath": {
+              "type": "string"
+            },
+            "NumericGreaterThanEquals": {
+              "type": "number"
+            },
+            "NumericGreaterThanEqualsPath": {
+              "type": "string"
+            },
+            "NumericLessThan": {
+              "type": "number"
+            },
+            "NumericLessThanPath": {
+              "type": "string"
+            },
+            "NumericLessThanEquals": {
+              "type": "number"
+            },
+            "NumericLessThanEqualsPath": {
+              "type": "string"
+            },
+            "StringEquals": {
+              "type": "string"
+            },
+            "StringEqualsPath": {
+              "type": "string"
+            },
+            "StringGreaterThan": {
+              "type": "string"
+            },
+            "StringGreaterThanPath": {
+              "type": "string"
+            },
+            "StringGreaterThanEquals": {
+              "type": "string"
+            },
+            "StringGreaterThanEqualsPath": {
+              "type": "string"
+            },
+            "StringLessThan": {
+              "type": "string"
+            },
+            "StringLessThanPath": {
+              "type": "string"
+            },
+            "StringLessThanEquals": {
+              "type": "string"
+            },
+            "StringLessThanEqualsPath": {
+              "type": "string"
+            },
+            "StringMatches": {
+              "type": "string"
+            },
+            "TimestampEquals": {
+              "type": "string"
+            },
+            "TimestampEqualsPath": {
+              "type": "string"
+            },
+            "TimestampGreaterThan": {
+              "type": "string"
+            },
+            "TimestampGreaterThanPath": {
+              "type": "string"
+            },
+            "TimestampGreaterThanEquals": {
+              "type": "string"
+            },
+            "TimestampGreaterThanEqualsPath": {
+              "type": "string"
+            },
+            "TimestampLessThan": {
+              "type": "string"
+            },
+            "TimestampLessThanPath": {
+              "type": "string"
+            },
+            "TimestampLessThanEquals": {
+              "type": "string"
+            },
+            "TimestampLessThanEqualsPath": {
+              "type": "string"
+            }
+          },
+          "oneOf": [
+            {"required": ["Condition"]},
+            {"required": ["And"]},
+            {"required": ["BooleanEquals"]},
+            {"required": ["BooleanEqualsPath"]},
+            {"required": ["IsBoolean"]},
+            {"required": ["IsNull"]},
+            {"required": ["IsNumeric"]},
+            {"required": ["IsPresent"]},
+            {"required": ["IsString"]},
+            {"required": ["IsTimestamp"]},
+            {"required": ["Not"]},
+            {"required": ["NumericEquals"]},
+            {"required": ["NumericEqualsPath"]},
+            {"required": ["NumericGreaterThan"]},
+            {"required": ["NumericGreaterThanPath"]},
+            {"required": ["NumericGreaterThanEquals"]},
+            {"required": ["NumericGreaterThanEqualsPath"]},
+            {"required": ["NumericLessThan"]},
+            {"required": ["NumericLessThanPath"]},
+            {"required": ["NumericLessThanEquals"]},
+            {"required": ["NumericLessThanEqualsPath"]},
+            {"required": ["Or"]},
+            {"required": ["StringEquals"]},
+            {"required": ["StringEqualsPath"]},
+            {"required": ["StringGreaterThan"]},
+            {"required": ["StringGreaterThanPath"]},
+            {"required": ["StringGreaterThanEquals"]},
+            {"required": ["StringGreaterThanEqualsPath"]},
+            {"required": ["StringLessThan"]},
+            {"required": ["StringLessThanPath"]},
+            {"required": ["StringLessThanEquals"]},
+            {"required": ["StringLessThanEqualsPath"]},
+            {"required": ["StringMatches"]},
+            {"required": ["TimestampEquals"]},
+            {"required": ["TimestampEqualsPath"]},
+            {"required": ["TimestampGreaterThan"]},
+            {"required": ["TimestampGreaterThanPath"]},
+            {"required": ["TimestampGreaterThanEquals"]},
+            {"required": ["TimestampGreaterThanEqualsPath"]},
+            {"required": ["TimestampLessThan"]},
+            {"required": ["TimestampLessThanPath"]},
+            {"required": ["TimestampLessThanEquals"]},
+            {"required": ["TimestampLessThanEqualsPath"]}
+          ]
+        }
+      },
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Choice"]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "OutputPath": {
+          "type": ["string", "null"]
+        },
+        "InputPath": {
+          "type": ["string", "null"]
+        },
+        "Choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/choice/definitions/Operator"
+          }
+        },
+        "Default": {
+          "type": "string"
+        },
+        "Output": {
+          "type": "string"
+        },
+        "Arguments": {
+          "type": "object"
+        },
+        "Assign": {
+          "type": "object"
+        }
+      },
+      "required": ["Type", "Choices"],
+      "additionalProperties": false
+    },
+    "fail": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Fail"]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "Cause": {
+          "type": "string"
+        },
+        "CausePath": {
+          "type": "string"
+        },
+        "Error": {
+          "type": "string"
+        },
+        "ErrorPath": {
+          "type": "string"
+        }
+      },
+      "required": ["Type"],
+      "additionalProperties": false
+    },
+    "map": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Map"]
+        },
+        "Next": {
+          "type": "string",
+          "pattern": "^.{1,128}$"
+        },
+        "End": {
+          "enum": [true]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "OutputPath": {
+          "type": ["string", "null"]
+        },
+        "InputPath": {
+          "type": ["string", "null"]
+        },
+        "ResultPath": {
+                "type": ["string", "null"]
+              },
+              "Comment": {
+                "type": "string"
+              },
+              "Assign": {
+          "type": ["string", "null"]
+        },
+        "ItemsPath": {
+          "type": ["string", "null"]
+        },
+        "ItemSelector": {
+          "type": "object"
+        },
+        "ItemReader": {
+          "type": "object",
+          "properties": {
+            "Resource": {
+              "type": "string"
+            },
+            "Parameters": {
+              "type": "object"
+            },
+            "ReaderConfig": {
+              "type": "object",
+              "properties": {
+                "InputType": {
+                  "type": "string"
+                },
+                "CSVHeaderLocation": {
+                  "type": "string"
+                },
+                "CSVHeaders": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "MaxItems": {
+                  "type": ["integer", "string"]
+                }
+              }
+            }
+          }
+        },
+        "ItemBatcher": {
+          "type": "object",
+          "properties": {
+            "MaxItemsPerBatch": {
+              "type": ["integer", "string"],
+              "minimum": 1
+            },
+            "MaxInputBytesPerBatch": {
+              "type": ["integer", "string"],
+              "minimum": 1
+            },
+            "BatchInput": {
+              "type": "object"
+            }
+          }
+        },
+        "MaxConcurrency": {
+          "type": ["integer", "string"],
+          "minimum": 0
+        },
+        "MaxConcurrencyPath": {
+          "type": "string"
+        },
+        "ToleratedFailurePercentage": {
+          "type": ["number", "string"],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "ToleratedFailurePercentagePath": {
+          "type": "string"
+        },
+        "ToleratedFailureCount": {
+          "type": ["integer", "string"],
+          "minimum": 0
+        },
+        "ToleratedFailureCountPath": {
+          "type": "string"
+        },
+        "Label": {
+          "type": "string"
+        },
+        "ResultWriter": {
+          "type": "object",
+          "properties": {
+            "Resource": {
+              "type": "string"
+            },
+            "Parameters": {
+              "type": "object"
+            }
+          }
+        },
+        "Iterator": {
+          "$ref": "#/definitions/state-machine"
+        },
+        "ItemProcessor": {
+          "type": "object",
+          "properties": {
+            "ProcessorConfig": {
+              "type": "object",
+              "properties": {
+                "Mode": {
+                  "type": "string",
+                  "enum": ["INLINE", "DISTRIBUTED"]
+                },
+                "ExecutionType": {
+                  "type": "string",
+                  "enum": ["STANDARD", "EXPRESS"]
+                }
+              }
+            },
+            "StartAt": {
+              "type": "string"
+            },
+            "States": {
+              "type": "object",
+              "patternProperties": {
+                "^.{1,128}$": {
+                  "$ref": "#/definitions/state"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "Parameters": {
+          "type": "object"
+        },
+        "Retry": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ErrorEquals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "IntervalSeconds": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "MaxAttempts": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "BackoffRate": {
+                "type": ["number", "string"],
+                "minimum": 0
+              },
+              "MaxDelaySeconds": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "JitterStrategy": {
+                "type": "string",
+                "enum": ["FULL", "NONE"]
+              }
+            },
+            "required": ["ErrorEquals"]
+          }
+        },
+        "Catch": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ErrorEquals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "Next": {
+                "type": "string",
+                "pattern": "^.{1,128}$"
+              },
+              "ResultPath": {
+                "type": ["string", "null"]
+              },
+              "Comment": {
+                "type": "string"
+              },
+              "Assign": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["ErrorEquals", "Next"]
+          }
+        },
+        "Output": {
+          "type": "string"
+        },
+        "Arguments": {
+          "type": "object"
+        },
+        "Assign": {
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {"required": ["Next"]},
+        {"required": ["End"]}
+      ],
+      "required": ["Type"],
+      "additionalProperties": false
+    },
+    "parallel": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Parallel"]
+        },
+        "Next": {
+          "type": "string",
+          "pattern": "^.{1,128}$"
+        },
+        "End": {
+          "enum": [true]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "OutputPath": {
+          "type": ["string", "null"]
+        },
+        "InputPath": {
+          "type": ["string", "null"]
+        },
+        "ResultPath": {
+                "type": ["string", "null"]
+              },
+              "Comment": {
+                "type": "string"
+              },
+              "Assign": {
+          "type": ["string", "null"]
+        },
+        "Branches": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/state-machine"
+          }
+        },
+        "Retry": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ErrorEquals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "IntervalSeconds": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "MaxAttempts": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "BackoffRate": {
+                "type": ["number", "string"],
+                "minimum": 0
+              },
+              "MaxDelaySeconds": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "JitterStrategy": {
+                "type": "string",
+                "enum": ["FULL", "NONE"]
+              }
+            },
+            "required": ["ErrorEquals"]
+          }
+        },
+        "Catch": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ErrorEquals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "Next": {
+                "type": "string",
+                "pattern": "^.{1,128}$"
+              },
+              "ResultPath": {
+                "type": ["string", "null"]
+              },
+              "Comment": {
+                "type": "string"
+              },
+              "Assign": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["ErrorEquals", "Next"]
+          }
+        },
+        "Output": {
+          "type": "string"
+        },
+        "Arguments": {
+          "type": "object"
+        },
+        "Assign": {
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {"required": ["Next"]},
+        {"required": ["End"]}
+      ],
+      "required": ["Type", "Branches"],
+      "additionalProperties": false
+    },
+    "pass": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Pass"]
+        },
+        "Next": {
+          "type": "string",
+          "pattern": "^.{1,128}$"
+        },
+        "End": {
+          "enum": [true]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "OutputPath": {
+          "type": ["string", "null"]
+        },
+        "InputPath": {
+          "type": ["string", "null"]
+        },
+        "ResultPath": {
+                "type": ["string", "null"]
+              },
+              "Comment": {
+                "type": "string"
+              },
+              "Assign": {
+          "type": ["string", "null"]
+        },
+        "Parameters": {
+          "type": "object"
+        },
+        "Result": {},
+        "Output": {
+          "type": "string"
+        },
+        "Arguments": {
+          "type": "object"
+        },
+        "Assign": {
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {"required": ["Next"]},
+        {"required": ["End"]}
+      ],
+      "required": ["Type"],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "oneOf": [
+        {"$ref": "#/definitions/choice"},
+        {"$ref": "#/definitions/fail"},
+        {"$ref": "#/definitions/parallel"},
+        {"$ref": "#/definitions/pass"},
+        {"$ref": "#/definitions/succeed"},
+        {"$ref": "#/definitions/task"},
+        {"$ref": "#/definitions/wait"},
+        {"$ref": "#/definitions/map"}
+      ]
+    },
+    "succeed": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Succeed"]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "OutputPath": {
+          "type": ["string", "null"]
+        },
+        "InputPath": {
+          "type": ["string", "null"]
+        },
+        "Output": {
+          "type": "string"
+        }
+      },
+      "required": ["Type"],
+      "additionalProperties": false
+    },
+    "task": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Task"]
+        },
+        "Next": {
+          "type": "string",
+          "pattern": "^.{1,128}$"
+        },
+        "End": {
+          "enum": [true]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "OutputPath": {
+          "type": ["string", "null"]
+        },
+        "InputPath": {
+          "type": ["string", "null"]
+        },
+        "Resource": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^arn:aws:([a-z]|-)+:([a-z]|[0-9]|-)*:[0-9]*:([a-z]|-)+:[a-zA-Z0-9-_.]+(:(\\$LATEST|[a-zA-Z0-9-_]+))?$"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "ResultPath": {
+                "type": ["string", "null"]
+              },
+              "Comment": {
+                "type": "string"
+              },
+              "Assign": {
+          "type": ["string", "null"]
+        },
+        "ResultSelector": {
+          "type": "object"
+        },
+        "Retry": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ErrorEquals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "IntervalSeconds": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "MaxAttempts": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "BackoffRate": {
+                "type": ["number", "string"],
+                "minimum": 0
+              },
+              "MaxDelaySeconds": {
+                "type": ["integer", "string"],
+                "minimum": 0
+              },
+              "JitterStrategy": {
+                "type": "string",
+                "enum": ["FULL", "NONE"]
+              }
+            },
+            "required": ["ErrorEquals"]
+          }
+        },
+        "Catch": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ErrorEquals": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "Next": {
+                "type": "string",
+                "pattern": "^.{1,128}$"
+              },
+              "ResultPath": {
+                "type": ["string", "null"]
+              },
+              "Comment": {
+                "type": "string"
+              },
+              "Assign": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["ErrorEquals", "Next"]
+          }
+        },
+        "TimeoutSeconds": {
+          "type": ["integer", "string"],
+          "minimum": 1
+        },
+        "TimeoutSecondsPath": {
+          "type": "string"
+        },
+        "HeartbeatSeconds": {
+          "type": ["integer", "string"],
+          "minimum": 1
+        },
+        "HeartbeatSecondsPath": {
+          "type": "string"
+        },
+        "Parameters": {
+          "type": "object"
+        },
+        "Credentials": {
+          "type": "object",
+          "properties": {
+            "RoleArn": {
+              "oneOf": [
+                {"type": "string"},
+                {"type": "object"}
+              ]
+            }
+          }
+        },
+        "Output": {
+          "type": "string"
+        },
+        "Arguments": {
+          "type": "object"
+        },
+        "Assign": {
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {"required": ["Next"]},
+        {"required": ["End"]}
+      ],
+      "required": ["Type", "Resource"],
+      "additionalProperties": false
+    },
+    "wait": {
+      "type": "object",
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": ["Wait"]
+        },
+        "Next": {
+          "type": "string",
+          "pattern": "^.{1,128}$"
+        },
+        "End": {
+          "enum": [true]
+        },
+        "Comment": {
+          "type": "string"
+        },
+        "OutputPath": {
+          "type": ["string", "null"]
+        },
+        "InputPath": {
+          "type": ["string", "null"]
+        },
+        "Seconds": {
+          "type": ["integer", "string"],
+          "minimum": 0
+        },
+        "Timestamp": {
+          "type": "string"
+        },
+        "SecondsPath": {
+          "type": ["string", "null"]
+        },
+        "TimestampPath": {
+          "type": ["string", "null"]
+        },
+        "Output": {
+          "type": "string"
+        },
+        "Arguments": {
+          "type": "object"
+        },
+        "Assign": {
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {"required": ["Next"]},
+        {"required": ["End"]}
+      ],
+      "required": ["Type"],
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#/definitions/state-machine"
+}
