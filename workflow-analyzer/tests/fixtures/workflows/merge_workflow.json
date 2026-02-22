@@ -1,0 +1,146 @@
+{
+  "name": "Merge Workflow",
+  "nodes": [
+    {
+      "id": "c1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "parameters": {
+        "path": "incoming-data",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "c1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Fetch Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ `https://api.example.com/details/${$json.id}` }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "c1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Enrich Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 400],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn items.map(item => {\n  item.json.enriched = true;\n  item.json.processedAt = new Date().toISOString();\n  return item;\n});"
+      }
+    },
+    {
+      "id": "c1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [750, 300],
+      "parameters": {
+        "mode": "combine",
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "id",
+              "field2": "id"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Save to DynamoDB",
+      "type": "n8n-nodes-base.awsDynamoDB",
+      "typeVersion": 1,
+      "position": [950, 300],
+      "parameters": {
+        "operation": "putItem",
+        "tableName": "ProcessedData",
+        "additionalFields": {
+          "item": [
+            {
+              "key": "pk",
+              "value": "={{ $json.id }}",
+              "type": "S"
+            },
+            {
+              "key": "data",
+              "value": "={{ JSON.stringify($json) }}",
+              "type": "S"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "aws": {
+          "id": "cred-aws-2",
+          "name": "AWS DynamoDB"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enrich Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Details": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich Data": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Save to DynamoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "id": "wf-003"
+}

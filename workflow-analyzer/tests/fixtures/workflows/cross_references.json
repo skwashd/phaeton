@@ -1,0 +1,133 @@
+{
+  "name": "Cross References Workflow",
+  "nodes": [
+    {
+      "id": "d1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "d1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Fetch Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.example.com/config",
+        "options": {}
+      }
+    },
+    {
+      "id": "d1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Fetch Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 500],
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.example.com/users",
+        "options": {}
+      }
+    },
+    {
+      "id": "d1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Process Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [700, 400],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-1",
+              "name": "configValue",
+              "value": "={{ $('Fetch Config').first().json.apiKey }}",
+              "type": "string"
+            },
+            {
+              "id": "field-2",
+              "name": "userName",
+              "value": "={{ $(\"Fetch Users\").first().json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "field-3",
+              "name": "legacyRef",
+              "value": "={{ $node[\"Fetch Config\"].json.endpoint }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Final Output",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 400],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Config",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Config": {
+      "main": [
+        [
+          {
+            "node": "Process Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Users": {
+      "main": [
+        [
+          {
+            "node": "Process Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Data": {
+      "main": [
+        [
+          {
+            "node": "Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "id": "wf-004"
+}
