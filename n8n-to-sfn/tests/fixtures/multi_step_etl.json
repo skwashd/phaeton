@@ -1,0 +1,106 @@
+{
+  "name": "multi_step_etl",
+  "nodes": [
+    {
+      "id": "b8c9d0e1-0008-4000-8000-000000000001",
+      "name": "ScheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b8c9d0e1-0008-4000-8000-000000000002",
+      "name": "DDBQuery",
+      "type": "n8n-nodes-base.awsDynamoDB",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "resource": "item",
+        "operation": "query",
+        "tableName": "Orders",
+        "keyConditionExpression": "status = :status",
+        "expressionAttributeValues": {
+          "values": [
+            {
+              "key": ":status",
+              "type": "S",
+              "value": "pending"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b8c9d0e1-0008-4000-8000-000000000003",
+      "name": "PyCode",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "language": "python",
+        "pythonCode": "result = [{'json': {'id': item['json']['id'], 'total': float(item['json']['amount'])}} for item in items]"
+      }
+    },
+    {
+      "id": "b8c9d0e1-0008-4000-8000-000000000004",
+      "name": "SQSSend",
+      "type": "n8n-nodes-base.awsSqs",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "queueUrl": "https://sqs.us-east-1.amazonaws.com/123456/order-processing",
+        "messageBody": "={{ JSON.stringify($json) }}"
+      }
+    },
+    {
+      "id": "b8c9d0e1-0008-4000-8000-000000000005",
+      "name": "SNSNotify",
+      "type": "n8n-nodes-base.awsSns",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "parameters": {
+        "resource": "topic",
+        "operation": "publish",
+        "topicArn": "arn:aws:sns:us-east-1:123456:ETLNotifications",
+        "message": "ETL pipeline completed successfully"
+      }
+    }
+  ],
+  "connections": {
+    "ScheduleTrigger": {
+      "main": [
+        [{"node": "DDBQuery", "type": "main", "index": 0}]
+      ]
+    },
+    "DDBQuery": {
+      "main": [
+        [{"node": "PyCode", "type": "main", "index": 0}]
+      ]
+    },
+    "PyCode": {
+      "main": [
+        [{"node": "SQSSend", "type": "main", "index": 0}]
+      ]
+    },
+    "SQSSend": {
+      "main": [
+        [{"node": "SNSNotify", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

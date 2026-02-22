@@ -1,0 +1,58 @@
+{
+  "name": "error_handling_workflow",
+  "nodes": [
+    {
+      "id": "a7b8c9d0-0007-4000-8000-000000000001",
+      "name": "ManualTrigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "a7b8c9d0-0007-4000-8000-000000000002",
+      "name": "S3Get",
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "resource": "object",
+        "operation": "get",
+        "bucketName": "data-bucket",
+        "key": "important-data.json"
+      },
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "a7b8c9d0-0007-4000-8000-000000000003",
+      "name": "S3Put",
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "object",
+        "operation": "create",
+        "bucketName": "archive-bucket",
+        "fileName": "archived-data.json"
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "ManualTrigger": {
+      "main": [
+        [{"node": "S3Get", "type": "main", "index": 0}]
+      ]
+    },
+    "S3Get": {
+      "main": [
+        [{"node": "S3Put", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "if_branch_workflow",
+  "nodes": [
+    {
+      "id": "c3d4e5f6-0003-4000-8000-000000000001",
+      "name": "ManualTrigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "c3d4e5f6-0003-4000-8000-000000000002",
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "operation": "equals",
+              "value2": "approved"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c3d4e5f6-0003-4000-8000-000000000003",
+      "name": "SNSPublish",
+      "type": "n8n-nodes-base.awsSns",
+      "typeVersion": 1,
+      "position": [650, 200],
+      "parameters": {
+        "resource": "topic",
+        "operation": "publish",
+        "topicArn": "arn:aws:sns:us-east-1:123456:MyTopic",
+        "message": "={{ $json.message }}"
+      }
+    },
+    {
+      "id": "c3d4e5f6-0003-4000-8000-000000000004",
+      "name": "SQSSend",
+      "type": "n8n-nodes-base.awsSqs",
+      "typeVersion": 1,
+      "position": [650, 400],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "queueUrl": "https://sqs.us-east-1.amazonaws.com/123456/my-queue",
+        "messageBody": "={{ JSON.stringify($json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "ManualTrigger": {
+      "main": [
+        [{"node": "IF", "type": "main", "index": 0}]
+      ]
+    },
+    "IF": {
+      "main": [
+        [{"node": "SNSPublish", "type": "main", "index": 0}],
+        [{"node": "SQSSend", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

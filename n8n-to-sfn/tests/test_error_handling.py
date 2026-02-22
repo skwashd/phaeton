@@ -1,0 +1,142 @@
+"""Tests for error handling translation (build_error_handling / apply_error_handling)."""
+
+from n8n_to_sfn.models.analysis import ClassifiedNode, NodeClassification
+from n8n_to_sfn.models.asl import RetryConfig, TaskState
+from n8n_to_sfn.models.n8n import N8nNode
+from n8n_to_sfn.translators.base import apply_error_handling, build_error_handling
+
+
+def _node_with_error_settings(
+    *,
+    continue_on_fail=None,
+    retry_on_fail=None,
+    max_tries=None,
+    wait_between_tries=None,
+):
+    return ClassifiedNode(
+        node=N8nNode(
+            id="TestNode",
+            name="TestNode",
+            type="n8n-nodes-base.set",
+            type_version=1,
+            position=[0, 0],
+            parameters={},
+            continueOnFail=continue_on_fail,
+            retryOnFail=retry_on_fail,
+            maxTries=max_tries,
+            waitBetweenTries=wait_between_tries,
+        ),
+        classification=NodeClassification.FLOW_CONTROL,
+    )
+
+
+class TestBuildErrorHandling:
+    def test_no_error_settings_no_retry_no_catch(self):
+        node = _node_with_error_settings()
+        retries, catches = build_error_handling(node)
+        assert retries == []
+        assert catches == []
+
+    def test_continue_on_fail_produces_catch(self):
+        node = _node_with_error_settings(continue_on_fail=True)
+        _retries, catches = build_error_handling(node, next_state_name="NextState")
+        assert len(catches) == 1
+        assert catches[0].error_equals == ["States.ALL"]
+        assert catches[0].next == "NextState"
+
+    def test_continue_on_fail_without_next_state_no_catch(self):
+        node = _node_with_error_settings(continue_on_fail=True)
+        _retries, catches = build_error_handling(node, next_state_name=None)
+        assert catches == []
+
+    def test_retry_on_fail_produces_retry(self):
+        node = _node_with_error_settings(
+            retry_on_fail=True, max_tries=5, wait_between_tries=2000
+        )
+        retries, _catches = build_error_handling(node)
+        assert len(retries) == 1
+        assert retries[0].max_attempts == 5
+        assert retries[0].interval_seconds == 2
+        assert retries[0].error_equals == ["States.ALL"]
+
+    def test_retry_on_fail_defaults(self):
+        node = _node_with_error_settings(retry_on_fail=True)
+        retries, _catches = build_error_handling(node)
+        assert len(retries) == 1
+        assert retries[0].max_attempts == 3
+        assert retries[0].interval_seconds == 1
+
+    def test_default_retry_used_when_no_explicit_retry(self):
+        node = _node_with_error_settings()
+        default = RetryConfig(
+            error_equals=["States.TaskFailed"],
+            max_attempts=2,
+            interval_seconds=5,
+        )
+        retries, _catches = build_error_handling(node, default_retry=default)
+        assert len(retries) == 1
+        assert retries[0].error_equals == ["States.TaskFailed"]
+        assert retries[0].max_attempts == 2
+
+    def test_explicit_retry_overrides_default(self):
+        node = _node_with_error_settings(retry_on_fail=True, max_tries=10)
+        default = RetryConfig(
+            error_equals=["States.TaskFailed"],
+            max_attempts=2,
+            interval_seconds=5,
+        )
+        retries, _catches = build_error_handling(node, default_retry=default)
+        assert len(retries) == 1
+        assert retries[0].max_attempts == 10
+        assert retries[0].error_equals == ["States.ALL"]
+
+    def test_both_retry_and_catch(self):
+        node = _node_with_error_settings(
+            retry_on_fail=True,
+            max_tries=3,
+            continue_on_fail=True,
+        )
+        retries, catches = build_error_handling(node, next_state_name="Fallback")
+        assert len(retries) == 1
+        assert len(catches) == 1
+
+
+class TestApplyErrorHandling:
+    def test_applies_retry_to_task_state(self):
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
+        node = _node_with_error_settings(retry_on_fail=True, max_tries=4)
+        result = apply_error_handling(state, node)
+        assert result.retry is not None
+        assert len(result.retry) == 1
+        assert result.retry[0].max_attempts == 4
+
+    def test_applies_catch_to_task_state(self):
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
+        node = _node_with_error_settings(continue_on_fail=True)
+        result = apply_error_handling(state, node, next_state_name="HandleError")
+        assert result.catch is not None
+        assert len(result.catch) == 1
+        assert result.catch[0].next == "HandleError"
+
+    def test_no_modification_when_no_settings(self):
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
+        node = _node_with_error_settings()
+        result = apply_error_handling(state, node)
+        assert result.retry is None
+        assert result.catch is None
+
+    def test_default_retry_applied_to_state(self):
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
+        node = _node_with_error_settings()
+        default = RetryConfig(
+            error_equals=["States.TaskFailed"],
+            max_attempts=3,
+            interval_seconds=2,
+            backoff_rate=2.0,
+            max_delay_seconds=30,
+        )
+        result = apply_error_handling(state, node, default_retry=default)
+        assert result.retry is not None
+        assert len(result.retry) == 1
+        assert result.retry[0].backoff_rate == 2.0
+        assert result.retry[0].max_delay_seconds == 30

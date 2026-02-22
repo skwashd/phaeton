@@ -1,0 +1,53 @@
+{
+  "name": "wait_and_notify",
+  "nodes": [
+    {
+      "id": "f6a7b8c9-0006-4000-8000-000000000001",
+      "name": "ManualTrigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "f6a7b8c9-0006-4000-8000-000000000002",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 30,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "f6a7b8c9-0006-4000-8000-000000000003",
+      "name": "SNSPublish",
+      "type": "n8n-nodes-base.awsSns",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "topic",
+        "operation": "publish",
+        "topicArn": "arn:aws:sns:us-east-1:123456:Notifications",
+        "message": "={{ $json.message }}"
+      }
+    }
+  ],
+  "connections": {
+    "ManualTrigger": {
+      "main": [
+        [{"node": "Wait", "type": "main", "index": 0}]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [{"node": "SNSPublish", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,40 @@
+[project]
+name = "n8n-to-sfn"
+version = "0.1.0"
+description = "Translation engine that converts n8n workflows into AWS Step Functions ASL and supporting Lambda artifacts."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "jsonschema==4.26.0",
+    "pydantic==2.12.5",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+# Rules listed at https://github.com/charliermarsh/ruff#supported-rules
+select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+ignore = ["D203", "D211", "D213", "E501", "F403", "F405"]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"test_*" = ["S101", "S108", "D100", "D101", "D102", "D103", "D104", "ANN"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/n8n_to_sfn"]
+
+[dependency-groups]
+dev = [
+    "coverage==7.13.4",
+    "pytest==9.0.2",
+    "ruff==0.15.2",
+    "ty==0.0.18",
+]

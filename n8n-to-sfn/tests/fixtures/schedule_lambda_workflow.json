@@ -1,0 +1,43 @@
+{
+  "name": "schedule_lambda_workflow",
+  "nodes": [
+    {
+      "id": "d4e5f6a7-0004-4000-8000-000000000001",
+      "name": "ScheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d4e5f6a7-0004-4000-8000-000000000002",
+      "name": "Lambda",
+      "type": "n8n-nodes-base.awsLambda",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "function": "my-processor",
+        "payload": "={{ JSON.stringify($json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "ScheduleTrigger": {
+      "main": [
+        [{"node": "Lambda", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
