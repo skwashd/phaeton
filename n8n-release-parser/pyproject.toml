@@ -33,7 +33,6 @@ n8n-release-parser = "n8n_release_parser.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: integration tests (deselect with '-m not integration')"]
 asyncio_mode = "auto"
 
 [tool.ruff.lint]

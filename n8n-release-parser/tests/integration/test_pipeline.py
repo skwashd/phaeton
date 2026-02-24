@@ -4,8 +4,6 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-import pytest
-
 from n8n_release_parser import differ, matcher, parser, priority, spec_index
 from n8n_release_parser.catalog import NodeCatalogStore
 from n8n_release_parser.models import (
@@ -18,7 +16,6 @@ from n8n_release_parser.models import (
 )
 
 
-@pytest.mark.integration
 def test_parse_diff_store_pipeline(tmp_path: Path) -> None:
     desc_v1 = {
         "displayName": "Slack",
@@ -161,7 +158,6 @@ def test_parse_diff_store_pipeline(tmp_path: Path) -> None:
     assert diff.modified_count == 0
 
 
-@pytest.mark.integration
 def test_spec_index_match_pipeline(tmp_path: Path) -> None:
     specs_dir = tmp_path / "specs"
     specs_dir.mkdir()
@@ -229,7 +225,6 @@ def test_spec_index_match_pipeline(tmp_path: Path) -> None:
     assert loaded_mappings[0].node_type == "n8n-nodes-base.slack"
 
 
-@pytest.mark.integration
 def test_priority_classification_pipeline() -> None:
     aws_node = NodeTypeEntry(
         node_type="n8n-nodes-base.awsS3",
@@ -300,7 +295,6 @@ def test_priority_classification_pipeline() -> None:
     assert "top_50" in breakdown
 
 
-@pytest.mark.integration
 def test_full_pipeline_with_store(tmp_path: Path) -> None:
     set_desc = {
         "displayName": "Set",
@@ -442,7 +436,6 @@ def test_full_pipeline_with_store(tmp_path: Path) -> None:
     assert isinstance(report["breakdown"], dict)
 
 
-@pytest.mark.integration
 def test_cumulative_lookup(tmp_path: Path) -> None:
     store = NodeCatalogStore(tmp_path / "store")
 

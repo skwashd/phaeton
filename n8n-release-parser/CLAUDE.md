@@ -14,7 +14,8 @@ See [README.md](README.md) for project overview, architecture, and CLI usage.
 
 ```bash
 uv run pytest                        # run all tests
-uv run pytest -m "not integration"   # skip integration tests
+uv run pytest tests/unit             # unit tests only
+uv run pytest tests/integration      # integration tests only
 uv run ruff check --fix .            # lint
 uv run ruff format .                 # format
 uv run ty check                      # type check
