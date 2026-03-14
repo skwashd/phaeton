@@ -1,5 +1,7 @@
 """Tests for rate limiting and concurrency controls."""
 
+from __future__ import annotations
+
 from n8n_to_sfn.models.analysis import (
     ClassifiedNode,
     NodeClassification,
@@ -12,7 +14,13 @@ from n8n_to_sfn.translators.base import TranslationContext, build_error_handling
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 
 
-def _node(name, node_type, params=None, classification=NodeClassification.AWS_NATIVE):
+def _node(
+    name: str,
+    node_type: str,
+    params: dict | None = None,
+    classification: NodeClassification = NodeClassification.AWS_NATIVE,
+) -> ClassifiedNode:
+    """Create a classified node for testing."""
     return ClassifiedNode(
         node=N8nNode(
             id=name,
@@ -26,7 +34,8 @@ def _node(name, node_type, params=None, classification=NodeClassification.AWS_NA
     )
 
 
-def _context(rate_limits=None):
+def _context(rate_limits: dict | None = None) -> TranslationContext:
+    """Create a translation context for testing."""
     return TranslationContext(
         analysis=WorkflowAnalysis(classified_nodes=[], dependency_edges=[]),
         rate_limits=rate_limits or {},
@@ -34,10 +43,14 @@ def _context(rate_limits=None):
 
 
 class TestAWSServiceRetryDefaults:
-    def setup_method(self):
+    """Tests for AWS service retry defaults."""
+
+    def setup_method(self) -> None:
+        """Set up test fixtures."""
         self.translator = AWSServiceTranslator()
 
-    def test_s3_has_default_retry(self):
+    def test_s3_has_default_retry(self) -> None:
+        """Test S3 has default retry configuration."""
         node = _node(
             "S3",
             "n8n-nodes-base.awsS3",
@@ -55,7 +68,8 @@ class TestAWSServiceRetryDefaults:
         assert retry["IntervalSeconds"] == 2
         assert retry["BackoffRate"] == 2.0
 
-    def test_dynamodb_has_default_retry(self):
+    def test_dynamodb_has_default_retry(self) -> None:
+        """Test DynamoDB has default retry configuration."""
         node = _node(
             "DDB",
             "n8n-nodes-base.awsDynamoDB",
@@ -69,7 +83,8 @@ class TestAWSServiceRetryDefaults:
         assert "Retry" in state
         assert state["Retry"][0]["MaxAttempts"] == 3
 
-    def test_sqs_has_default_retry(self):
+    def test_sqs_has_default_retry(self) -> None:
+        """Test SQS has default retry configuration."""
         node = _node(
             "SQS",
             "n8n-nodes-base.awsSqs",
@@ -84,10 +99,14 @@ class TestAWSServiceRetryDefaults:
 
 
 class TestSplitInBatchesConcurrency:
-    def setup_method(self):
+    """Tests for split-in-batches concurrency."""
+
+    def setup_method(self) -> None:
+        """Set up test fixtures."""
         self.translator = FlowControlTranslator()
 
-    def test_split_in_batches_max_concurrency_1(self):
+    def test_split_in_batches_max_concurrency_1(self) -> None:
+        """Test split in batches has max concurrency of 1."""
         node = _node(
             "Batch",
             "n8n-nodes-base.splitInBatches",
@@ -101,7 +120,10 @@ class TestSplitInBatchesConcurrency:
 
 
 class TestRetryBackoffConfig:
-    def test_backoff_rate_on_default_retry(self):
+    """Tests for retry backoff configuration."""
+
+    def test_backoff_rate_on_default_retry(self) -> None:
+        """Test backoff rate on default retry."""
         default = RetryConfig(
             error_equals=["States.TaskFailed"],
             max_attempts=3,
@@ -114,7 +136,8 @@ class TestRetryBackoffConfig:
         assert dumped["MaxDelaySeconds"] == 30
         assert dumped["IntervalSeconds"] == 2
 
-    def test_retry_with_jitter_strategy(self):
+    def test_retry_with_jitter_strategy(self) -> None:
+        """Test retry with jitter strategy."""
         retry = RetryConfig(
             error_equals=["States.TaskFailed"],
             max_attempts=3,
@@ -125,7 +148,8 @@ class TestRetryBackoffConfig:
         dumped = retry.model_dump(by_alias=True)
         assert dumped["JitterStrategy"] == "FULL"
 
-    def test_explicit_retry_from_node_settings(self):
+    def test_explicit_retry_from_node_settings(self) -> None:
+        """Test explicit retry from node error settings."""
         node = _node(
             "API", "n8n-nodes-base.awsS3", classification=NodeClassification.AWS_NATIVE
         )

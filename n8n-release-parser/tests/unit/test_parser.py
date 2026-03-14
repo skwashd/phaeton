@@ -1,3 +1,5 @@
+"""Tests for the parser module."""
+
 from typing import Any
 
 from n8n_release_parser.parser import (
@@ -174,7 +176,10 @@ VERSIONED_NODE: dict[str, Any] = {
 
 
 class TestParseSimpleNode:
+    """Tests for ParseSimpleNode."""
+
     def test_parse_simple_node(self) -> None:
+        """Test parse simple node."""
         entries = parse_node_description(SIMPLE_SET_NODE)
         assert len(entries) == 1
         entry = entries[0]
@@ -200,7 +205,10 @@ class TestParseSimpleNode:
 
 
 class TestParseNodeWithResources:
+    """Tests for ParseNodeWithResources."""
+
     def test_parse_node_with_resources(self) -> None:
+        """Test parse node with resources."""
         entries = parse_node_description(SLACK_LIKE_NODE)
         assert len(entries) == 1
         entry = entries[0]
@@ -226,7 +234,10 @@ class TestParseNodeWithResources:
 
 
 class TestParseTriggerNode:
+    """Tests for ParseTriggerNode."""
+
     def test_parse_trigger_node(self) -> None:
+        """Test parse trigger node."""
         entries = parse_node_description(WEBHOOK_TRIGGER_NODE)
         assert len(entries) == 1
         entry = entries[0]
@@ -243,7 +254,10 @@ class TestParseTriggerNode:
 
 
 class TestParseVersionedNode:
+    """Tests for ParseVersionedNode."""
+
     def test_parse_versioned_node(self) -> None:
+        """Test parse versioned node."""
         entries = parse_node_description(VERSIONED_NODE)
         assert len(entries) == 3
         for i, ver in enumerate([1, 2, 3]):
@@ -255,7 +269,10 @@ class TestParseVersionedNode:
 
 
 class TestExtractResourceOperations:
+    """Tests for ExtractResourceOperations."""
+
     def test_extract_resource_operations(self) -> None:
+        """Test extract resource operations."""
         properties = SLACK_LIKE_NODE["properties"]
         ops = extract_resource_operations(properties)
         assert len(ops) == 4
@@ -268,6 +285,7 @@ class TestExtractResourceOperations:
         assert send_op.description == "Send a message to a channel"
 
     def test_extract_resource_operations_empty(self) -> None:
+        """Test extract resource operations empty."""
         properties: list[dict[str, Any]] = [
             {
                 "displayName": "Value",
@@ -281,12 +299,16 @@ class TestExtractResourceOperations:
 
 
 class TestExtractRequestDefaults:
+    """Tests for ExtractRequestDefaults."""
+
     def test_extract_request_defaults(self) -> None:
+        """Test extract request defaults."""
         result = extract_request_defaults(SLACK_LIKE_NODE)
         assert result is not None
         assert result["baseURL"] == "https://slack.com/api"
         assert result["headers"] == {"Content-Type": "application/json"}
 
     def test_extract_request_defaults_missing(self) -> None:
+        """Test extract request defaults missing."""
         result = extract_request_defaults(SIMPLE_SET_NODE)
         assert result is None

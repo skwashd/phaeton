@@ -69,19 +69,26 @@ def _make_test_tarball(files: dict[str, str]) -> bytes:
 
 
 class TestIsStable:
+    """Tests for IsStable."""
+
     def test_stable_version(self) -> None:
+        """Test stable version."""
         assert _is_stable("1.68.0") is True
 
     def test_beta_prerelease(self) -> None:
+        """Test beta prerelease."""
         assert _is_stable("1.68.0-beta.1") is False
 
     def test_rc_prerelease(self) -> None:
+        """Test rc prerelease."""
         assert _is_stable("2.0.0-rc.0") is False
 
     def test_alpha_prerelease(self) -> None:
+        """Test alpha prerelease."""
         assert _is_stable("1.0.0-alpha") is False
 
     def test_patch_only(self) -> None:
+        """Test patch only."""
         assert _is_stable("0.0.1") is True
 
 
@@ -91,8 +98,11 @@ class TestIsStable:
 
 
 class TestListVersions:
+    """Tests for ListVersions."""
+
     @respx.mock
     async def test_returns_stable_versions_only(self) -> None:
+        """Test returns stable versions only."""
         now = datetime.now(tz=UTC)
         recent = now.isoformat()
 
@@ -122,6 +132,7 @@ class TestListVersions:
 
     @respx.mock
     async def test_filters_by_time_window(self) -> None:
+        """Test filters by time window."""
         old_date = "2020-01-01T00:00:00+00:00"
         now = datetime.now(tz=UTC)
         recent = now.isoformat()
@@ -149,6 +160,7 @@ class TestListVersions:
 
     @respx.mock
     async def test_sorted_newest_first(self) -> None:
+        """Test sorted newest first."""
         payload = _make_registry_payload(
             versions={
                 "1.66.0": "https://example.com/1.66.0.tgz",
@@ -173,6 +185,7 @@ class TestListVersions:
 
     @respx.mock
     async def test_empty_registry(self) -> None:
+        """Test empty registry."""
         payload: dict = {"versions": {}, "time": {}}
         respx.get("https://registry.npmjs.org/n8n-nodes-base").mock(
             return_value=httpx.Response(200, json=payload),
@@ -183,6 +196,7 @@ class TestListVersions:
 
     @respx.mock
     async def test_skips_versions_without_tarball(self) -> None:
+        """Test skips versions without tarball."""
         now = datetime.now(tz=UTC).isoformat()
         payload = {
             "versions": {
@@ -206,8 +220,11 @@ class TestListVersions:
 
 
 class TestFetchPackage:
+    """Tests for FetchPackage."""
+
     @respx.mock
     async def test_downloads_and_extracts(self, tmp_path: Path) -> None:
+        """Test downloads and extracts."""
         tarball_bytes = _make_test_tarball(
             {
                 "package/index.js": "module.exports = {};",
@@ -252,6 +269,7 @@ class TestFetchPackage:
 
     @respx.mock
     async def test_creates_cache_dir_if_absent(self, tmp_path: Path) -> None:
+        """Test creates cache dir if absent."""
         cache = tmp_path / "sub" / "dir"
         assert not cache.exists()
 
@@ -271,7 +289,10 @@ class TestFetchPackage:
 
 
 class TestFindNodeFiles:
+    """Tests for FindNodeFiles."""
+
     def test_finds_node_js_files(self, tmp_path: Path) -> None:
+        """Test finds node js files."""
         nodes_dir = tmp_path / "package" / "nodes" / "Slack"
         nodes_dir.mkdir(parents=True)
         (nodes_dir / "Slack.node.js").write_text("// slack node")
@@ -290,6 +311,7 @@ class TestFindNodeFiles:
         assert len(results) == 2
 
     def test_returns_sorted(self, tmp_path: Path) -> None:
+        """Test returns sorted."""
         (tmp_path / "B.node.js").write_text("")
         (tmp_path / "A.node.js").write_text("")
         (tmp_path / "C.node.js").write_text("")
@@ -299,10 +321,12 @@ class TestFindNodeFiles:
         assert names == ["A.node.js", "B.node.js", "C.node.js"]
 
     def test_empty_directory(self, tmp_path: Path) -> None:
+        """Test empty directory."""
         results = find_node_files(tmp_path)
         assert results == []
 
     def test_nested_deeply(self, tmp_path: Path) -> None:
+        """Test nested deeply."""
         deep = tmp_path / "a" / "b" / "c" / "d"
         deep.mkdir(parents=True)
         (deep / "Deep.node.js").write_text("// deep")

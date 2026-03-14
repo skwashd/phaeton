@@ -1,3 +1,5 @@
+"""Tests for the priority module."""
+
 from datetime import UTC, datetime
 
 from n8n_release_parser.models import (
@@ -45,32 +47,40 @@ def _make_mapping(node_type: str) -> NodeApiMapping:
 
 
 class TestClassifyNode:
+    """Tests for ClassifyNode."""
+
     def test_classify_aws_native_node(self) -> None:
+        """Test classify aws native node."""
         node = _make_node("n8n-nodes-base.awsS3")
         result = classify_node(node, None)
         assert result == NodeClassification.AWS_NATIVE
 
     def test_classify_email_send_as_aws_native(self) -> None:
+        """Test classify email send as aws native."""
         node = _make_node("n8n-nodes-base.emailSend")
         result = classify_node(node, None)
         assert result == NodeClassification.AWS_NATIVE
 
     def test_classify_flow_control_node(self) -> None:
+        """Test classify flow control node."""
         node = _make_node("n8n-nodes-base.if")
         result = classify_node(node, None)
         assert result == NodeClassification.FLOW_CONTROL
 
     def test_classify_trigger_node(self) -> None:
+        """Test classify trigger node."""
         node = _make_node("n8n-nodes-base.scheduleTrigger")
         result = classify_node(node, None)
         assert result == NodeClassification.TRIGGER
 
     def test_classify_trigger_node_via_group(self) -> None:
+        """Test classify trigger node via group."""
         node = _make_node("n8n-nodes-base.webhook", group=["trigger"])
         result = classify_node(node, None)
         assert result == NodeClassification.TRIGGER
 
     def test_classify_code_js_node(self) -> None:
+        """Test classify code js node."""
         lang_param = NodeParameter(
             name="language",
             display_name="Language",
@@ -82,11 +92,13 @@ class TestClassifyNode:
         assert result == NodeClassification.CODE_JS
 
     def test_classify_code_js_node_no_language_param(self) -> None:
+        """Test classify code js node no language param."""
         node = _make_node("n8n-nodes-base.code")
         result = classify_node(node, None)
         assert result == NodeClassification.CODE_JS
 
     def test_classify_code_python_node(self) -> None:
+        """Test classify code python node."""
         lang_param = NodeParameter(
             name="language",
             display_name="Language",
@@ -98,12 +110,14 @@ class TestClassifyNode:
         assert result == NodeClassification.CODE_PYTHON
 
     def test_classify_picofun_api_node(self) -> None:
+        """Test classify picofun api node."""
         node = _make_node("n8n-nodes-base.slack")
         mapping = _make_mapping("n8n-nodes-base.slack")
         result = classify_node(node, mapping)
         assert result == NodeClassification.PICOFUN_API
 
     def test_classify_graphql_node(self) -> None:
+        """Test classify graphql node."""
         node = _make_node(
             "n8n-nodes-base.graphqlCustom",
             request_defaults={"baseURL": "https://api.example.com/graphql"},
@@ -112,24 +126,32 @@ class TestClassifyNode:
         assert result == NodeClassification.GRAPHQL_API
 
     def test_classify_unsupported_node(self) -> None:
+        """Test classify unsupported node."""
         node = _make_node("n8n-nodes-base.someObscureNode")
         result = classify_node(node, None)
         assert result == NodeClassification.UNSUPPORTED
 
 
 class TestIsPriorityNode:
+    """Tests for IsPriorityNode."""
+
     def test_is_priority_node_true(self) -> None:
+        """Test is priority node true."""
         assert is_priority_node("n8n-nodes-base.if") is True
         assert is_priority_node("n8n-nodes-base.awsS3") is True
         assert is_priority_node("n8n-nodes-base.slack") is True
 
     def test_is_priority_node_false(self) -> None:
+        """Test is priority node false."""
         assert is_priority_node("n8n-nodes-base.someObscureNode") is False
         assert is_priority_node("totally.unknown") is False
 
 
 class TestPriorityCoverageReport:
+    """Tests for PriorityCoverageReport."""
+
     def test_priority_coverage_report(self) -> None:
+        """Test priority coverage report."""
         entries = [
             _make_node("n8n-nodes-base.if"),
             _make_node("n8n-nodes-base.awsS3"),
@@ -161,7 +183,10 @@ class TestPriorityCoverageReport:
 
 
 class TestRegistryCompleteness:
+    """Tests for RegistryCompleteness."""
+
     def test_core_flow_control_nodes_completeness(self) -> None:
+        """Test core flow control nodes completeness."""
         expected = {
             "n8n-nodes-base.if",
             "n8n-nodes-base.switch",
@@ -183,4 +208,5 @@ class TestRegistryCompleteness:
         assert expected == CORE_FLOW_CONTROL_NODES
 
     def test_top_50_nodes_count(self) -> None:
+        """Test top 50 nodes count."""
         assert len(TOP_50_NODES) == 50

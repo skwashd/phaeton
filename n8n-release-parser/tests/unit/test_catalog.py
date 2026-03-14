@@ -47,7 +47,10 @@ def _make_entry(
 
 
 class TestNodeCatalogStore:
+    """Tests for NodeCatalogStore."""
+
     def test_save_load_roundtrip(self, tmp_path: Path) -> None:
+        """Test save load roundtrip."""
         store = NodeCatalogStore(tmp_path / "catalogs")
         cat = _make_catalog(
             "1.20.0",
@@ -67,11 +70,13 @@ class TestNodeCatalogStore:
         assert loaded.entries[0].node_type == "n8n-nodes-base.slack"
 
     def test_load_nonexistent_returns_none(self, tmp_path: Path) -> None:
+        """Test load nonexistent returns none."""
         store = NodeCatalogStore(tmp_path / "catalogs")
         result = store.load_catalog("99.99.99")
         assert result is None
 
     def test_list_catalogs_ordering(self, tmp_path: Path) -> None:
+        """Test list catalogs ordering."""
         store = NodeCatalogStore(tmp_path / "catalogs")
 
         dates = [
@@ -94,6 +99,7 @@ class TestNodeCatalogStore:
         assert listing[0][1] > listing[1][1] > listing[2][1]
 
     def test_prune_old_catalogs(self, tmp_path: Path) -> None:
+        """Test prune old catalogs."""
         store = NodeCatalogStore(tmp_path / "catalogs")
 
         now = datetime.now(tz=UTC)
@@ -114,6 +120,7 @@ class TestNodeCatalogStore:
         assert store.load_catalog("1.20.0") is not None
 
     def test_build_lookup_multiple_catalogs(self, tmp_path: Path) -> None:
+        """Test build lookup multiple catalogs."""
         store = NodeCatalogStore(tmp_path / "catalogs")
 
         entry_v1_old = _make_entry(
@@ -166,6 +173,7 @@ class TestNodeCatalogStore:
         assert lookup[("n8n-nodes-base.github", 1)].display_name == "GitHub"
 
     def test_save_load_api_mappings_roundtrip(self, tmp_path: Path) -> None:
+        """Test save load api mappings roundtrip."""
         store = NodeCatalogStore(tmp_path / "catalogs")
 
         mappings = [
@@ -202,6 +210,7 @@ class TestNodeCatalogStore:
         assert loaded[1].node_type == "n8n-nodes-base.github"
 
     def test_empty_store(self, tmp_path: Path) -> None:
+        """Test empty store."""
         store = NodeCatalogStore(tmp_path / "catalogs")
 
         assert store.list_catalogs() == []
@@ -216,6 +225,7 @@ _S3_REGION = "us-east-1"
 
 @pytest.fixture
 def s3_store() -> Generator[NodeCatalogStore]:
+    """Provide s3_store fixture."""
     with mock_aws():
         client = boto3.client("s3", region_name=_S3_REGION)
         client.create_bucket(Bucket=_S3_BUCKET)
@@ -228,7 +238,10 @@ def s3_store() -> Generator[NodeCatalogStore]:
 
 
 class TestNodeCatalogStoreWithS3:
+    """Tests for NodeCatalogStoreWithS3."""
+
     def test_save_load_roundtrip(self, s3_store: NodeCatalogStore) -> None:
+        """Test save load roundtrip."""
         cat = _make_catalog(
             "1.20.0",
             datetime(2025, 1, 15, tzinfo=UTC),
@@ -245,9 +258,11 @@ class TestNodeCatalogStoreWithS3:
         assert len(loaded.entries) == 1
 
     def test_load_nonexistent_returns_none(self, s3_store: NodeCatalogStore) -> None:
+        """Test load nonexistent returns none."""
         assert s3_store.load_catalog("99.99.99") is None
 
     def test_list_catalogs_ordering(self, s3_store: NodeCatalogStore) -> None:
+        """Test list catalogs ordering."""
         dates = [
             ("1.18.0", datetime(2024, 11, 1, tzinfo=UTC)),
             ("1.20.0", datetime(2025, 1, 15, tzinfo=UTC)),
@@ -263,6 +278,7 @@ class TestNodeCatalogStoreWithS3:
         assert listing[2][0] == "1.18.0"
 
     def test_save_load_api_mappings(self, s3_store: NodeCatalogStore) -> None:
+        """Test save load api mappings."""
         mappings = [
             NodeApiMapping(
                 node_type="n8n-nodes-base.slack",
@@ -280,6 +296,7 @@ class TestNodeCatalogStoreWithS3:
         assert loaded[0].node_type == "n8n-nodes-base.slack"
 
     def test_empty_store(self, s3_store: NodeCatalogStore) -> None:
+        """Test empty store."""
         assert s3_store.list_catalogs() == []
         assert s3_store.build_lookup() == {}
         assert s3_store.load_api_mappings() == []

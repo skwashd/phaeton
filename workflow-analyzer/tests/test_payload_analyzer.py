@@ -36,6 +36,7 @@ def _make_workflow_with_node(
 
 
 def test_unbounded_list_warning() -> None:
+    """Test unbounded list warning."""
     wf, classified, graph = _make_workflow_with_node(
         "n8n-nodes-base.httpRequest",
         {"operation": "getAll", "returnAll": True},
@@ -48,6 +49,7 @@ def test_unbounded_list_warning() -> None:
 
 
 def test_no_warning_with_limit() -> None:
+    """Test no warning with limit."""
     wf, classified, graph = _make_workflow_with_node(
         "n8n-nodes-base.httpRequest",
         {"operation": "getAll", "limit": 100},
@@ -59,6 +61,7 @@ def test_no_warning_with_limit() -> None:
 
 
 def test_large_static_payload() -> None:
+    """Test large static payload."""
     # Create a large parameters dict
     large_params = {"data": "x" * 200_000}
     wf, classified, graph = _make_workflow_with_node("n8n-nodes-base.set", large_params)
@@ -70,6 +73,7 @@ def test_large_static_payload() -> None:
 
 
 def test_configurable_payload_limit() -> None:
+    """Test configurable payload limit."""
     # With a 1KB limit, even a moderate payload triggers warning
     params = {"data": "x" * 600}
     wf, classified, graph = _make_workflow_with_node("n8n-nodes-base.set", params)
@@ -81,6 +85,7 @@ def test_configurable_payload_limit() -> None:
 
 
 def test_simple_fixtures_minimal_warnings(fixtures_dir: Path) -> None:
+    """Test simple fixtures minimal warnings."""
     parser = WorkflowParser()
     classifier = NodeClassifier()
     analyzer = PayloadAnalyzer()
@@ -96,6 +101,7 @@ def test_simple_fixtures_minimal_warnings(fixtures_dir: Path) -> None:
 
 
 def test_getall_without_limit_or_returnall() -> None:
+    """Test getAll without limit or returnAll."""
     wf, classified, graph = _make_workflow_with_node(
         "n8n-nodes-base.httpRequest",
         {"operation": "getAll"},

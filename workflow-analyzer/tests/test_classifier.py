@@ -26,6 +26,7 @@ def _make_node(
 
 
 def test_classify_flow_control() -> None:
+    """Test classify flow control."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.if")
     result = classifier.classify(node)
@@ -33,6 +34,7 @@ def test_classify_flow_control() -> None:
 
 
 def test_classify_trigger() -> None:
+    """Test classify trigger."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.manualTrigger")
     result = classifier.classify(node)
@@ -40,6 +42,7 @@ def test_classify_trigger() -> None:
 
 
 def test_classify_trigger_suffix() -> None:
+    """Test classify trigger suffix."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.someCustomTrigger")
     result = classifier.classify(node)
@@ -47,6 +50,7 @@ def test_classify_trigger_suffix() -> None:
 
 
 def test_classify_aws_native() -> None:
+    """Test classify AWS native."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.awsS3")
     result = classifier.classify(node)
@@ -54,6 +58,7 @@ def test_classify_aws_native() -> None:
 
 
 def test_classify_email_send_as_aws_native() -> None:
+    """Test classify email send as AWS native."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.emailSend")
     result = classifier.classify(node)
@@ -61,6 +66,7 @@ def test_classify_email_send_as_aws_native() -> None:
 
 
 def test_classify_code_js_default() -> None:
+    """Test classify code JS default."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.code")
     result = classifier.classify(node)
@@ -68,6 +74,7 @@ def test_classify_code_js_default() -> None:
 
 
 def test_classify_code_js_explicit() -> None:
+    """Test classify code JS explicit."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.code", parameters={"language": "javaScript"})
     result = classifier.classify(node)
@@ -75,6 +82,7 @@ def test_classify_code_js_explicit() -> None:
 
 
 def test_classify_code_python() -> None:
+    """Test classify code Python."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.code", parameters={"language": "python"})
     result = classifier.classify(node)
@@ -82,6 +90,7 @@ def test_classify_code_python() -> None:
 
 
 def test_classify_http_request() -> None:
+    """Test classify HTTP request."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.httpRequest")
     result = classifier.classify(node)
@@ -89,6 +98,7 @@ def test_classify_http_request() -> None:
 
 
 def test_classify_picofun_base_node() -> None:
+    """Test classify PicoFun base node."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.slack")
     result = classifier.classify(node)
@@ -96,6 +106,7 @@ def test_classify_picofun_base_node() -> None:
 
 
 def test_classify_unsupported() -> None:
+    """Test classify unsupported."""
     classifier = NodeClassifier()
     node = _make_node("community-nodes.someNode")
     result = classifier.classify(node)
@@ -105,6 +116,7 @@ def test_classify_unsupported() -> None:
 
 
 def test_classify_google_sheets_unsupported() -> None:
+    """Test classify Google Sheets unsupported."""
     classifier = NodeClassifier()
     node = _make_node("n8n-nodes-base.googleSheets")
     result = classifier.classify(node)
@@ -114,6 +126,7 @@ def test_classify_google_sheets_unsupported() -> None:
 
 
 def test_classify_all(fixtures_dir: Path) -> None:
+    """Test classify all."""
     parser = WorkflowParser()
     wf = parser.parse_file(fixtures_dir / "simple_linear.json")
     classifier = NodeClassifier()
@@ -126,6 +139,7 @@ def test_classify_all(fixtures_dir: Path) -> None:
 
 
 def test_classify_all_no_unclassified(fixtures_dir: Path) -> None:
+    """Test classify all no unclassified."""
     parser = WorkflowParser()
     for name in ["simple_linear.json", "branching.json", "merge_workflow.json"]:
         wf = parser.parse_file(fixtures_dir / name)
@@ -138,6 +152,7 @@ def test_classify_all_no_unclassified(fixtures_dir: Path) -> None:
 
 
 def test_classify_branching_counts(fixtures_dir: Path) -> None:
+    """Test classify branching counts."""
     parser = WorkflowParser()
     wf = parser.parse_file(fixtures_dir / "branching.json")
     classifier = NodeClassifier()

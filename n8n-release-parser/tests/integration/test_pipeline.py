@@ -1,3 +1,5 @@
+"""Tests for the integration pipeline."""
+
 from __future__ import annotations
 
 import json
@@ -17,6 +19,7 @@ from n8n_release_parser.models import (
 
 
 def test_parse_diff_store_pipeline(tmp_path: Path) -> None:
+    """Test parse diff store pipeline."""
     desc_v1 = {
         "displayName": "Slack",
         "name": "n8n-nodes-base.slack",
@@ -159,6 +162,7 @@ def test_parse_diff_store_pipeline(tmp_path: Path) -> None:
 
 
 def test_spec_index_match_pipeline(tmp_path: Path) -> None:
+    """Test spec index match pipeline."""
     specs_dir = tmp_path / "specs"
     specs_dir.mkdir()
 
@@ -226,6 +230,7 @@ def test_spec_index_match_pipeline(tmp_path: Path) -> None:
 
 
 def test_priority_classification_pipeline() -> None:
+    """Test priority classification pipeline."""
     aws_node = NodeTypeEntry(
         node_type="n8n-nodes-base.awsS3",
         type_version=1,
@@ -296,6 +301,7 @@ def test_priority_classification_pipeline() -> None:
 
 
 def test_full_pipeline_with_store(tmp_path: Path) -> None:
+    """Test full pipeline with store."""
     set_desc = {
         "displayName": "Set",
         "name": "n8n-nodes-base.set",
@@ -437,6 +443,7 @@ def test_full_pipeline_with_store(tmp_path: Path) -> None:
 
 
 def test_cumulative_lookup(tmp_path: Path) -> None:
+    """Test cumulative lookup."""
     store = NodeCatalogStore(tmp_path / "store")
 
     entry_slack_v1 = NodeTypeEntry(

@@ -1,5 +1,7 @@
 """Tests for cross-node variable translator (Category B)."""
 
+from __future__ import annotations
+
 from n8n_to_sfn.models.analysis import (
     ClassifiedExpression,
     ClassifiedNode,
@@ -11,13 +13,17 @@ from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.variables import resolve_cross_node_references
 
 
-def _node(name, classification=NodeClassification.FLOW_CONTROL):
+def _node(
+    name: str, classification: NodeClassification = NodeClassification.FLOW_CONTROL
+) -> N8nNode:
+    """Create an N8nNode for testing."""
     return N8nNode(
         id=name, name=name, type="n8n-nodes-base.set", type_version=1, position=[0, 0]
     )
 
 
-def _cat_b_expr(original, refs=None):
+def _cat_b_expr(original: str, refs: list[str] | None = None) -> ClassifiedExpression:
+    """Create a Category B classified expression for testing."""
     return ClassifiedExpression(
         original=original,
         category=ExpressionCategory.REQUIRES_VARIABLES,
@@ -27,7 +33,10 @@ def _cat_b_expr(original, refs=None):
 
 
 class TestVariableResolution:
-    def test_single_cross_node_reference(self):
+    """Tests for cross-node variable resolution."""
+
+    def test_single_cross_node_reference(self) -> None:
+        """Test single cross-node reference resolution."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -51,7 +60,8 @@ class TestVariableResolution:
         assert original in result.expression_replacements
         assert result.expression_replacements[original] == "{% $lookupResult.id %}"
 
-    def test_multiple_references_same_node(self):
+    def test_multiple_references_same_node(self) -> None:
+        """Test multiple references to the same node."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -76,7 +86,8 @@ class TestVariableResolution:
         # Two replacements
         assert len(result.expression_replacements) == 2
 
-    def test_references_to_different_nodes(self):
+    def test_references_to_different_nodes(self) -> None:
+        """Test references to different nodes."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -101,7 +112,8 @@ class TestVariableResolution:
         assert "B" in result.assignments
         assert len(result.assignments) == 2
 
-    def test_variable_name_collision(self):
+    def test_variable_name_collision(self) -> None:
+        """Test variable name collision is handled."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -128,7 +140,8 @@ class TestVariableResolution:
         # Should have two distinct variable names
         assert len(var_names) == 2
 
-    def test_execution_id_mapping(self):
+    def test_execution_id_mapping(self) -> None:
+        """Test execution ID expression mapping."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -148,7 +161,8 @@ class TestVariableResolution:
             == "{% $states.context.Execution.Id %}"
         )
 
-    def test_legacy_node_syntax(self):
+    def test_legacy_node_syntax(self) -> None:
+        """Test legacy $node syntax resolution."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -170,7 +184,8 @@ class TestVariableResolution:
         assert original in result.expression_replacements
         assert "oldResult" in result.expression_replacements[original]
 
-    def test_last_accessor(self):
+    def test_last_accessor(self) -> None:
+        """Test last accessor resolution."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -191,7 +206,8 @@ class TestVariableResolution:
         original = "{{ $('Data').last().json.value }}"
         assert original in result.expression_replacements
 
-    def test_all_accessor(self):
+    def test_all_accessor(self) -> None:
+        """Test all accessor resolution."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
@@ -210,7 +226,8 @@ class TestVariableResolution:
         result = resolve_cross_node_references(analysis)
         assert "List" in result.assignments
 
-    def test_no_category_b_expressions(self):
+    def test_no_category_b_expressions(self) -> None:
+        """Test no Category B expressions produces empty result."""
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(

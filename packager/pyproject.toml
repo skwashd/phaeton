@@ -26,7 +26,7 @@ fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90
 unfixable = []
 
 [tool.ruff.lint.per-file-ignores]
-"test_*" = ["S101", "S105", "S106", "S108", "D100", "D101", "D102", "D103", "D104", "ANN"]
+"test_*" = ["S101", "S108"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

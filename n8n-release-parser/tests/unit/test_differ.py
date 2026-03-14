@@ -65,7 +65,10 @@ def _make_entry(
 
 
 class TestDiffCatalogs:
+    """Tests for DiffCatalogs."""
+
     def test_diff_identifies_added_nodes(self) -> None:
+        """Test diff identifies added nodes."""
         old = _make_catalog("1.0.0", entries=[])
         new_entry = _make_entry(node_type="n8n-nodes-base.slack", type_version=1)
         new = _make_catalog("1.1.0", entries=[new_entry])
@@ -83,6 +86,7 @@ class TestDiffCatalogs:
         assert result.changes[0].new_version == new_entry
 
     def test_diff_identifies_removed_nodes(self) -> None:
+        """Test diff identifies removed nodes."""
         old_entry = _make_entry(node_type="n8n-nodes-base.slack", type_version=1)
         old = _make_catalog("1.0.0", entries=[old_entry])
         new = _make_catalog("1.1.0", entries=[])
@@ -98,6 +102,7 @@ class TestDiffCatalogs:
         assert result.changes[0].old_version == old_entry
 
     def test_diff_identifies_modified_nodes(self) -> None:
+        """Test diff identifies modified nodes."""
         old_entry = _make_entry(
             node_type="n8n-nodes-base.slack",
             type_version=1,
@@ -125,6 +130,7 @@ class TestDiffCatalogs:
         assert any("display_name" in f for f in change.changed_fields)
 
     def test_diff_no_changes(self) -> None:
+        """Test diff no changes."""
         entry = _make_entry(node_type="n8n-nodes-base.slack", type_version=1)
         old = _make_catalog("1.0.0", entries=[entry])
         new = _make_catalog("1.1.0", entries=[entry])
@@ -143,7 +149,10 @@ class TestDiffCatalogs:
 
 
 class TestDiffNodeEntries:
+    """Tests for DiffNodeEntries."""
+
     def test_diff_node_entries_parameter_changes(self) -> None:
+        """Test diff node entries parameter changes."""
         old_entry = _make_entry(
             parameters=[
                 NodeParameter(
@@ -182,6 +191,7 @@ class TestDiffNodeEntries:
         assert "Changed default for parameter timeout: 30 -> 60" in changes
 
     def test_diff_node_entries_credential_changes(self) -> None:
+        """Test diff node entries credential changes."""
         old_entry = _make_entry(
             credential_types=[
                 CredentialType(name="slackOAuth", required=True),
@@ -201,6 +211,7 @@ class TestDiffNodeEntries:
         assert "Removed credential type: slackOAuth" in changes
 
     def test_diff_node_entries_operation_changes(self) -> None:
+        """Test diff node entries operation changes."""
         old_entry = _make_entry(
             resource_operations=[
                 ResourceOperation(
@@ -232,6 +243,7 @@ class TestDiffNodeEntries:
         assert "Removed operation: message:delete" in changes
 
     def test_diff_node_entries_no_changes(self) -> None:
+        """Test diff node entries no changes."""
         entry = _make_entry(
             parameters=[
                 NodeParameter(name="url", display_name="URL", type="string"),
@@ -249,6 +261,7 @@ class TestDiffNodeEntries:
         assert changes == []
 
     def test_diff_node_entries_parameter_type_change(self) -> None:
+        """Test diff node entries parameter type change."""
         old_entry = _make_entry(
             parameters=[
                 NodeParameter(name="value", display_name="Value", type="string"),
@@ -265,6 +278,7 @@ class TestDiffNodeEntries:
         assert "Changed type for parameter value: 'string' -> 'number'" in changes
 
     def test_diff_node_entries_request_defaults_change(self) -> None:
+        """Test diff node entries request defaults change."""
         old_entry = _make_entry(
             request_defaults={"baseURL": "https://api.example.com/v1"},
         )
@@ -283,7 +297,10 @@ class TestDiffNodeEntries:
 
 
 class TestBuildCumulativeCatalog:
+    """Tests for BuildCumulativeCatalog."""
+
     def test_build_cumulative_catalog_basic(self) -> None:
+        """Test build cumulative catalog basic."""
         entry_a = _make_entry(
             node_type="n8n-nodes-base.slack",
             type_version=1,
@@ -305,6 +322,7 @@ class TestBuildCumulativeCatalog:
         assert result[("n8n-nodes-base.github", 1)] == entry_b
 
     def test_build_cumulative_catalog_override(self) -> None:
+        """Test build cumulative catalog override."""
         old_entry = _make_entry(
             node_type="n8n-nodes-base.slack",
             type_version=1,
@@ -326,6 +344,7 @@ class TestBuildCumulativeCatalog:
         assert result[("n8n-nodes-base.slack", 1)].display_name == "Slack New"
 
     def test_build_cumulative_catalog_preserves_old_versions(self) -> None:
+        """Test build cumulative catalog preserves old versions."""
         entry_v1 = _make_entry(
             node_type="n8n-nodes-base.slack",
             type_version=1,

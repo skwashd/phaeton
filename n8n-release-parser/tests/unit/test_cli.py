@@ -41,7 +41,10 @@ def _make_catalog(
 
 
 class TestMainHelp:
+    """Tests for MainHelp."""
+
     def test_main_help(self) -> None:
+        """Test main help."""
         runner = CliRunner()
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
@@ -54,7 +57,10 @@ class TestMainHelp:
 
 
 class TestFetchReleases:
+    """Tests for FetchReleases."""
+
     def test_fetch_releases_help(self) -> None:
+        """Test fetch releases help."""
         runner = CliRunner()
         result = runner.invoke(app, ["fetch-releases", "--help"])
         assert result.exit_code == 0
@@ -63,7 +69,10 @@ class TestFetchReleases:
 
 
 class TestDiff:
+    """Tests for Diff."""
+
     def test_diff_missing_catalog(self, tmp_path: Path) -> None:
+        """Test diff missing catalog."""
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -73,6 +82,7 @@ class TestDiff:
         assert "not found" in result.output
 
     def test_diff_with_catalogs(self, tmp_path: Path) -> None:
+        """Test diff with catalogs."""
         store = NodeCatalogStore(tmp_path)
 
         old_entries = [
@@ -113,7 +123,10 @@ class TestDiff:
 
 
 class TestBuildIndex:
+    """Tests for BuildIndex."""
+
     def test_build_index(self, tmp_path: Path) -> None:
+        """Test build index."""
         specs_dir = tmp_path / "specs"
         specs_dir.mkdir()
 
@@ -136,6 +149,7 @@ class TestBuildIndex:
         assert output_path.exists()
 
     def test_build_index_empty_dir(self, tmp_path: Path) -> None:
+        """Test build index empty dir."""
         specs_dir = tmp_path / "empty_specs"
         specs_dir.mkdir()
 
@@ -150,7 +164,10 @@ class TestBuildIndex:
 
 
 class TestMatch:
+    """Tests for Match."""
+
     def test_match_missing_catalog(self, tmp_path: Path) -> None:
+        """Test match missing catalog."""
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -161,7 +178,10 @@ class TestMatch:
 
 
 class TestLookup:
+    """Tests for Lookup."""
+
     def test_lookup_not_found(self, tmp_path: Path) -> None:
+        """Test lookup not found."""
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -172,7 +192,10 @@ class TestLookup:
 
 
 class TestReport:
+    """Tests for Report."""
+
     def test_report_empty_store(self, tmp_path: Path) -> None:
+        """Test report empty store."""
         runner = CliRunner()
         result = runner.invoke(
             app,
@@ -183,7 +206,10 @@ class TestReport:
 
 
 class TestVerboseFlag:
+    """Tests for VerboseFlag."""
+
     def test_verbose_flag(self) -> None:
+        """Test verbose flag."""
         runner = CliRunner()
         result = runner.invoke(app, ["--verbose", "fetch-releases", "--help"])
         assert result.exit_code == 0
@@ -194,13 +220,18 @@ _S3_REGION = "us-east-1"
 
 
 class TestS3StoreDir:
+    """Tests for S3StoreDir."""
+
     def test_diff_with_s3_store_dir(self) -> None:
+        """Test diff with s3 store dir."""
         with mock_aws():
             client = boto3.client("s3", region_name=_S3_REGION)
             client.create_bucket(Bucket=_S3_BUCKET)
 
             backend = S3StorageBackend(
-                bucket=_S3_BUCKET, prefix="catalogs", region_name=_S3_REGION,
+                bucket=_S3_BUCKET,
+                prefix="catalogs",
+                region_name=_S3_REGION,
             )
             store = NodeCatalogStore(backend)
 
@@ -223,14 +254,18 @@ class TestS3StoreDir:
             result = runner.invoke(
                 app,
                 [
-                    "diff", "1.19.0", "1.20.0",
-                    "--store-dir", f"s3://{_S3_BUCKET}/catalogs",
+                    "diff",
+                    "1.19.0",
+                    "1.20.0",
+                    "--store-dir",
+                    f"s3://{_S3_BUCKET}/catalogs",
                 ],
             )
             assert result.exit_code == 0
             assert "Diff" in result.output
 
     def test_lookup_with_s3_store_dir(self) -> None:
+        """Test lookup with s3 store dir."""
         with mock_aws():
             client = boto3.client("s3", region_name=_S3_REGION)
             client.create_bucket(Bucket=_S3_BUCKET)
@@ -239,14 +274,17 @@ class TestS3StoreDir:
             result = runner.invoke(
                 app,
                 [
-                    "lookup", "n8n-nodes-base.nonexistent",
-                    "--store-dir", f"s3://{_S3_BUCKET}/catalogs",
+                    "lookup",
+                    "n8n-nodes-base.nonexistent",
+                    "--store-dir",
+                    f"s3://{_S3_BUCKET}/catalogs",
                 ],
             )
             assert result.exit_code == 0
             assert "No entries found" in result.output
 
     def test_report_with_s3_empty_store(self) -> None:
+        """Test report with s3 empty store."""
         with mock_aws():
             client = boto3.client("s3", region_name=_S3_REGION)
             client.create_bucket(Bucket=_S3_BUCKET)

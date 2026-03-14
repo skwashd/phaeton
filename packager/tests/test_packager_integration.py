@@ -242,7 +242,7 @@ def _complex_input() -> PackagerInput:
                     credential_type="oauth2",
                     associated_node_names=["Google Sheets"],
                 ),
-                token_endpoint_url="https://oauth2.googleapis.com/token",
+                token_endpoint_url="https://oauth2.googleapis.com/token",  # noqa: S106
                 scopes=["https://www.googleapis.com/auth/spreadsheets"],
             ),
         ],
@@ -281,7 +281,10 @@ def _complex_input() -> PackagerInput:
 
 
 class TestSimpleWorkflow:
-    def test_complete_output_structure(self, tmp_path):
+    """Tests for simple workflow packaging."""
+
+    def test_complete_output_structure(self, tmp_path: Path) -> None:
+        """Test that all expected output files are created."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_simple_input(), tmp_path / "output")
 
@@ -313,7 +316,8 @@ class TestSimpleWorkflow:
         assert (output / "reports" / "conversion_report.md").exists()
         assert (output / "README.md").exists()
 
-    def test_no_requirements_txt(self, tmp_path):
+    def test_no_requirements_txt(self, tmp_path: Path) -> None:
+        """Test that no requirements.txt files are generated anywhere."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_simple_input(), tmp_path / "output")
 
@@ -321,7 +325,8 @@ class TestSimpleWorkflow:
         for req in output.rglob("requirements.txt"):
             pytest.fail(f"Found requirements.txt at {req}")
 
-    def test_cdk_files_syntactically_valid(self, tmp_path):
+    def test_cdk_files_syntactically_valid(self, tmp_path: Path) -> None:
+        """Test that generated CDK files are syntactically valid Python."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_simple_input(), tmp_path / "output")
 
@@ -330,7 +335,10 @@ class TestSimpleWorkflow:
 
 
 class TestComplexWorkflow:
-    def test_complete_output_structure(self, tmp_path):
+    """Tests for complex workflow packaging."""
+
+    def test_complete_output_structure(self, tmp_path: Path) -> None:
+        """Test that all expected output files are created for complex input."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_complex_input(), tmp_path / "output")
 
@@ -349,7 +357,8 @@ class TestComplexWorkflow:
         assert (output / "lambdas" / "code_transform" / "handler.js").exists()
         assert (output / "lambdas" / "code_transform" / "package.json").exists()
 
-    def test_migrate_md_content(self, tmp_path):
+    def test_migrate_md_content(self, tmp_path: Path) -> None:
+        """Test that MIGRATE.md contains expected content."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_complex_input(), tmp_path / "output")
 
@@ -359,7 +368,8 @@ class TestComplexWorkflow:
         assert "uv run cdk deploy" in content
         assert "AI-Translated" in content
 
-    def test_conversion_report_json(self, tmp_path):
+    def test_conversion_report_json(self, tmp_path: Path) -> None:
+        """Test that conversion_report.json has correct content."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_complex_input(), tmp_path / "output")
 
@@ -369,7 +379,8 @@ class TestComplexWorkflow:
         assert report["total_nodes"] == 10
         assert report["confidence_score"] == 0.75
 
-    def test_sub_workflow_in_cdk_json(self, tmp_path):
+    def test_sub_workflow_in_cdk_json(self, tmp_path: Path) -> None:
+        """Test that sub-workflow references appear in cdk.json."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_complex_input(), tmp_path / "output")
 
@@ -377,7 +388,8 @@ class TestComplexWorkflow:
         assert "context" in cdk_config
         assert any("sub_process" in k for k in cdk_config["context"])
 
-    def test_workflow_stack_has_all_constructs(self, tmp_path):
+    def test_workflow_stack_has_all_constructs(self, tmp_path: Path) -> None:
+        """Test that the workflow stack includes all expected constructs."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_complex_input(), tmp_path / "output")
 
@@ -391,7 +403,10 @@ class TestComplexWorkflow:
 
 
 class TestErrorHandling:
-    def test_invalid_asl_raises_early(self, tmp_path):
+    """Tests for error handling in the packager."""
+
+    def test_invalid_asl_raises_early(self, tmp_path: Path) -> None:
+        """Test that invalid ASL raises PackagerError early."""
         inp = _simple_input().model_copy(
             update={
                 "state_machine": StateMachineDefinition(

@@ -18,6 +18,7 @@ REGION = "us-east-1"
 
 @pytest.fixture
 def s3_backend() -> Generator[S3StorageBackend]:
+    """Provide s3_backend fixture."""
     with mock_aws():
         client = boto3.client("s3", region_name=REGION)
         client.create_bucket(Bucket=BUCKET)
@@ -29,7 +30,10 @@ def s3_backend() -> Generator[S3StorageBackend]:
 
 
 class TestS3StorageBackend:
+    """Tests for S3StorageBackend."""
+
     def test_roundtrip(self, s3_backend: S3StorageBackend) -> None:
+        """Test roundtrip."""
         uri = s3_backend.write("hello.json", '{"key": "value"}')
         assert uri == f"s3://{BUCKET}/{PREFIX}/hello.json"
 
@@ -37,9 +41,11 @@ class TestS3StorageBackend:
         assert content == '{"key": "value"}'
 
     def test_read_nonexistent_returns_none(self, s3_backend: S3StorageBackend) -> None:
+        """Test read nonexistent returns none."""
         assert s3_backend.read("missing.json") is None
 
     def test_delete(self, s3_backend: S3StorageBackend) -> None:
+        """Test delete."""
         s3_backend.write("to_delete.json", "data")
         assert s3_backend.exists("to_delete.json")
 
@@ -48,9 +54,11 @@ class TestS3StorageBackend:
         assert s3_backend.read("to_delete.json") is None
 
     def test_delete_nonexistent_is_noop(self, s3_backend: S3StorageBackend) -> None:
+        """Test delete nonexistent is noop."""
         s3_backend.delete("nonexistent.json")  # should not raise
 
     def test_list_keys(self, s3_backend: S3StorageBackend) -> None:
+        """Test list keys."""
         s3_backend.write("catalog_1_0_0.json", "{}")
         s3_backend.write("catalog_2_0_0.json", "{}")
         s3_backend.write("api_mappings.json", "{}")
@@ -62,14 +70,17 @@ class TestS3StorageBackend:
         assert catalog_keys == ["catalog_1_0_0.json", "catalog_2_0_0.json"]
 
     def test_exists(self, s3_backend: S3StorageBackend) -> None:
+        """Test exists."""
         assert not s3_backend.exists("nope.json")
         s3_backend.write("yep.json", "data")
         assert s3_backend.exists("yep.json")
 
     def test_satisfies_protocol(self, s3_backend: S3StorageBackend) -> None:
+        """Test satisfies protocol."""
         assert isinstance(s3_backend, StorageBackend)
 
     def test_no_prefix(self) -> None:
+        """Test no prefix."""
         with mock_aws():
             client = boto3.client("s3", region_name=REGION)
             client.create_bucket(Bucket=BUCKET)

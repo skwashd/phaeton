@@ -1,3 +1,5 @@
+"""Tests for the models module."""
+
 import json
 from datetime import UTC, datetime
 
@@ -23,7 +25,10 @@ from n8n_release_parser.models import (
 
 
 class TestNodeParameter:
+    """Tests for NodeParameter."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         param = NodeParameter(name="channel", display_name="Channel", type="string")
         assert param.name == "channel"
         assert param.display_name == "Channel"
@@ -33,6 +38,7 @@ class TestNodeParameter:
         assert param.has_expressions is False
 
     def test_with_options(self) -> None:
+        """Test with options."""
         param = NodeParameter(
             name="operation",
             display_name="Operation",
@@ -45,24 +51,32 @@ class TestNodeParameter:
         assert param.required is True
 
     def test_frozen(self) -> None:
+        """Test frozen."""
         param = NodeParameter(name="x", display_name="X", type="string")
         with pytest.raises(ValidationError):
             param.name = "y"
 
 
 class TestCredentialType:
+    """Tests for CredentialType."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         cred = CredentialType(name="slackApi")
         assert cred.name == "slackApi"
         assert cred.required is True
 
     def test_optional_credential(self) -> None:
+        """Test optional credential."""
         cred = CredentialType(name="slackApi", required=False)
         assert cred.required is False
 
 
 class TestResourceOperation:
+    """Tests for ResourceOperation."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         op = ResourceOperation(
             resource="message", operation="send", description="Send a message"
         )
@@ -71,7 +85,10 @@ class TestResourceOperation:
 
 
 class TestNodeTypeEntry:
+    """Tests for NodeTypeEntry."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         entry = NodeTypeEntry(
             node_type="n8n-nodes-base.slack",
             type_version=2,
@@ -90,6 +107,7 @@ class TestNodeTypeEntry:
         assert len(entry.resource_operations) == 1
 
     def test_defaults(self) -> None:
+        """Test defaults."""
         entry = NodeTypeEntry(
             node_type="n8n-nodes-base.set",
             type_version=1,
@@ -101,6 +119,7 @@ class TestNodeTypeEntry:
         assert entry.request_defaults is None
 
     def test_serialization_roundtrip(self) -> None:
+        """Test serialization roundtrip."""
         entry = NodeTypeEntry(
             node_type="n8n-nodes-base.slack",
             type_version=2,
@@ -115,7 +134,10 @@ class TestNodeTypeEntry:
 
 
 class TestNodeCatalog:
+    """Tests for NodeCatalog."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         now = datetime.now(tz=UTC)
         cat = NodeCatalog(
             n8n_version="1.20.0",
@@ -134,6 +156,7 @@ class TestNodeCatalog:
         assert cat.parser_version == "0.1.0"
 
     def test_serialization_roundtrip(self) -> None:
+        """Test serialization roundtrip."""
         now = datetime.now(tz=UTC)
         cat = NodeCatalog(n8n_version="1.20.0", release_date=now)
         data = json.loads(cat.model_dump_json())
@@ -142,14 +165,20 @@ class TestNodeCatalog:
 
 
 class TestChangeType:
+    """Tests for ChangeType."""
+
     def test_values(self) -> None:
+        """Test values."""
         assert ChangeType.ADDED.value == "added"
         assert ChangeType.REMOVED.value == "removed"
         assert ChangeType.MODIFIED.value == "modified"
 
 
 class TestNodeChange:
+    """Tests for NodeChange."""
+
     def test_added(self) -> None:
+        """Test added."""
         new_entry = NodeTypeEntry(
             node_type="n8n-nodes-base.newNode",
             type_version=1,
@@ -164,6 +193,7 @@ class TestNodeChange:
         assert change.new_version is not None
 
     def test_modified(self) -> None:
+        """Test modified."""
         change = NodeChange(
             node_type="n8n-nodes-base.slack",
             change_type=ChangeType.MODIFIED,
@@ -173,7 +203,10 @@ class TestNodeChange:
 
 
 class TestReleaseDiff:
+    """Tests for ReleaseDiff."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         diff = ReleaseDiff(
             from_version="1.19.0",
             to_version="1.20.0",
@@ -186,7 +219,10 @@ class TestReleaseDiff:
 
 
 class TestSpecEndpoint:
+    """Tests for SpecEndpoint."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         ep = SpecEndpoint(
             resource="messages",
             operation="postMessage",
@@ -196,7 +232,10 @@ class TestSpecEndpoint:
 
 
 class TestApiSpecEntry:
+    """Tests for ApiSpecEntry."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         entry = ApiSpecEntry(
             spec_filename="slack-web-api-v2.json",
             service_name="Slack",
@@ -209,7 +248,10 @@ class TestApiSpecEntry:
 
 
 class TestApiSpecIndex:
+    """Tests for ApiSpecIndex."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         now = datetime.now(tz=UTC)
         index = ApiSpecIndex(
             entries=[
@@ -223,6 +265,7 @@ class TestApiSpecIndex:
         assert len(index.entries) == 1
 
     def test_serialization_roundtrip(self) -> None:
+        """Test serialization roundtrip."""
         now = datetime.now(tz=UTC)
         index = ApiSpecIndex(index_timestamp=now)
         data = json.loads(index.model_dump_json())
@@ -231,7 +274,10 @@ class TestApiSpecIndex:
 
 
 class TestNodeApiMapping:
+    """Tests for NodeApiMapping."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         mapping = NodeApiMapping(
             node_type="n8n-nodes-base.slack",
             type_version=2,
@@ -250,6 +296,7 @@ class TestNodeApiMapping:
         assert len(mapping.operation_mappings) == 2
 
     def test_to_plan_json(self) -> None:
+        """Test to plan json."""
         mapping = NodeApiMapping(
             node_type="n8n-nodes-base.slack",
             type_version=2,
@@ -276,6 +323,7 @@ class TestNodeApiMapping:
         assert result["specCoverage"] == pytest.approx(0.92)
 
     def test_plan_json_is_serializable(self) -> None:
+        """Test plan json is serializable."""
         mapping = NodeApiMapping(
             node_type="n8n-nodes-base.slack",
             type_version=2,
@@ -288,6 +336,7 @@ class TestNodeApiMapping:
         assert parsed["nodeType"] == "n8n-nodes-base.slack"
 
     def test_serialization_roundtrip(self) -> None:
+        """Test serialization roundtrip."""
         mapping = NodeApiMapping(
             node_type="n8n-nodes-base.slack",
             type_version=2,
@@ -302,7 +351,10 @@ class TestNodeApiMapping:
 
 
 class TestNodeClassification:
+    """Tests for NodeClassification."""
+
     def test_all_values(self) -> None:
+        """Test all values."""
         expected = {
             "AWS_NATIVE",
             "FLOW_CONTROL",
@@ -318,7 +370,10 @@ class TestNodeClassification:
 
 
 class TestNpmVersionInfo:
+    """Tests for NpmVersionInfo."""
+
     def test_construction(self) -> None:
+        """Test construction."""
         info = NpmVersionInfo(
             version="1.20.0",
             publish_date=datetime(2025, 1, 15, tzinfo=UTC),
@@ -327,5 +382,6 @@ class TestNpmVersionInfo:
         assert info.version == "1.20.0"
 
     def test_validation_rejects_missing_fields(self) -> None:
+        """Test validation rejects missing fields."""
         with pytest.raises(ValidationError):
             NpmVersionInfo(version="1.0.0")  # type: ignore[call-arg]

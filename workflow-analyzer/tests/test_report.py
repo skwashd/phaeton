@@ -33,6 +33,7 @@ def _generate_report(fixtures_dir: Path, name: str) -> ConversionReport:
 
 
 def test_report_simple_linear(fixtures_dir: Path) -> None:
+    """Test report simple linear."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     assert report.total_nodes == 4
     assert report.source_workflow_name == "Simple Linear Workflow"
@@ -40,29 +41,34 @@ def test_report_simple_linear(fixtures_dir: Path) -> None:
 
 
 def test_report_confidence_between_0_and_100(fixtures_dir: Path) -> None:
+    """Test report confidence between 0 and 100."""
     for name in ["simple_linear.json", "branching.json", "merge_workflow.json"]:
         report = _generate_report(fixtures_dir, name)
         assert 0 <= report.confidence_score <= 100
 
 
 def test_report_no_unsupported_in_fixtures(fixtures_dir: Path) -> None:
+    """Test report no unsupported in fixtures."""
     for name in ["simple_linear.json", "branching.json", "merge_workflow.json"]:
         report = _generate_report(fixtures_dir, name)
         assert len(report.unsupported_nodes) == 0
 
 
 def test_report_trigger_nodes(fixtures_dir: Path) -> None:
+    """Test report trigger nodes."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     assert len(report.trigger_nodes) == 1
     assert report.trigger_nodes[0].node.name == "Manual Trigger"
 
 
 def test_report_credentials(fixtures_dir: Path) -> None:
+    """Test report credentials."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     assert "httpBasicAuth" in report.required_credentials
 
 
 def test_report_graph_metadata(fixtures_dir: Path) -> None:
+    """Test report graph metadata."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     assert "root_nodes" in report.graph_metadata
     assert "leaf_nodes" in report.graph_metadata
@@ -70,6 +76,7 @@ def test_report_graph_metadata(fixtures_dir: Path) -> None:
 
 
 def test_markdown_renderer(fixtures_dir: Path) -> None:
+    """Test markdown renderer."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     md = markdown_renderer.render(report)
     assert "# Conversion Feasibility Report" in md
@@ -81,6 +88,7 @@ def test_markdown_renderer(fixtures_dir: Path) -> None:
 
 
 def test_json_renderer_roundtrip(fixtures_dir: Path) -> None:
+    """Test JSON renderer roundtrip."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     json_str = json_renderer.render(report)
     data = json.loads(json_str)
@@ -91,17 +99,20 @@ def test_json_renderer_roundtrip(fixtures_dir: Path) -> None:
 
 
 def test_report_cross_references(fixtures_dir: Path) -> None:
+    """Test report cross references."""
     report = _generate_report(fixtures_dir, "cross_references.json")
     assert len(report.cross_node_references) > 0
 
 
 def test_report_branching(fixtures_dir: Path) -> None:
+    """Test report branching."""
     report = _generate_report(fixtures_dir, "branching.json")
     assert report.total_nodes == 5
     assert len(report.classified_nodes) == 5
 
 
 def test_markdown_cross_references(fixtures_dir: Path) -> None:
+    """Test markdown cross references."""
     report = _generate_report(fixtures_dir, "cross_references.json")
     md = markdown_renderer.render(report)
     assert "## Cross-Node References" in md
@@ -109,6 +120,7 @@ def test_markdown_cross_references(fixtures_dir: Path) -> None:
 
 
 def test_markdown_credentials(fixtures_dir: Path) -> None:
+    """Test markdown credentials."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     md = markdown_renderer.render(report)
     assert "## Required Credentials" in md
@@ -116,12 +128,14 @@ def test_markdown_credentials(fixtures_dir: Path) -> None:
 
 
 def test_markdown_api_clients(fixtures_dir: Path) -> None:
+    """Test markdown API clients."""
     report = _generate_report(fixtures_dir, "simple_linear.json")
     md = markdown_renderer.render(report)
     assert "## Required API Clients" in md
 
 
 def test_markdown_low_confidence() -> None:
+    """Test markdown low confidence."""
     from datetime import UTC, datetime
 
     from workflow_analyzer.models.classification import ClassifiedNode, NodeCategory
@@ -167,6 +181,7 @@ def test_markdown_low_confidence() -> None:
 
 
 def test_markdown_moderate_confidence() -> None:
+    """Test markdown moderate confidence."""
     from datetime import UTC, datetime
 
     report = ConversionReport(

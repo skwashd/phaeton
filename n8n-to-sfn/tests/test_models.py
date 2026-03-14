@@ -1,5 +1,7 @@
 """Tests for Pydantic models (n8n input, ASL output, analysis input)."""
 
+from __future__ import annotations
+
 import jsonschema
 import pytest
 from pydantic import ValidationError
@@ -40,6 +42,7 @@ from n8n_to_sfn.models.n8n import (
 
 
 def _minimal_workflow() -> dict:
+    """Create a minimal workflow dict."""
     return {
         "nodes": [
             {
@@ -55,6 +58,7 @@ def _minimal_workflow() -> dict:
 
 
 def _multi_node_workflow() -> dict:
+    """Create a multi-node workflow dict."""
     return {
         "name": "Test Workflow",
         "nodes": [
@@ -89,14 +93,18 @@ def _multi_node_workflow() -> dict:
 
 
 class TestN8nModels:
-    def test_parse_minimal_workflow(self):
+    """Tests for n8n Pydantic models."""
+
+    def test_parse_minimal_workflow(self) -> None:
+        """Test parsing minimal workflow."""
         wf = N8nWorkflow.model_validate(_minimal_workflow())
         assert len(wf.nodes) == 1
         assert wf.nodes[0].name == "Start"
         assert wf.nodes[0].type == "n8n-nodes-base.manualTrigger"
         assert wf.connections == {}
 
-    def test_parse_multi_node_workflow(self):
+    def test_parse_multi_node_workflow(self) -> None:
+        """Test parsing multi-node workflow."""
         wf = N8nWorkflow.model_validate(_multi_node_workflow())
         assert len(wf.nodes) == 2
         assert wf.name == "Test Workflow"
@@ -116,25 +124,30 @@ class TestN8nModels:
         assert conns[0].type == "main"
         assert conns[0].index == 0
 
-    def test_settings_parsed(self):
+    def test_settings_parsed(self) -> None:
+        """Test workflow settings are parsed."""
         wf = N8nWorkflow.model_validate(_multi_node_workflow())
         assert wf.settings is not None
         assert wf.settings.execution_order == "v1"
         assert wf.settings.timezone == "UTC"
 
-    def test_invalid_workflow_missing_nodes(self):
+    def test_invalid_workflow_missing_nodes(self) -> None:
+        """Test invalid workflow missing nodes raises error."""
         with pytest.raises(ValidationError):
             N8nWorkflow.model_validate({"connections": {}})
 
-    def test_invalid_workflow_missing_connections(self):
+    def test_invalid_workflow_missing_connections(self) -> None:
+        """Test invalid workflow missing connections raises error."""
         with pytest.raises(ValidationError):
             N8nWorkflow.model_validate({"nodes": []})
 
-    def test_invalid_node_missing_required(self):
+    def test_invalid_node_missing_required(self) -> None:
+        """Test invalid node missing required fields raises error."""
         with pytest.raises(ValidationError):
             N8nNode.model_validate({"id": "1", "name": "Test"})
 
-    def test_round_trip(self):
+    def test_round_trip(self) -> None:
+        """Test workflow round-trip serialization."""
         data = _multi_node_workflow()
         wf = N8nWorkflow.model_validate(data)
         json_str = wf.model_dump_json(by_alias=True)
@@ -146,7 +159,8 @@ class TestN8nModels:
             assert n1.name == n2.name
             assert n1.type == n2.type
 
-    def test_connection_target_model(self):
+    def test_connection_target_model(self) -> None:
+        """Test connection target model."""
         ct = N8nConnectionTarget(node="Next", type="main", index=0)
         assert ct.node == "Next"
         assert ct.type == "main"
@@ -159,7 +173,10 @@ class TestN8nModels:
 
 
 class TestASLModels:
-    def test_pass_state_serialize(self, asl_schema):
+    """Tests for ASL Pydantic models."""
+
+    def test_pass_state_serialize(self, asl_schema: dict) -> None:
+        """Test Pass state serialization."""
         state = PassState(end=True)
         dumped = state.model_dump(by_alias=True)
         assert dumped["Type"] == "Pass"
@@ -167,7 +184,8 @@ class TestASLModels:
         sm = StateMachine(start_at="S", states={"S": state})
         self._validate(sm, asl_schema)
 
-    def test_task_state_serialize(self, asl_schema):
+    def test_task_state_serialize(self, asl_schema: dict) -> None:
+        """Test Task state serialization."""
         state = TaskState(
             resource="arn:aws:states:::aws-sdk:s3:getObject",
             arguments={"Bucket": "b", "Key": "k"},
@@ -180,7 +198,8 @@ class TestASLModels:
         sm = StateMachine(start_at="S", states={"S": state})
         self._validate(sm, asl_schema)
 
-    def test_choice_state_jsonata(self, asl_schema):
+    def test_choice_state_jsonata(self, asl_schema: dict) -> None:
+        """Test Choice state with JSONata condition."""
         rule = ChoiceRule(condition="$states.input.x > 0", next="Pos")
         state = ChoiceState(
             choices=[rule],
@@ -199,7 +218,8 @@ class TestASLModels:
         )
         self._validate(sm, asl_schema)
 
-    def test_wait_state_seconds(self, asl_schema):
+    def test_wait_state_seconds(self, asl_schema: dict) -> None:
+        """Test Wait state with seconds."""
         state = WaitState(seconds=30, next="Done")
         dumped = state.model_dump(by_alias=True)
         assert dumped["Seconds"] == 30
@@ -210,19 +230,22 @@ class TestASLModels:
         )
         self._validate(sm, asl_schema)
 
-    def test_wait_state_timestamp(self, asl_schema):
+    def test_wait_state_timestamp(self, asl_schema: dict) -> None:
+        """Test Wait state with timestamp."""
         state = WaitState(timestamp="2025-01-01T00:00:00Z", end=True)
         dumped = state.model_dump(by_alias=True)
         assert dumped["Timestamp"] == "2025-01-01T00:00:00Z"
 
-    def test_succeed_state(self, asl_schema):
+    def test_succeed_state(self, asl_schema: dict) -> None:
+        """Test Succeed state serialization."""
         state = SucceedState()
         dumped = state.model_dump(by_alias=True)
         assert dumped["Type"] == "Succeed"
         sm = StateMachine(start_at="S", states={"S": state})
         self._validate(sm, asl_schema)
 
-    def test_fail_state(self, asl_schema):
+    def test_fail_state(self, asl_schema: dict) -> None:
+        """Test Fail state serialization."""
         state = FailState(error="CustomError", cause="Something went wrong")
         dumped = state.model_dump(by_alias=True)
         assert dumped["Error"] == "CustomError"
@@ -230,7 +253,8 @@ class TestASLModels:
         sm = StateMachine(start_at="F", states={"F": state})
         self._validate(sm, asl_schema)
 
-    def test_parallel_state(self, asl_schema):
+    def test_parallel_state(self, asl_schema: dict) -> None:
+        """Test Parallel state serialization."""
         branch1 = StateMachine(
             start_at="A",
             states={"A": PassState(end=True)},
@@ -247,7 +271,8 @@ class TestASLModels:
         sm = StateMachine(start_at="P", states={"P": state})
         self._validate(sm, asl_schema)
 
-    def test_map_state(self, asl_schema):
+    def test_map_state(self, asl_schema: dict) -> None:
+        """Test Map state serialization."""
         proc = ItemProcessor(
             processor_config=ProcessorConfig(mode="INLINE"),
             start_at="DoWork",
@@ -264,7 +289,8 @@ class TestASLModels:
         sm = StateMachine(start_at="M", states={"M": state})
         self._validate(sm, asl_schema)
 
-    def test_retry_config(self):
+    def test_retry_config(self) -> None:
+        """Test RetryConfig serialization."""
         retry = RetryConfig(
             error_equals=["States.TaskFailed"],
             interval_seconds=2,
@@ -278,7 +304,8 @@ class TestASLModels:
         assert dumped["IntervalSeconds"] == 2
         assert dumped["JitterStrategy"] == "FULL"
 
-    def test_catch_config(self):
+    def test_catch_config(self) -> None:
+        """Test CatchConfig serialization."""
         catch = CatchConfig(
             error_equals=["States.ALL"],
             next="HandleError",
@@ -287,7 +314,8 @@ class TestASLModels:
         assert dumped["ErrorEquals"] == ["States.ALL"]
         assert dumped["Next"] == "HandleError"
 
-    def test_task_with_retry_and_catch(self, asl_schema):
+    def test_task_with_retry_and_catch(self, asl_schema: dict) -> None:
+        """Test Task state with retry and catch."""
         state = TaskState(
             resource="arn:aws:states:::lambda:invoke",
             retry=[
@@ -314,7 +342,8 @@ class TestASLModels:
         )
         self._validate(sm, asl_schema)
 
-    def test_complete_state_machine(self, asl_schema):
+    def test_complete_state_machine(self, asl_schema: dict) -> None:
+        """Test complete state machine serialization."""
         sm = StateMachine(
             comment="A complete workflow",
             start_at="Start",
@@ -336,19 +365,22 @@ class TestASLModels:
         )
         self._validate(sm, asl_schema)
 
-    def test_query_language_jsonata(self, asl_schema):
+    def test_query_language_jsonata(self, asl_schema: dict) -> None:
+        """Test query language is JSONata."""
         sm = StateMachine(start_at="S", states={"S": PassState(end=True)})
         dumped = sm.model_dump(by_alias=True)
         assert dumped["QueryLanguage"] == "JSONata"
         self._validate(sm, asl_schema)
 
-    def test_state_must_have_next_or_end(self):
+    def test_state_must_have_next_or_end(self) -> None:
+        """Test state without next or end."""
         state = PassState()
         dumped = state.model_dump(by_alias=True)
         assert "Next" not in dumped
         assert "End" not in dumped
 
-    def test_assign_on_states(self, asl_schema):
+    def test_assign_on_states(self, asl_schema: dict) -> None:
+        """Test Assign on states."""
         state = PassState(
             assign={"myVar": "hello"},
             end=True,
@@ -358,7 +390,8 @@ class TestASLModels:
         sm = StateMachine(start_at="S", states={"S": state})
         self._validate(sm, asl_schema)
 
-    def test_output_jsonata_on_pass(self, asl_schema):
+    def test_output_jsonata_on_pass(self, asl_schema: dict) -> None:
+        """Test Output JSONata on Pass state."""
         state = PassState(
             output="{% $states.input.name %}",
             end=True,
@@ -369,6 +402,7 @@ class TestASLModels:
         self._validate(sm, asl_schema)
 
     def _validate(self, sm: StateMachine, schema: dict) -> None:
+        """Validate state machine against ASL schema."""
         asl_json = sm.model_dump(by_alias=True)
         jsonschema.validate(instance=asl_json, schema=schema)
 
@@ -379,9 +413,12 @@ class TestASLModels:
 
 
 class TestAnalysisModels:
+    """Tests for analysis Pydantic models."""
+
     def _make_node(
         self, name: str = "Test", node_type: str = "n8n-nodes-base.set"
     ) -> N8nNode:
+        """Create an N8nNode for testing."""
         return N8nNode(
             id="1",
             name=name,
@@ -390,17 +427,20 @@ class TestAnalysisModels:
             position=[0, 0],
         )
 
-    def test_node_classification_values(self):
+    def test_node_classification_values(self) -> None:
+        """Test NodeClassification enum values."""
         assert NodeClassification.AWS_NATIVE == "AWS_NATIVE"
         assert NodeClassification.FLOW_CONTROL == "FLOW_CONTROL"
         assert NodeClassification.UNSUPPORTED == "UNSUPPORTED"
 
-    def test_expression_category_values(self):
+    def test_expression_category_values(self) -> None:
+        """Test ExpressionCategory enum values."""
         assert ExpressionCategory.JSONATA_DIRECT == "JSONATA_DIRECT"
         assert ExpressionCategory.REQUIRES_VARIABLES == "REQUIRES_VARIABLES"
         assert ExpressionCategory.REQUIRES_LAMBDA == "REQUIRES_LAMBDA"
 
-    def test_classified_expression(self):
+    def test_classified_expression(self) -> None:
+        """Test ClassifiedExpression construction."""
         expr = ClassifiedExpression(
             original="{{ $json.name }}",
             category=ExpressionCategory.JSONATA_DIRECT,
@@ -410,7 +450,8 @@ class TestAnalysisModels:
         assert expr.original == "{{ $json.name }}"
         assert expr.category == ExpressionCategory.JSONATA_DIRECT
 
-    def test_classified_node(self):
+    def test_classified_node(self) -> None:
+        """Test ClassifiedNode construction."""
         node = self._make_node()
         cn = ClassifiedNode(
             node=node,
@@ -419,7 +460,8 @@ class TestAnalysisModels:
         )
         assert cn.classification == NodeClassification.FLOW_CONTROL
 
-    def test_classified_node_with_api_spec(self):
+    def test_classified_node_with_api_spec(self) -> None:
+        """Test ClassifiedNode with api_spec."""
         node = self._make_node(node_type="n8n-nodes-base.slack")
         cn = ClassifiedNode(
             node=node,
@@ -430,7 +472,8 @@ class TestAnalysisModels:
         assert cn.api_spec == "slack-api.yaml"
         assert cn.operation_mappings is not None
 
-    def test_dependency_edge(self):
+    def test_dependency_edge(self) -> None:
+        """Test DependencyEdge construction."""
         edge = DependencyEdge(
             from_node="A",
             to_node="B",
@@ -440,7 +483,8 @@ class TestAnalysisModels:
         assert edge.to_node == "B"
         assert edge.edge_type == "CONNECTION"
 
-    def test_data_reference_edge(self):
+    def test_data_reference_edge(self) -> None:
+        """Test DependencyEdge with DATA_REFERENCE type."""
         edge = DependencyEdge(
             from_node="Lookup",
             to_node="Merge",
@@ -448,7 +492,8 @@ class TestAnalysisModels:
         )
         assert edge.edge_type == "DATA_REFERENCE"
 
-    def test_workflow_analysis(self):
+    def test_workflow_analysis(self) -> None:
+        """Test WorkflowAnalysis construction."""
         node = self._make_node("Trigger", "n8n-nodes-base.manualTrigger")
         cn = ClassifiedNode(
             node=node,
@@ -463,7 +508,8 @@ class TestAnalysisModels:
         assert len(analysis.classified_nodes) == 1
         assert analysis.confidence_score == 0.9
 
-    def test_workflow_analysis_mixed_classifications(self):
+    def test_workflow_analysis_mixed_classifications(self) -> None:
+        """Test WorkflowAnalysis with mixed node classifications."""
         nodes = [
             ClassifiedNode(
                 node=self._make_node("Trigger", "n8n-nodes-base.scheduleTrigger"),
@@ -504,7 +550,8 @@ class TestAnalysisModels:
         assert len(analysis.dependency_edges) == 2
         assert analysis.variables_needed["lookupResult"] == "S3 Get"
 
-    def test_round_trip(self):
+    def test_round_trip(self) -> None:
+        """Test WorkflowAnalysis round-trip serialization."""
         node = self._make_node()
         cn = ClassifiedNode(
             node=node,

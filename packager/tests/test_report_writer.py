@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from n8n_to_sfn_packager.models.inputs import (
     ConversionReport,
@@ -61,7 +62,7 @@ def _make_input(
                     credential_type="oauth2",
                     associated_node_names=["Google Sheets"],
                 ),
-                token_endpoint_url="https://oauth2.googleapis.com/token",
+                token_endpoint_url="https://oauth2.googleapis.com/token",  # noqa: S106
             ),
         ],
         triggers=[
@@ -114,7 +115,10 @@ def _make_ssm_params() -> list[SSMParameterDefinition]:
 
 
 class TestMigrateMd:
-    def test_contains_all_sections(self, tmp_path):
+    """Tests for MIGRATE.md generation."""
+
+    def test_contains_all_sections(self, tmp_path: Path) -> None:
+        """Test that MIGRATE.md contains all expected sections."""
         writer = ReportWriter()
         inp = _make_input()
         path = writer.write_migrate_md(inp, _make_ssm_params(), tmp_path)
@@ -124,7 +128,8 @@ class TestMigrateMd:
         assert "## Deployment" in content
         assert "## Post-deployment" in content
 
-    def test_ssm_parameter_entries(self, tmp_path):
+    def test_ssm_parameter_entries(self, tmp_path: Path) -> None:
+        """Test that SSM parameter entries are documented."""
         writer = ReportWriter()
         params = _make_ssm_params()
         path = writer.write_migrate_md(_make_input(), params, tmp_path)
@@ -133,7 +138,8 @@ class TestMigrateMd:
         for param in params:
             assert param.parameter_path in content
 
-    def test_deployment_uses_uv(self, tmp_path):
+    def test_deployment_uses_uv(self, tmp_path: Path) -> None:
+        """Test that deployment instructions use uv instead of pip."""
         writer = ReportWriter()
         path = writer.write_migrate_md(_make_input(), [], tmp_path)
         content = path.read_text()
@@ -143,27 +149,31 @@ class TestMigrateMd:
         assert "pip" not in content
         assert "requirements.txt" not in content
 
-    def test_webhook_urls_documented(self, tmp_path):
+    def test_webhook_urls_documented(self, tmp_path: Path) -> None:
+        """Test that webhook URLs are documented."""
         writer = ReportWriter()
         path = writer.write_migrate_md(_make_input(), [], tmp_path)
         content = path.read_text()
         assert "webhook_handler" in content
 
-    def test_with_sub_workflows(self, tmp_path):
+    def test_with_sub_workflows(self, tmp_path: Path) -> None:
+        """Test that sub-workflows are documented."""
         writer = ReportWriter()
         inp = _make_input(with_sub_workflows=True)
         path = writer.write_migrate_md(inp, [], tmp_path)
         content = path.read_text()
         assert "sub-process" in content
 
-    def test_with_warnings(self, tmp_path):
+    def test_with_warnings(self, tmp_path: Path) -> None:
+        """Test that warnings are included when present."""
         writer = ReportWriter()
         inp = _make_input(with_warnings=True)
         path = writer.write_migrate_md(inp, [], tmp_path)
         content = path.read_text()
         assert "Large payload" in content
 
-    def test_no_warnings(self, tmp_path):
+    def test_no_warnings(self, tmp_path: Path) -> None:
+        """Test that output is valid even with no warnings."""
         writer = ReportWriter()
         inp = _make_input(with_warnings=False)
         path = writer.write_migrate_md(inp, [], tmp_path)
@@ -173,20 +183,25 @@ class TestMigrateMd:
 
 
 class TestConversionReportJson:
-    def test_valid_json(self, tmp_path):
+    """Tests for conversion_report.json generation."""
+
+    def test_valid_json(self, tmp_path: Path) -> None:
+        """Test that conversion report is valid JSON."""
         writer = ReportWriter()
         path = writer.write_conversion_report_json(_make_input(), tmp_path)
         data = json.loads(path.read_text())
         assert isinstance(data, dict)
 
-    def test_contains_metadata(self, tmp_path):
+    def test_contains_metadata(self, tmp_path: Path) -> None:
+        """Test that conversion report contains metadata."""
         writer = ReportWriter()
         path = writer.write_conversion_report_json(_make_input(), tmp_path)
         data = json.loads(path.read_text())
         assert data["metadata"]["converter_version"] == "0.1.0"
         assert data["metadata"]["workflow_name"] == "test-workflow"
 
-    def test_contains_report_fields(self, tmp_path):
+    def test_contains_report_fields(self, tmp_path: Path) -> None:
+        """Test that conversion report contains expected fields."""
         writer = ReportWriter()
         path = writer.write_conversion_report_json(_make_input(), tmp_path)
         data = json.loads(path.read_text())
@@ -195,7 +210,10 @@ class TestConversionReportJson:
 
 
 class TestConversionReportMd:
-    def test_contains_sections(self, tmp_path):
+    """Tests for conversion_report.md generation."""
+
+    def test_contains_sections(self, tmp_path: Path) -> None:
+        """Test that Markdown report contains all sections."""
         writer = ReportWriter()
         path = writer.write_conversion_report_md(_make_input(), tmp_path)
         content = path.read_text()
@@ -207,7 +225,8 @@ class TestConversionReportMd:
         assert "## AI-Assisted Translations" in content
         assert "## Recommendations" in content
 
-    def test_no_warnings_output(self, tmp_path):
+    def test_no_warnings_output(self, tmp_path: Path) -> None:
+        """Test that no-warnings case shows appropriate message."""
         writer = ReportWriter()
         inp = _make_input(with_warnings=False)
         path = writer.write_conversion_report_md(inp, tmp_path)
@@ -216,7 +235,10 @@ class TestConversionReportMd:
 
 
 class TestReadme:
-    def test_contains_quickstart(self, tmp_path):
+    """Tests for README.md generation."""
+
+    def test_contains_quickstart(self, tmp_path: Path) -> None:
+        """Test that README contains quickstart instructions."""
         writer = ReportWriter()
         path = writer.write_readme(_make_input(), tmp_path)
         content = path.read_text()
@@ -225,7 +247,8 @@ class TestReadme:
         assert "uv sync" in content
         assert "uv run cdk deploy" in content
 
-    def test_references_migrate_md(self, tmp_path):
+    def test_references_migrate_md(self, tmp_path: Path) -> None:
+        """Test that README references MIGRATE.md."""
         writer = ReportWriter()
         path = writer.write_readme(_make_input(), tmp_path)
         content = path.read_text()

@@ -36,7 +36,7 @@ Ruff is configured in `pyproject.toml` with an extensive rule set. Key points:
 
 - Docstrings required on all public modules, classes, and functions (D rules).
 - Type annotations required (ANN rules).
-- Test files (`test_*`, `conftest.py`) are exempt from `S101` (assert), `S108` (tmp paths), and `D100-D104` (docstrings).
+- Test files (`test_*`, `conftest.py`) are exempt from `S101` (assert) and `S108` (tmp paths) only.
 - Line length is not enforced (`E501` ignored).
 
 ## Test patterns

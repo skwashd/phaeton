@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from n8n_to_sfn_packager.models.inputs import (
     ConversionReport,
@@ -104,7 +105,7 @@ def _complex_input() -> PackagerInput:
                     credential_type="oauth2",
                     associated_node_names=["Google Sheets"],
                 ),
-                token_endpoint_url="https://oauth2.googleapis.com/token",
+                token_endpoint_url="https://oauth2.googleapis.com/token",  # noqa: S106
             ),
         ],
         triggers=[
@@ -156,7 +157,10 @@ def _make_ssm_params() -> list[SSMParameterDefinition]:
 
 
 class TestFileCreation:
-    def test_all_files_created(self, tmp_path):
+    """Tests for CDK file creation."""
+
+    def test_all_files_created(self, tmp_path: Path) -> None:
+        """Test that all expected CDK files are created."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -171,7 +175,8 @@ class TestFileCreation:
         assert (cdk_dir / "stacks" / "workflow_stack.py").exists()
         assert (cdk_dir / "stacks" / "__init__.py").exists()
 
-    def test_cdk_dir_path(self, tmp_path):
+    def test_cdk_dir_path(self, tmp_path: Path) -> None:
+        """Test that the CDK directory is at the expected path."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -183,7 +188,10 @@ class TestFileCreation:
 
 
 class TestAppPy:
-    def test_syntactically_valid(self, tmp_path):
+    """Tests for the generated app.py."""
+
+    def test_syntactically_valid(self, tmp_path: Path) -> None:
+        """Test that app.py is syntactically valid Python."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -194,7 +202,8 @@ class TestAppPy:
         code = (cdk_dir / "app.py").read_text()
         compile(code, "app.py", "exec")
 
-    def test_contains_stack_references(self, tmp_path):
+    def test_contains_stack_references(self, tmp_path: Path) -> None:
+        """Test that app.py references both stacks."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -208,7 +217,10 @@ class TestAppPy:
 
 
 class TestCdkJson:
-    def test_valid_json(self, tmp_path):
+    """Tests for the generated cdk.json."""
+
+    def test_valid_json(self, tmp_path: Path) -> None:
+        """Test that cdk.json is valid JSON."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -219,7 +231,8 @@ class TestCdkJson:
         data = json.loads((cdk_dir / "cdk.json").read_text())
         assert isinstance(data, dict)
 
-    def test_app_uses_uv(self, tmp_path):
+    def test_app_uses_uv(self, tmp_path: Path) -> None:
+        """Test that cdk.json uses uv to run the app."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -230,7 +243,8 @@ class TestCdkJson:
         data = json.loads((cdk_dir / "cdk.json").read_text())
         assert "uv run python app.py" in data["app"]
 
-    def test_sub_workflow_context(self, tmp_path):
+    def test_sub_workflow_context(self, tmp_path: Path) -> None:
+        """Test that sub-workflow context is included in cdk.json."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -243,7 +257,10 @@ class TestCdkJson:
 
 
 class TestPyprojectToml:
-    def test_valid_toml(self, tmp_path):
+    """Tests for the generated pyproject.toml."""
+
+    def test_valid_toml(self, tmp_path: Path) -> None:
+        """Test that pyproject.toml is valid TOML."""
         import tomllib
 
         writer = CDKWriter()
@@ -257,7 +274,8 @@ class TestPyprojectToml:
         data = tomllib.loads(content)
         assert "project" in data
 
-    def test_includes_lambda_python_alpha(self, tmp_path):
+    def test_includes_lambda_python_alpha(self, tmp_path: Path) -> None:
+        """Test that pyproject.toml includes the lambda python alpha dependency."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -270,7 +288,10 @@ class TestPyprojectToml:
 
 
 class TestWorkflowStack:
-    def test_python_function_import(self, tmp_path):
+    """Tests for the generated workflow stack."""
+
+    def test_python_function_import(self, tmp_path: Path) -> None:
+        """Test that PythonFunction is imported in the workflow stack."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -281,7 +302,8 @@ class TestWorkflowStack:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "PythonFunction" in code
 
-    def test_correct_number_of_functions_minimal(self, tmp_path):
+    def test_correct_number_of_functions_minimal(self, tmp_path: Path) -> None:
+        """Test that minimal input produces the correct number of functions."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -293,7 +315,8 @@ class TestWorkflowStack:
         # Minimal input has 1 Python Lambda
         assert code.count("PythonFunction(") == 1
 
-    def test_correct_number_of_functions_complex(self, tmp_path):
+    def test_correct_number_of_functions_complex(self, tmp_path: Path) -> None:
+        """Test that complex input produces the correct number of functions."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -306,7 +329,8 @@ class TestWorkflowStack:
         assert code.count("PythonFunction(") == 2
         assert code.count("lambda_.Function(") == 1
 
-    def test_webhook_function_url(self, tmp_path):
+    def test_webhook_function_url(self, tmp_path: Path) -> None:
+        """Test that webhook function URL is configured."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -317,7 +341,8 @@ class TestWorkflowStack:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "add_function_url" in code
 
-    def test_ssm_parameters_present(self, tmp_path):
+    def test_ssm_parameters_present(self, tmp_path: Path) -> None:
+        """Test that SSM parameters are present in the workflow stack."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -328,7 +353,8 @@ class TestWorkflowStack:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "StringParameter(" in code
 
-    def test_oauth_rotation(self, tmp_path):
+    def test_oauth_rotation(self, tmp_path: Path) -> None:
+        """Test that OAuth rotation construct is present."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -339,7 +365,8 @@ class TestWorkflowStack:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "OAuthRotation" in code
 
-    def test_schedule_trigger(self, tmp_path):
+    def test_schedule_trigger(self, tmp_path: Path) -> None:
+        """Test that schedule trigger is present."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -350,7 +377,8 @@ class TestWorkflowStack:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "ScheduleRule" in code
 
-    def test_sub_workflow_params(self, tmp_path):
+    def test_sub_workflow_params(self, tmp_path: Path) -> None:
+        """Test that sub-workflow parameters are present."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -362,7 +390,8 @@ class TestWorkflowStack:
         assert "CfnParameter" in code
         assert "sub_process" in code
 
-    def test_source_node_comments(self, tmp_path):
+    def test_source_node_comments(self, tmp_path: Path) -> None:
+        """Test that source node comments are present."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),

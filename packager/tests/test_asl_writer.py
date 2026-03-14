@@ -13,6 +13,7 @@ from n8n_to_sfn_packager.writers.asl_writer import ASLValidationError, ASLWriter
 
 @pytest.fixture
 def asl_writer() -> ASLWriter:
+    """Create an ASLWriter with the project schema path."""
     schema_path = (
         Path(__file__).resolve().parents[1] / ".." / "docs" / "asl_schema.json"
     )
@@ -115,21 +116,27 @@ def complex_asl() -> dict:
 
 
 class TestASLValidation:
-    def test_valid_simple_asl(self, asl_writer, simple_asl):
+    """Tests for ASL validation logic."""
+
+    def test_valid_simple_asl(self, asl_writer: ASLWriter, simple_asl: dict) -> None:
+        """Test that a simple valid ASL passes validation."""
         errors = asl_writer.validate(simple_asl)
         assert errors == []
 
-    def test_valid_complex_asl(self, asl_writer, complex_asl):
+    def test_valid_complex_asl(self, asl_writer: ASLWriter, complex_asl: dict) -> None:
+        """Test that a complex valid ASL passes validation."""
         errors = asl_writer.validate(complex_asl)
         assert errors == []
 
-    def test_invalid_missing_start_at(self, asl_writer):
+    def test_invalid_missing_start_at(self, asl_writer: ASLWriter) -> None:
+        """Test that missing StartAt is detected as invalid."""
         invalid = {"States": {"Foo": {"Type": "Succeed"}}}
         errors = asl_writer.validate(invalid)
         assert len(errors) > 0
         assert any("StartAt" in e for e in errors)
 
-    def test_invalid_empty_states(self, asl_writer):
+    def test_invalid_empty_states(self, asl_writer: ASLWriter) -> None:
+        """Test that empty states are handled gracefully."""
         invalid = {"StartAt": "Foo", "States": {}}
         errors = asl_writer.validate(invalid)
         # Empty states may or may not be an error depending on schema,
@@ -139,7 +146,12 @@ class TestASLValidation:
 
 
 class TestASLWrite:
-    def test_write_creates_file(self, asl_writer, simple_asl, tmp_path):
+    """Tests for ASL file writing."""
+
+    def test_write_creates_file(
+        self, asl_writer: ASLWriter, simple_asl: dict, tmp_path: Path
+    ) -> None:
+        """Test that write creates the expected file."""
         defn = StateMachineDefinition(asl=simple_asl)
         path = asl_writer.write(defn, tmp_path)
 
@@ -147,14 +159,20 @@ class TestASLWrite:
         assert path.name == "definition.asl.json"
         assert path.parent.name == "statemachine"
 
-    def test_write_content_matches(self, asl_writer, simple_asl, tmp_path):
+    def test_write_content_matches(
+        self, asl_writer: ASLWriter, simple_asl: dict, tmp_path: Path
+    ) -> None:
+        """Test that written content matches the input ASL."""
         defn = StateMachineDefinition(asl=simple_asl)
         path = asl_writer.write(defn, tmp_path)
 
         content = json.loads(path.read_text())
         assert content == simple_asl
 
-    def test_write_deterministic_output(self, asl_writer, simple_asl, tmp_path):
+    def test_write_deterministic_output(
+        self, asl_writer: ASLWriter, simple_asl: dict, tmp_path: Path
+    ) -> None:
+        """Test that writing the same ASL twice produces identical output."""
         defn = StateMachineDefinition(asl=simple_asl)
 
         path1 = asl_writer.write(defn, tmp_path / "run1")
@@ -162,7 +180,10 @@ class TestASLWrite:
 
         assert path1.read_text() == path2.read_text()
 
-    def test_write_sorted_keys(self, asl_writer, simple_asl, tmp_path):
+    def test_write_sorted_keys(
+        self, asl_writer: ASLWriter, simple_asl: dict, tmp_path: Path
+    ) -> None:
+        """Test that JSON keys are sorted in the output."""
         defn = StateMachineDefinition(asl=simple_asl)
         path = asl_writer.write(defn, tmp_path)
 
@@ -170,7 +191,10 @@ class TestASLWrite:
         # "StartAt" should come before "States" in sorted order
         assert text.index('"StartAt"') < text.index('"States"')
 
-    def test_write_raises_on_invalid(self, asl_writer, tmp_path):
+    def test_write_raises_on_invalid(
+        self, asl_writer: ASLWriter, tmp_path: Path
+    ) -> None:
+        """Test that writing invalid ASL raises ASLValidationError."""
         invalid_defn = StateMachineDefinition(
             asl={"States": {"Foo": {"Type": "Succeed"}}},
         )
@@ -178,7 +202,10 @@ class TestASLWrite:
             asl_writer.write(invalid_defn, tmp_path)
         assert len(exc_info.value.errors) > 0
 
-    def test_write_creates_directories(self, asl_writer, simple_asl, tmp_path):
+    def test_write_creates_directories(
+        self, asl_writer: ASLWriter, simple_asl: dict, tmp_path: Path
+    ) -> None:
+        """Test that write creates intermediate directories."""
         output = tmp_path / "deep" / "nested"
         defn = StateMachineDefinition(asl=simple_asl)
         path = asl_writer.write(defn, output)

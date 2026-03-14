@@ -117,7 +117,10 @@ def _write_yaml_spec(directory: Path, filename: str, spec: dict) -> Path:
 
 
 class TestBuildSpecIndexSwagger2:
+    """Tests for BuildSpecIndexSwagger2."""
+
     def test_build_spec_index_swagger2(self, tmp_path: Path) -> None:
+        """Test build spec index swagger2."""
         _write_json_spec(tmp_path, "acme.json", ACME_SWAGGER2_SPEC)
         index = build_spec_index(tmp_path)
 
@@ -138,7 +141,10 @@ class TestBuildSpecIndexSwagger2:
 
 
 class TestBuildSpecIndexOpenapi3:
+    """Tests for BuildSpecIndexOpenapi3."""
+
     def test_build_spec_index_openapi3(self, tmp_path: Path) -> None:
+        """Test build spec index openapi3."""
         _write_json_spec(tmp_path, "widget.json", WIDGET_OPENAPI3_SPEC)
         index = build_spec_index(tmp_path)
 
@@ -154,7 +160,10 @@ class TestBuildSpecIndexOpenapi3:
 
 
 class TestBuildSpecIndexMixed:
+    """Tests for BuildSpecIndexMixed."""
+
     def test_build_spec_index_mixed_directory(self, tmp_path: Path) -> None:
+        """Test build spec index mixed directory."""
         _write_json_spec(tmp_path, "acme.json", ACME_SWAGGER2_SPEC)
         _write_json_spec(tmp_path, "widget.json", WIDGET_OPENAPI3_SPEC)
         index = build_spec_index(tmp_path)
@@ -170,7 +179,10 @@ class TestBuildSpecIndexMixed:
 
 
 class TestNormalizeBaseUrl:
+    """Tests for NormalizeBaseUrl."""
+
     def test_normalize_base_url_various_formats(self) -> None:
+        """Test normalize base url various formats."""
         assert normalize_base_url("https://api.example.com/v1/") == "api.example.com/v1"
         assert normalize_base_url("http://api.example.com/v1/") == "api.example.com/v1"
         assert normalize_base_url("https://www.example.com/") == "example.com"
@@ -181,7 +193,10 @@ class TestNormalizeBaseUrl:
 
 
 class TestExtractResourceOperations:
+    """Tests for ExtractResourceOperations."""
+
     def test_extract_resource_operations_from_spec(self) -> None:
+        """Test extract resource operations from spec."""
         endpoints = extract_resource_operations_from_spec(ACME_SWAGGER2_SPEC)
 
         assert len(endpoints) == 4
@@ -201,7 +216,10 @@ class TestExtractResourceOperations:
 
 
 class TestSaveLoadRoundtrip:
+    """Tests for SaveLoadRoundtrip."""
+
     def test_save_load_roundtrip(self, tmp_path: Path) -> None:
+        """Test save load roundtrip."""
         specs_dir = tmp_path / "specs"
         specs_dir.mkdir()
         _write_json_spec(specs_dir, "acme.json", ACME_SWAGGER2_SPEC)
@@ -223,7 +241,10 @@ class TestSaveLoadRoundtrip:
 
 
 class TestHandlesMissingFields:
+    """Tests for HandlesMissingFields."""
+
     def test_handles_missing_fields(self, tmp_path: Path) -> None:
+        """Test handles missing fields."""
         minimal_spec: dict = {
             "openapi": "3.0.0",
             "info": {"title": "Bare API", "version": "0.1.0"},
@@ -254,7 +275,10 @@ class TestHandlesMissingFields:
 
 
 class TestYamlSpecParsing:
+    """Tests for YamlSpecParsing."""
+
     def test_yaml_spec_parsing(self, tmp_path: Path) -> None:
+        """Test yaml spec parsing."""
         _write_yaml_spec(tmp_path, "widget.yaml", WIDGET_OPENAPI3_SPEC)
         index = build_spec_index(tmp_path)
 
@@ -267,6 +291,7 @@ class TestYamlSpecParsing:
         assert len(entry.endpoints) == 3
 
     def test_yml_extension(self, tmp_path: Path) -> None:
+        """Test yml extension."""
         _write_yaml_spec(tmp_path, "acme.yml", ACME_SWAGGER2_SPEC)
         index = build_spec_index(tmp_path)
 

@@ -138,17 +138,22 @@ def _make_packager_input() -> PackagerInput:
 
 
 class TestValidModels:
-    def test_workflow_metadata(self):
+    """Tests for valid model construction."""
+
+    def test_workflow_metadata(self) -> None:
+        """Test WorkflowMetadata construction."""
         m = _make_metadata()
         assert m.workflow_name == "slack-notification-workflow"
         assert m.confidence_score == 0.85
 
-    def test_state_machine_definition(self):
+    def test_state_machine_definition(self) -> None:
+        """Test StateMachineDefinition construction."""
         sm = StateMachineDefinition(asl=_make_asl())
         assert sm.query_language == "JSONata"
         assert "StartAt" in sm.asl
 
-    def test_lambda_function_spec_python(self):
+    def test_lambda_function_spec_python(self) -> None:
+        """Test Python LambdaFunctionSpec construction."""
         spec = LambdaFunctionSpec(
             function_name="my_func",
             runtime=LambdaRuntime.PYTHON,
@@ -158,7 +163,8 @@ class TestValidModels:
         assert spec.function_name == "my_func"
         assert spec.runtime == LambdaRuntime.PYTHON
 
-    def test_lambda_function_spec_nodejs(self):
+    def test_lambda_function_spec_nodejs(self) -> None:
+        """Test Node.js LambdaFunctionSpec construction."""
         spec = LambdaFunctionSpec(
             function_name="js-handler",
             runtime=LambdaRuntime.NODEJS,
@@ -167,7 +173,8 @@ class TestValidModels:
         )
         assert spec.runtime == LambdaRuntime.NODEJS
 
-    def test_credential_spec(self):
+    def test_credential_spec(self) -> None:
+        """Test CredentialSpec construction."""
         cred = CredentialSpec(
             parameter_path="/workflow/creds/api_key",
             credential_type="apiKey",
@@ -175,25 +182,28 @@ class TestValidModels:
         )
         assert cred.parameter_path.startswith("/")
 
-    def test_oauth_credential_spec(self):
+    def test_oauth_credential_spec(self) -> None:
+        """Test OAuthCredentialSpec construction."""
         oauth = OAuthCredentialSpec(
             credential_spec=CredentialSpec(
                 parameter_path="/workflow/creds/oauth",
                 credential_type="oauth2",
             ),
-            token_endpoint_url="https://oauth.example.com/token",
+            token_endpoint_url="https://oauth.example.com/token",  # noqa: S106
             scopes=["chat:write", "channels:read"],
         )
         assert oauth.refresh_schedule_expression == "rate(50 minutes)"
 
-    def test_trigger_spec_schedule(self):
+    def test_trigger_spec_schedule(self) -> None:
+        """Test schedule TriggerSpec construction."""
         trigger = TriggerSpec(
             trigger_type=TriggerType.SCHEDULE,
             configuration={"schedule_expression": "rate(1 hour)"},
         )
         assert trigger.associated_lambda_name is None
 
-    def test_trigger_spec_webhook(self):
+    def test_trigger_spec_webhook(self) -> None:
+        """Test webhook TriggerSpec construction."""
         trigger = TriggerSpec(
             trigger_type=TriggerType.WEBHOOK,
             configuration={"path": "/hooks/incoming"},
@@ -201,7 +211,8 @@ class TestValidModels:
         )
         assert trigger.associated_lambda_name == "webhook_handler"
 
-    def test_sub_workflow_reference(self):
+    def test_sub_workflow_reference(self) -> None:
+        """Test SubWorkflowReference construction."""
         ref = SubWorkflowReference(
             name="process-order",
             source_workflow_file="process_order.json",
@@ -209,12 +220,14 @@ class TestValidModels:
         )
         assert ref.name == "process-order"
 
-    def test_conversion_report(self):
+    def test_conversion_report(self) -> None:
+        """Test ConversionReport construction."""
         report = _make_conversion_report()
         assert report.total_nodes == 5
         assert report.confidence_score == 0.85
 
-    def test_ssm_parameter_definition(self):
+    def test_ssm_parameter_definition(self) -> None:
+        """Test SSMParameterDefinition construction."""
         param = SSMParameterDefinition(
             parameter_path="/workflow/creds/token",
             description="API token",
@@ -222,7 +235,8 @@ class TestValidModels:
         )
         assert param.parameter_type == "SecureString"
 
-    def test_packager_input_full(self):
+    def test_packager_input_full(self) -> None:
+        """Test full PackagerInput construction."""
         inp = _make_packager_input()
         assert len(inp.lambda_functions) == 3
         assert len(inp.credentials) == 1
@@ -235,7 +249,10 @@ class TestValidModels:
 
 
 class TestValidationErrors:
-    def test_invalid_function_name_spaces(self):
+    """Tests for model validation errors."""
+
+    def test_invalid_function_name_spaces(self) -> None:
+        """Test that function names with spaces are rejected."""
         with pytest.raises(ValidationError, match="function_name"):
             LambdaFunctionSpec(
                 function_name="bad name with spaces",
@@ -244,7 +261,8 @@ class TestValidationErrors:
                 function_type=LambdaFunctionType.PICOFUN_API_CLIENT,
             )
 
-    def test_invalid_function_name_special_chars(self):
+    def test_invalid_function_name_special_chars(self) -> None:
+        """Test that function names with special characters are rejected."""
         with pytest.raises(ValidationError, match="function_name"):
             LambdaFunctionSpec(
                 function_name="bad/name",
@@ -253,7 +271,8 @@ class TestValidationErrors:
                 function_type=LambdaFunctionType.PICOFUN_API_CLIENT,
             )
 
-    def test_empty_function_name(self):
+    def test_empty_function_name(self) -> None:
+        """Test that empty function names are rejected."""
         with pytest.raises(ValidationError):
             LambdaFunctionSpec(
                 function_name="",
@@ -262,20 +281,23 @@ class TestValidationErrors:
                 function_type=LambdaFunctionType.PICOFUN_API_CLIENT,
             )
 
-    def test_ssm_path_no_leading_slash(self):
+    def test_ssm_path_no_leading_slash(self) -> None:
+        """Test that SSM paths without leading slash are rejected."""
         with pytest.raises(ValidationError, match="parameter_path"):
             CredentialSpec(
                 parameter_path="no/leading/slash",
                 credential_type="apiKey",
             )
 
-    def test_ssm_definition_path_no_leading_slash(self):
+    def test_ssm_definition_path_no_leading_slash(self) -> None:
+        """Test that SSM definition paths without leading slash are rejected."""
         with pytest.raises(ValidationError, match="parameter_path"):
             SSMParameterDefinition(
                 parameter_path="bad/path",
             )
 
-    def test_confidence_score_out_of_range(self):
+    def test_confidence_score_out_of_range(self) -> None:
+        """Test that confidence scores above 1.0 are rejected."""
         with pytest.raises(ValidationError):
             WorkflowMetadata(
                 workflow_name="test",
@@ -285,11 +307,13 @@ class TestValidationErrors:
                 confidence_score=1.5,
             )
 
-    def test_missing_required_fields(self):
+    def test_missing_required_fields(self) -> None:
+        """Test that missing required fields cause validation errors."""
         with pytest.raises(ValidationError):
             PackagerInput()
 
-    def test_empty_workflow_name(self):
+    def test_empty_workflow_name(self) -> None:
+        """Test that empty workflow names are rejected."""
         with pytest.raises(ValidationError):
             WorkflowMetadata(
                 workflow_name="",
@@ -306,7 +330,10 @@ class TestValidationErrors:
 
 
 class TestJsonRoundTrip:
-    def test_packager_input_serialisation_roundtrip(self):
+    """Tests for JSON serialisation round-trips."""
+
+    def test_packager_input_serialisation_roundtrip(self) -> None:
+        """Test that PackagerInput survives JSON string round-trip."""
         original = _make_packager_input()
         json_str = original.model_dump_json(indent=2)
 
@@ -323,7 +350,8 @@ class TestJsonRoundTrip:
             == original.conversion_report.total_nodes
         )
 
-    def test_packager_input_dict_roundtrip(self):
+    def test_packager_input_dict_roundtrip(self) -> None:
+        """Test that PackagerInput survives dict round-trip."""
         original = _make_packager_input()
         data = original.model_dump()
 
@@ -335,7 +363,8 @@ class TestJsonRoundTrip:
         restored = PackagerInput.model_validate(parsed)
         assert restored == original
 
-    def test_packager_input_with_oauth_and_subworkflows(self):
+    def test_packager_input_with_oauth_and_subworkflows(self) -> None:
+        """Test round-trip with OAuth credentials and sub-workflows."""
         inp = _make_packager_input()
         inp = inp.model_copy(
             update={
@@ -347,7 +376,7 @@ class TestJsonRoundTrip:
                             placeholder_value="<your-google-oauth-token>",
                             associated_node_names=["Google Sheets"],
                         ),
-                        token_endpoint_url="https://oauth2.googleapis.com/token",
+                        token_endpoint_url="https://oauth2.googleapis.com/token",  # noqa: S106
                         scopes=["https://www.googleapis.com/auth/spreadsheets"],
                     ),
                 ],
@@ -366,7 +395,5 @@ class TestJsonRoundTrip:
 
         assert len(restored.oauth_credentials) == 1
         assert len(restored.sub_workflows) == 1
-        assert (
-            restored.oauth_credentials[0].token_endpoint_url
-            == "https://oauth2.googleapis.com/token"
-        )
+        restored_endpoint = restored.oauth_credentials[0].token_endpoint_url
+        assert restored_endpoint == "https://oauth2.googleapis.com/token"

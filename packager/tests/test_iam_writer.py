@@ -25,18 +25,26 @@ def _make_ssm_param(path: str = "/wf/creds/token") -> SSMParameterDefinition:
 
 
 class TestSdkActionToIam:
-    def test_dynamodb(self):
+    """Tests for SDK action to IAM mapping."""
+
+    def test_dynamodb(self) -> None:
+        """Test DynamoDB action mapping."""
         assert sdk_action_to_iam("DynamoDB", "PutItem") == "dynamodb:PutItem"
 
-    def test_s3(self):
+    def test_s3(self) -> None:
+        """Test S3 action mapping."""
         assert sdk_action_to_iam("S3", "PutObject") == "s3:PutObject"
 
-    def test_sqs(self):
+    def test_sqs(self) -> None:
+        """Test SQS action mapping."""
         assert sdk_action_to_iam("SQS", "SendMessage") == "sqs:SendMessage"
 
 
 class TestLambdaInvoke:
-    def test_single_lambda(self):
+    """Tests for Lambda invoke IAM permissions."""
+
+    def test_single_lambda(self) -> None:
+        """Test IAM policy generation for a single Lambda invocation."""
         gen = IAMPolicyGenerator()
         asl = {
             "StartAt": "Invoke",
@@ -61,7 +69,10 @@ class TestLambdaInvoke:
 
 
 class TestSdkIntegrations:
-    def test_s3_and_dynamodb(self):
+    """Tests for AWS SDK integration IAM permissions."""
+
+    def test_s3_and_dynamodb(self) -> None:
+        """Test IAM policy includes S3 and DynamoDB actions."""
         gen = IAMPolicyGenerator()
         asl = {
             "StartAt": "PutS3",
@@ -88,7 +99,10 @@ class TestSdkIntegrations:
 
 
 class TestSubWorkflows:
-    def test_sub_workflow_arns(self):
+    """Tests for sub-workflow IAM permissions."""
+
+    def test_sub_workflow_arns(self) -> None:
+        """Test that sub-workflow ARNs generate correct IAM permissions."""
         gen = IAMPolicyGenerator()
         asl = {"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}}
         sub_arns = ["arn:aws:states:us-east-1:123:stateMachine:sub-wf"]
@@ -102,7 +116,10 @@ class TestSubWorkflows:
 
 
 class TestBasePermissions:
-    def test_ssm_always_present_when_params_exist(self):
+    """Tests for base IAM permissions always present."""
+
+    def test_ssm_always_present_when_params_exist(self) -> None:
+        """Test that SSM permissions are included when parameters exist."""
         gen = IAMPolicyGenerator()
         asl = {"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}}
         params = [_make_ssm_param()]
@@ -114,7 +131,8 @@ class TestBasePermissions:
 
         assert "ssm:GetParameter" in all_actions
 
-    def test_kms_always_present(self):
+    def test_kms_always_present(self) -> None:
+        """Test that KMS permissions are always included."""
         gen = IAMPolicyGenerator()
         asl = {"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}}
         policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
@@ -124,7 +142,8 @@ class TestBasePermissions:
             all_actions.extend(stmt["Action"])
         assert "kms:Decrypt" in all_actions
 
-    def test_cloudwatch_always_present(self):
+    def test_cloudwatch_always_present(self) -> None:
+        """Test that CloudWatch permissions are always included."""
         gen = IAMPolicyGenerator()
         asl = {"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}}
         policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
@@ -134,7 +153,8 @@ class TestBasePermissions:
             all_actions.extend(stmt["Action"])
         assert "logs:PutLogEvents" in all_actions
 
-    def test_xray_always_present(self):
+    def test_xray_always_present(self) -> None:
+        """Test that X-Ray permissions are always included."""
         gen = IAMPolicyGenerator()
         asl = {"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}}
         policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
@@ -147,7 +167,10 @@ class TestBasePermissions:
 
 
 class TestRecursiveWalking:
-    def test_map_state_item_processor(self):
+    """Tests for recursive ASL walking in IAM policy generation."""
+
+    def test_map_state_item_processor(self) -> None:
+        """Test that Map state item processors are walked for permissions."""
         gen = IAMPolicyGenerator()
         asl = {
             "StartAt": "BatchProcess",
@@ -181,7 +204,8 @@ class TestRecursiveWalking:
             all_actions.extend(stmt["Action"])
         assert "lambda:InvokeFunction" in all_actions
 
-    def test_parallel_branches(self):
+    def test_parallel_branches(self) -> None:
+        """Test that Parallel state branches are walked for permissions."""
         gen = IAMPolicyGenerator()
         asl = {
             "StartAt": "ParallelStep",
@@ -212,7 +236,10 @@ class TestRecursiveWalking:
 
 
 class TestNoDuplicates:
-    def test_no_duplicate_statements(self):
+    """Tests for IAM policy deduplication."""
+
+    def test_no_duplicate_statements(self) -> None:
+        """Test that duplicate Lambda invocations produce a single IAM statement."""
         gen = IAMPolicyGenerator()
         asl = {
             "StartAt": "Step1",

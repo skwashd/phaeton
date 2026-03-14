@@ -71,7 +71,10 @@ def _make_input_json() -> str:
 
 
 class TestCli:
-    def test_successful_run(self, tmp_path):
+    """Tests for the CLI entry point."""
+
+    def test_successful_run(self, tmp_path: Path) -> None:
+        """Test a successful CLI run produces expected output."""
         input_file = tmp_path / "input.json"
         input_file.write_text(_make_input_json())
         output_dir = tmp_path / "output"
@@ -91,7 +94,8 @@ class TestCli:
         assert "Packaging complete!" in result.output
         assert (output_dir / "statemachine" / "definition.asl.json").exists()
 
-    def test_invalid_input_file(self, tmp_path):
+    def test_invalid_input_file(self, tmp_path: Path) -> None:
+        """Test that an invalid input file causes a non-zero exit code."""
         input_file = tmp_path / "bad.json"
         input_file.write_text("{}")
 
@@ -101,7 +105,8 @@ class TestCli:
         )
         assert result.exit_code != 0
 
-    def test_invalid_asl(self, tmp_path):
+    def test_invalid_asl(self, tmp_path: Path) -> None:
+        """Test that invalid ASL causes exit code 1."""
         inp_json = json.loads(_make_input_json())
         inp_json["state_machine"]["asl"] = {"States": {"Foo": {"Type": "Succeed"}}}
         input_file = tmp_path / "input.json"

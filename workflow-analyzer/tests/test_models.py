@@ -19,6 +19,7 @@ def _load_fixture(fixtures_dir: Path, name: str) -> N8nWorkflow:
 
 
 def test_parse_simple_linear(fixtures_dir: Path) -> None:
+    """Test parse simple linear."""
     wf = _load_fixture(fixtures_dir, "simple_linear.json")
     assert len(wf.nodes) == 4
     assert wf.nodes[0].type == "n8n-nodes-base.manualTrigger"
@@ -27,6 +28,7 @@ def test_parse_simple_linear(fixtures_dir: Path) -> None:
 
 
 def test_parse_branching(fixtures_dir: Path) -> None:
+    """Test parse branching."""
     wf = _load_fixture(fixtures_dir, "branching.json")
     assert len(wf.nodes) == 5
     node_types = [n.type for n in wf.nodes]
@@ -34,6 +36,7 @@ def test_parse_branching(fixtures_dir: Path) -> None:
 
 
 def test_parse_merge_workflow(fixtures_dir: Path) -> None:
+    """Test parse merge workflow."""
     wf = _load_fixture(fixtures_dir, "merge_workflow.json")
     assert len(wf.nodes) == 5
     node_types = [n.type for n in wf.nodes]
@@ -41,6 +44,7 @@ def test_parse_merge_workflow(fixtures_dir: Path) -> None:
 
 
 def test_connection_targets(fixtures_dir: Path) -> None:
+    """Test connection targets."""
     wf = _load_fixture(fixtures_dir, "simple_linear.json")
     trigger_conns = wf.connections["Manual Trigger"]["main"][0]
     assert len(trigger_conns) == 1
@@ -52,6 +56,7 @@ def test_connection_targets(fixtures_dir: Path) -> None:
 
 
 def test_branching_connections(fixtures_dir: Path) -> None:
+    """Test branching connections."""
     wf = _load_fixture(fixtures_dir, "branching.json")
     if_outputs = wf.connections["Check Status"]["main"]
     assert len(if_outputs) == 2
@@ -60,6 +65,7 @@ def test_branching_connections(fixtures_dir: Path) -> None:
 
 
 def test_node_fields(fixtures_dir: Path) -> None:
+    """Test node fields."""
     wf = _load_fixture(fixtures_dir, "simple_linear.json")
     http_node = next(n for n in wf.nodes if n.name == "HTTP Request")
     assert http_node.type_version == 4.2
@@ -69,6 +75,7 @@ def test_node_fields(fixtures_dir: Path) -> None:
 
 
 def test_workflow_settings(fixtures_dir: Path) -> None:
+    """Test workflow settings."""
     wf = _load_fixture(fixtures_dir, "simple_linear.json")
     assert wf.settings is not None
     assert wf.settings.execution_order == "v1"
@@ -76,16 +83,19 @@ def test_workflow_settings(fixtures_dir: Path) -> None:
 
 
 def test_invalid_json_missing_nodes() -> None:
+    """Test invalid JSON missing nodes."""
     with pytest.raises(ValidationError):
         N8nWorkflow.model_validate({"connections": {}})
 
 
 def test_invalid_node_missing_required() -> None:
+    """Test invalid node missing required."""
     with pytest.raises(ValidationError):
         N8nNode.model_validate({"id": "1", "name": "test"})
 
 
 def test_extra_fields_allowed(fixtures_dir: Path) -> None:
+    """Test extra fields allowed."""
     data = json.loads((fixtures_dir / "simple_linear.json").read_text())
     data["customField"] = "extra"
     wf = N8nWorkflow.model_validate(data)
@@ -93,6 +103,7 @@ def test_extra_fields_allowed(fixtures_dir: Path) -> None:
 
 
 def test_optional_fields_default_none() -> None:
+    """Test optional fields default none."""
     node = N8nNode.model_validate(
         {
             "id": "1",

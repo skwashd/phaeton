@@ -1,5 +1,7 @@
 """Tests for AI agent fallback module."""
 
+from __future__ import annotations
+
 import pytest
 
 from n8n_to_sfn.ai_agent.fallback import (
@@ -18,7 +20,8 @@ from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.base import TranslationContext, TranslationResult
 
 
-def _node(name="TestNode"):
+def _node(name: str = "TestNode") -> ClassifiedNode:
+    """Create a classified node for testing."""
     return ClassifiedNode(
         node=N8nNode(
             id=name,
@@ -32,33 +35,42 @@ def _node(name="TestNode"):
     )
 
 
-def _context():
+def _context() -> TranslationContext:
+    """Create a translation context for testing."""
     return TranslationContext(
         analysis=WorkflowAnalysis(classified_nodes=[], dependency_edges=[]),
     )
 
 
 class TestStubAIAgent:
-    def test_translate_node_raises(self):
+    """Tests for StubAIAgent."""
+
+    def test_translate_node_raises(self) -> None:
+        """Test translate_node raises NotImplementedError."""
         agent = StubAIAgent()
         with pytest.raises(NotImplementedError, match="AI agent not implemented"):
             agent.translate_node(_node(), _context())
 
-    def test_translate_expression_raises(self):
+    def test_translate_expression_raises(self) -> None:
+        """Test translate_expression raises NotImplementedError."""
         agent = StubAIAgent()
         with pytest.raises(NotImplementedError, match="AI agent not implemented"):
             agent.translate_expression("{{ $json.x }}", _node(), _context())
 
 
 class TestMockAIAgent:
-    def test_translate_node_default_response(self):
+    """Tests for MockAIAgent."""
+
+    def test_translate_node_default_response(self) -> None:
+        """Test translate_node returns default response."""
         agent = MockAIAgent()
         result = agent.translate_node(_node("Foo"), _context())
         assert isinstance(result, TranslationResult)
         assert result.metadata.get("ai_generated") is True
         assert any("Foo" in w for w in result.warnings)
 
-    def test_translate_node_preconfigured_response(self):
+    def test_translate_node_preconfigured_response(self) -> None:
+        """Test translate_node returns preconfigured response."""
         custom_result = TranslationResult(
             states={"Custom": PassState(end=True)},
             metadata={"custom": True},
@@ -68,12 +80,14 @@ class TestMockAIAgent:
         assert "Custom" in result.states
         assert result.metadata.get("custom") is True
 
-    def test_translate_expression_default_passthrough(self):
+    def test_translate_expression_default_passthrough(self) -> None:
+        """Test translate_expression returns expression as-is by default."""
         agent = MockAIAgent()
         result = agent.translate_expression("{{ $json.x }}", _node(), _context())
         assert result == "{{ $json.x }}"
 
-    def test_translate_expression_preconfigured(self):
+    def test_translate_expression_preconfigured(self) -> None:
+        """Test translate_expression returns preconfigured response."""
         agent = MockAIAgent(
             expression_responses={"{{ $json.x }}": "$states.input.x"},
         )
@@ -82,7 +96,10 @@ class TestMockAIAgent:
 
 
 class TestAITranslationResult:
-    def test_construction(self):
+    """Tests for AITranslationResult."""
+
+    def test_construction(self) -> None:
+        """Test AITranslationResult construction."""
         result = AITranslationResult(
             result=TranslationResult(),
             confidence=Confidence.HIGH,
@@ -91,7 +108,8 @@ class TestAITranslationResult:
         assert result.confidence == Confidence.HIGH
         assert result.explanation == "Test explanation"
 
-    def test_confidence_values(self):
+    def test_confidence_values(self) -> None:
+        """Test Confidence enum values."""
         assert Confidence.HIGH == "HIGH"
         assert Confidence.MEDIUM == "MEDIUM"
         assert Confidence.LOW == "LOW"

@@ -12,7 +12,10 @@ from n8n_release_parser.storage import (
 
 
 class TestLocalStorageBackend:
+    """Tests for LocalStorageBackend."""
+
     def test_roundtrip(self, tmp_path: Path) -> None:
+        """Test roundtrip."""
         backend = LocalStorageBackend(tmp_path / "store")
         loc = backend.write("hello.json", '{"key": "value"}')
         assert loc.endswith("hello.json")
@@ -21,10 +24,12 @@ class TestLocalStorageBackend:
         assert content == '{"key": "value"}'
 
     def test_read_nonexistent_returns_none(self, tmp_path: Path) -> None:
+        """Test read nonexistent returns none."""
         backend = LocalStorageBackend(tmp_path / "store")
         assert backend.read("missing.json") is None
 
     def test_delete(self, tmp_path: Path) -> None:
+        """Test delete."""
         backend = LocalStorageBackend(tmp_path / "store")
         backend.write("to_delete.json", "data")
         assert backend.exists("to_delete.json")
@@ -34,10 +39,12 @@ class TestLocalStorageBackend:
         assert backend.read("to_delete.json") is None
 
     def test_delete_nonexistent_is_noop(self, tmp_path: Path) -> None:
+        """Test delete nonexistent is noop."""
         backend = LocalStorageBackend(tmp_path / "store")
         backend.delete("nonexistent.json")  # should not raise
 
     def test_list_keys(self, tmp_path: Path) -> None:
+        """Test list keys."""
         backend = LocalStorageBackend(tmp_path / "store")
         backend.write("catalog_1_0_0.json", "{}")
         backend.write("catalog_2_0_0.json", "{}")
@@ -50,22 +57,28 @@ class TestLocalStorageBackend:
         assert catalog_keys == ["catalog_1_0_0.json", "catalog_2_0_0.json"]
 
     def test_exists(self, tmp_path: Path) -> None:
+        """Test exists."""
         backend = LocalStorageBackend(tmp_path / "store")
         assert not backend.exists("nope.json")
         backend.write("yep.json", "data")
         assert backend.exists("yep.json")
 
     def test_satisfies_protocol(self, tmp_path: Path) -> None:
+        """Test satisfies protocol."""
         backend = LocalStorageBackend(tmp_path / "store")
         assert isinstance(backend, StorageBackend)
 
 
 class TestCreateBackend:
+    """Tests for CreateBackend."""
+
     def test_local_path(self, tmp_path: Path) -> None:
+        """Test local path."""
         backend = create_backend(str(tmp_path / "local"))
         assert isinstance(backend, LocalStorageBackend)
 
     def test_s3_uri(self) -> None:
+        """Test s3 uri."""
         from n8n_release_parser.storage_s3 import S3StorageBackend
 
         backend = create_backend("s3://my-bucket/some/prefix")
@@ -74,6 +87,7 @@ class TestCreateBackend:
         assert backend._prefix == "some/prefix"
 
     def test_s3_uri_no_prefix(self) -> None:
+        """Test s3 uri no prefix."""
         from n8n_release_parser.storage_s3 import S3StorageBackend
 
         backend = create_backend("s3://my-bucket")

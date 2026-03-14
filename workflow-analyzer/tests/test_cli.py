@@ -10,6 +10,7 @@ runner = CliRunner()
 
 
 def test_cli_analyze(fixtures_dir: Path, tmp_path: Path) -> None:
+    """Test CLI analyze."""
     result = runner.invoke(
         app,
         [
@@ -24,6 +25,7 @@ def test_cli_analyze(fixtures_dir: Path, tmp_path: Path) -> None:
 
 
 def test_cli_analyze_json_only(fixtures_dir: Path, tmp_path: Path) -> None:
+    """Test CLI analyze JSON only."""
     result = runner.invoke(
         app,
         [
@@ -39,6 +41,7 @@ def test_cli_analyze_json_only(fixtures_dir: Path, tmp_path: Path) -> None:
 
 
 def test_cli_output_contains_confidence(fixtures_dir: Path, tmp_path: Path) -> None:
+    """Test CLI output contains confidence."""
     result = runner.invoke(
         app,
         [
@@ -53,6 +56,7 @@ def test_cli_output_contains_confidence(fixtures_dir: Path, tmp_path: Path) -> N
 
 
 def test_cli_creates_output_files(fixtures_dir: Path, tmp_path: Path) -> None:
+    """Test CLI creates output files."""
     result = runner.invoke(
         app,
         [
