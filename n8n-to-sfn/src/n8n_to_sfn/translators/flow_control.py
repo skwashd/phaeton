@@ -28,8 +28,12 @@ from n8n_to_sfn.models.asl import (
 )
 from n8n_to_sfn.translators.base import (
     BaseTranslator,
+    LambdaArtifact,
+    LambdaRuntime,
     TranslationContext,
     TranslationResult,
+    TriggerArtifact,
+    TriggerType,
     apply_error_handling,
 )
 
@@ -455,10 +459,14 @@ def _translate_merge(
     )
 
 
+_CALLBACK_RESOURCE = "arn:aws:states:::lambda:invoke.waitForTaskToken"
+_DEFAULT_CALLBACK_TIMEOUT = 86400  # 24 hours
+
+
 def _translate_wait(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
-    """Translate an n8n Wait node to a WaitState.
+    """Translate an n8n Wait node to a WaitState or callback TaskState.
 
     Supported wait modes and their ASL equivalents:
 
@@ -466,9 +474,14 @@ def _translate_wait(
     - ``dateTime``               → ``Timestamp``
     - ``secondsReference``       → ``SecondsPath``
     - ``dateTimeReference``      → ``TimestampPath``
+    - ``n8nFormSubmission``      → callback TaskState (``.waitForTaskToken``)
+    - ``webhook``                → callback TaskState (``.waitForTaskToken``)
     """
     params = node.node.parameters
     resume = params.get("resume", "timeInterval")
+
+    if resume in ("n8nFormSubmission", "webhook"):
+        return _translate_wait_callback(node, resume)
 
     seconds: int | None = None
     timestamp: str | None = None
@@ -487,9 +500,6 @@ def _translate_wait(
         seconds = amount * unit_to_seconds.get(unit, 1)
     elif resume == "specificTime":
         timestamp = str(params.get("dateTime", ""))
-    elif resume == "n8nFormSubmission" or resume == "webhook":
-        # Cannot model resume-by-webhook in SFN without additional infrastructure
-        seconds = 0
     elif _is_expression(str(params.get("amount", ""))):
         seconds_path = _to_reference_path(str(params.get("amount", "")))
     elif _is_expression(str(params.get("dateTime", ""))):
@@ -505,6 +515,125 @@ def _translate_wait(
         comment=f"Wait: {node.node.name}",
     )
     return TranslationResult(states={node.node.name: state})
+
+
+def _translate_wait_callback(
+    node: ClassifiedNode, resume: str
+) -> TranslationResult:
+    """Translate a form-submission or webhook wait into a callback TaskState.
+
+    Uses ``.waitForTaskToken`` so the state machine pauses until a Lambda
+    function calls ``SendTaskSuccess`` with the submitted data.
+    """
+    params = node.node.parameters
+    node_name = node.node.name
+    safe_name = node_name.replace(" ", "_")
+
+    is_form = resume == "n8nFormSubmission"
+    handler_kind = "form" if is_form else "webhook"
+
+    timeout = int(params.get("timeoutSeconds", _DEFAULT_CALLBACK_TIMEOUT))
+
+    # --- Build the form/webhook config passed to the handler Lambda ----------
+    callback_config: dict[str, object] = {"resumeType": resume}
+    if is_form:
+        callback_config["formFields"] = params.get("formFields", {})
+        callback_config["formTitle"] = params.get("formTitle", node_name)
+        callback_config["formDescription"] = params.get("formDescription", "")
+
+    # --- ASL callback Task state ---------------------------------------------
+    state = TaskState(
+        resource=_CALLBACK_RESOURCE,
+        arguments={
+            "FunctionName": f"${{{safe_name}_{handler_kind}_handler}}",
+            "Payload": {
+                "taskToken.$": "$$.Task.Token",
+                f"{handler_kind}Config": callback_config,
+            },
+        },
+        timeout_seconds=timeout,
+        comment=f"Wait ({handler_kind} callback): {node_name}",
+    )
+    apply_error_handling(state, node)
+
+    # --- Lambda artifact for the handler -------------------------------------
+    handler_code = _callback_handler_code(handler_kind)
+    lambda_artifact = LambdaArtifact(
+        function_name=f"{safe_name}_{handler_kind}_handler",
+        runtime=LambdaRuntime.PYTHON,
+        handler_code=handler_code,
+        dependencies=["boto3"],
+        directory_name=f"{safe_name}_{handler_kind}_handler",
+    )
+
+    # --- Trigger artifact (Lambda Function URL) ------------------------------
+    trigger_artifact = TriggerArtifact(
+        trigger_type=TriggerType.LAMBDA_FURL,
+        config={
+            "handler_kind": handler_kind,
+            "source_node": node_name,
+        },
+        lambda_artifact=lambda_artifact,
+    )
+
+    return TranslationResult(
+        states={node_name: state},
+        lambda_artifacts=[lambda_artifact],
+        trigger_artifacts=[trigger_artifact],
+        metadata={
+            "callback_node": True,
+            "resume_type": resume,
+            "timeout_seconds": timeout,
+        },
+    )
+
+
+def _callback_handler_code(handler_kind: str) -> str:
+    """Return the Python handler code for a callback Lambda."""
+    return f'''\
+"""Auto-generated {handler_kind} callback handler.
+
+Receives a {handler_kind} submission via Lambda Function URL and calls
+SendTaskSuccess to resume the waiting Step Functions execution.
+"""
+
+import json
+import boto3
+
+sfn = boto3.client("stepfunctions")
+
+
+def handler(event, context):
+    """Handle {handler_kind} submission and resume Step Functions execution."""
+    # When invoked by Step Functions with .waitForTaskToken the task token
+    # arrives in the payload.  When invoked via Function URL the token must
+    # be stored/retrieved externally (e.g. DynamoDB mapping).
+    body = event
+    if "body" in event:
+        # Lambda Function URL invocation
+        raw = event["body"]
+        body = json.loads(raw) if isinstance(raw, str) else raw
+
+    task_token = body.get("taskToken") or event.get("taskToken")
+    if not task_token:
+        return {{
+            "statusCode": 400,
+            "body": json.dumps({{"error": "Missing taskToken"}}),
+        }}
+
+    # Extract the submitted data (everything except the token)
+    submission = {{k: v for k, v in body.items() if k != "taskToken"}}
+
+    sfn.send_task_success(
+        taskToken=task_token,
+        output=json.dumps(submission),
+    )
+
+    return {{
+        "statusCode": 200,
+        "body": json.dumps({{"message": "{handler_kind} submission received"}}),
+    }}
+'''
 
 
 def _is_expression(value: str) -> bool:
