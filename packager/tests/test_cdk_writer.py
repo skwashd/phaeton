@@ -1004,3 +1004,146 @@ class TestVpcConfiguration:
         )
         code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
         assert "allow_all_outbound=False" in code
+
+
+class TestCustomDomainWebhooks:
+    """Tests for optional custom domain support via CloudFront and Route 53."""
+
+    def test_custom_domain_imports_with_webhooks(self, tmp_path: Path) -> None:
+        """Test that CloudFront, Route 53, and ACM imports are included with webhooks."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "from aws_cdk import aws_certificatemanager as acm" in code
+        assert "from aws_cdk import aws_cloudfront as cloudfront" in code
+        assert "from aws_cdk import aws_cloudfront_origins as origins" in code
+        assert "from aws_cdk import aws_route53 as route53" in code
+        assert "from aws_cdk import aws_route53_targets as route53_targets" in code
+
+    def test_no_custom_domain_imports_without_webhooks(self, tmp_path: Path) -> None:
+        """Test that custom domain imports are omitted when no webhook handlers exist."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "aws_certificatemanager" not in code
+        assert "aws_cloudfront" not in code
+        assert "aws_cloudfront_origins" not in code
+        assert "aws_route53" not in code
+        assert "aws_route53_targets" not in code
+
+    def test_custom_domain_context_check(self, tmp_path: Path) -> None:
+        """Test that generated code checks for custom_domain context variable."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert 'self.node.try_get_context("custom_domain")' in code
+        assert 'self.node.try_get_context("certificate_arn")' in code
+        assert 'self.node.try_get_context("hosted_zone_id")' in code
+
+    def test_cloudfront_distribution_generated(self, tmp_path: Path) -> None:
+        """Test that CloudFront distribution is generated for webhook functions."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "cloudfront.Distribution(" in code
+        assert "origins.HttpOrigin(" in code
+        assert "domain_names=[custom_domain]" in code
+
+    def test_route53_alias_record_generated(self, tmp_path: Path) -> None:
+        """Test that Route 53 alias record is generated for webhook functions."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "route53.ARecord(" in code
+        assert "route53.RecordTarget.from_alias(" in code
+        assert "route53_targets.CloudFrontTarget(" in code
+
+    def test_acm_certificate_reference(self, tmp_path: Path) -> None:
+        """Test that ACM certificate reference is generated."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "acm.Certificate.from_certificate_arn(" in code
+
+    def test_hosted_zone_lookup(self, tmp_path: Path) -> None:
+        """Test that Route 53 hosted zone is looked up from context."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "route53.HostedZone.from_hosted_zone_attributes(" in code
+        assert "hosted_zone_id=hosted_zone_id" in code
+
+    def test_no_custom_domain_without_webhooks(self, tmp_path: Path) -> None:
+        """Test that custom domain code is not generated without webhook handlers."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "custom_domain" not in code
+        assert "cloudfront.Distribution" not in code
+        assert "route53.ARecord" not in code
+
+    def test_function_url_stored_in_variable(self, tmp_path: Path) -> None:
+        """Test that function URL result is stored for use by custom domain."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "fn_url_webhook_handler = " in code
+        assert "add_function_url(" in code
+
+    def test_default_behavior_unchanged(self, tmp_path: Path) -> None:
+        """Test that Function URLs are used directly when custom domain is disabled."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "FunctionUrlAuthType.NONE" in code
+        assert "if custom_domain:" in code

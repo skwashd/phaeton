@@ -255,6 +255,7 @@ class CDKWriter:
         self._wf_state_machine(lines, iam_policy, stack_prefix)
         self._wf_alarms(lines)
         self._wf_triggers(lines, input_data)
+        self._wf_custom_domain(lines, input_data)
         self._wf_oauth_rotation(lines, input_data)
         self._wf_sub_workflow_params(lines, input_data)
 
@@ -263,6 +264,15 @@ class CDKWriter:
     @staticmethod
     def _wf_imports(lines: list[str], input_data: PackagerInput) -> None:
         """Append import statements."""
+        has_webhook_fns = any(
+            s.function_type
+            in (
+                LambdaFunctionType.WEBHOOK_HANDLER,
+                LambdaFunctionType.CALLBACK_HANDLER,
+            )
+            for s in input_data.lambda_functions
+        )
+
         lines.append(
             '"""Workflow stack: state machine, Lambdas, triggers, credentials."""'
         )
@@ -271,6 +281,10 @@ class CDKWriter:
         lines.append("from pathlib import Path")
         lines.append("")
         lines.append("import aws_cdk as cdk")
+        if has_webhook_fns:
+            lines.append("from aws_cdk import aws_certificatemanager as acm")
+            lines.append("from aws_cdk import aws_cloudfront as cloudfront")
+            lines.append("from aws_cdk import aws_cloudfront_origins as origins")
         lines.append("from aws_cdk import aws_cloudwatch as cloudwatch")
         if input_data.vpc_config:
             lines.append("from aws_cdk import aws_ec2 as ec2")
@@ -278,6 +292,9 @@ class CDKWriter:
         lines.append("from aws_cdk import aws_events_targets as targets")
         lines.append("from aws_cdk import aws_iam as iam")
         lines.append("from aws_cdk import aws_lambda as lambda_")
+        if has_webhook_fns:
+            lines.append("from aws_cdk import aws_route53 as route53")
+            lines.append("from aws_cdk import aws_route53_targets as route53_targets")
         lines.append("from aws_cdk import aws_sqs as sqs")
         lines.append("from aws_cdk import aws_ssm as ssm")
         lines.append("from aws_cdk import aws_stepfunctions as sfn")
@@ -439,7 +456,7 @@ class CDKWriter:
                 LambdaFunctionType.CALLBACK_HANDLER,
             ):
                 lines.append(
-                    f'        lambda_functions["{spec.function_name}"].add_function_url(',
+                    f'        fn_url_{spec.function_name} = lambda_functions["{spec.function_name}"].add_function_url(',
                 )
                 lines.append(
                     "            auth_type=lambda_.FunctionUrlAuthType.NONE,",
@@ -612,6 +629,92 @@ class CDKWriter:
             )
             lines.append("        )")
             lines.append("")
+
+    @staticmethod
+    def _wf_custom_domain(lines: list[str], input_data: PackagerInput) -> None:
+        """Append optional CloudFront + Route 53 constructs for custom domains."""
+        webhook_fns = [
+            s
+            for s in input_data.lambda_functions
+            if s.function_type
+            in (
+                LambdaFunctionType.WEBHOOK_HANDLER,
+                LambdaFunctionType.CALLBACK_HANDLER,
+            )
+        ]
+        if not webhook_fns:
+            return
+
+        lines.append("        # --- Custom Domain (opt-in via CDK context) ---")
+        lines.append(
+            '        custom_domain = self.node.try_get_context("custom_domain")'
+        )
+        lines.append("        if custom_domain:")
+        lines.append(
+            '            cert_arn = self.node.try_get_context("certificate_arn")'
+        )
+        lines.append(
+            '            hosted_zone_id = self.node.try_get_context("hosted_zone_id")'
+        )
+        lines.append(
+            "            zone = route53.HostedZone.from_hosted_zone_attributes("
+        )
+        lines.append('                self, "HostedZone",')
+        lines.append("                hosted_zone_id=hosted_zone_id,")
+        lines.append(
+            '                zone_name=".".join(custom_domain.split(".")[-2:]),'
+        )
+        lines.append("            )")
+
+        for spec in webhook_fns:
+            construct_suffix = (
+                spec.function_name.replace("_", " ").title().replace(" ", "")
+            )
+            lines.append("")
+            lines.append(
+                f"            url_domain_{spec.function_name} = cdk.Fn.select("
+            )
+            lines.append(
+                f'                2, cdk.Fn.split("/", fn_url_{spec.function_name}.url),'
+            )
+            lines.append("            )")
+            lines.append(
+                f'            distribution_{spec.function_name} = cloudfront.Distribution('
+            )
+            lines.append(
+                f'                self, "WebhookCDN{construct_suffix}",'
+            )
+            lines.append(
+                "                default_behavior=cloudfront.BehaviorOptions("
+            )
+            lines.append(
+                f"                    origin=origins.HttpOrigin(url_domain_{spec.function_name}),"
+            )
+            lines.append("                ),")
+            lines.append("                domain_names=[custom_domain],")
+            lines.append(
+                "                certificate=acm.Certificate.from_certificate_arn("
+            )
+            lines.append(
+                f'                    self, "Cert{construct_suffix}", cert_arn,'
+            )
+            lines.append("                ),")
+            lines.append("            )")
+            lines.append("            route53.ARecord(")
+            lines.append(
+                f'                self, "WebhookAlias{construct_suffix}",'
+            )
+            lines.append("                zone=zone,")
+            lines.append(
+                "                target=route53.RecordTarget.from_alias("
+            )
+            lines.append(
+                f"                    route53_targets.CloudFrontTarget(distribution_{spec.function_name}),"
+            )
+            lines.append("                ),")
+            lines.append("            )")
+
+        lines.append("")
 
     @staticmethod
     def _wf_oauth_rotation(lines: list[str], input_data: PackagerInput) -> None:
