@@ -1,22 +1,8 @@
-"""Models for payload size analysis results."""
+"""Models for payload size analysis results, re-exported from phaeton_models."""
 
-from typing import Literal
+from phaeton_models.analyzer import PayloadAnalysisResult, PayloadWarning
 
-from pydantic import BaseModel
-
-
-class PayloadWarning(BaseModel):
-    """A warning about potential payload size issues."""
-
-    node_name: str
-    warning_type: str
-    description: str
-    severity: Literal["low", "medium", "high"]
-    recommendation: str
-
-
-class PayloadAnalysisResult(BaseModel):
-    """Result of payload size analysis for a workflow."""
-
-    warnings: list[PayloadWarning] = []
-    payload_limit_kb: int = 256
+__all__ = [
+    "PayloadAnalysisResult",
+    "PayloadWarning",
+]
