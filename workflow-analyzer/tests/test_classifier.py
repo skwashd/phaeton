@@ -2,8 +2,9 @@
 
 from pathlib import Path
 
+from phaeton_models.analyzer import NodeCategory
+
 from workflow_analyzer.classifier.node_classifier import NodeClassifier
-from workflow_analyzer.models.classification import NodeCategory
 from workflow_analyzer.models.n8n_workflow import N8nNode
 from workflow_analyzer.parser.workflow_parser import WorkflowParser
 

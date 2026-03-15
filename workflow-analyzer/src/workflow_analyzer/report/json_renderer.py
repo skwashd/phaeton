@@ -1,6 +1,6 @@
 """Renders a ConversionReport as JSON."""
 
-from workflow_analyzer.models.report import ConversionReport
+from phaeton_models.analyzer import ConversionReport
 
 
 def render(report: ConversionReport) -> str:

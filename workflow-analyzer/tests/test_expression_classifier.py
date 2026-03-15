@@ -1,7 +1,8 @@
 """Tests for expression classification."""
 
+from phaeton_models.analyzer import ExpressionCategory
+
 from workflow_analyzer.expressions.expression_classifier import ExpressionClassifier
-from workflow_analyzer.models.expression import ExpressionCategory
 
 
 def test_category_a_simple_property() -> None:

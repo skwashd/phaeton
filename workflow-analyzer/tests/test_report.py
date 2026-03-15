@@ -3,12 +3,13 @@
 import json
 from pathlib import Path
 
+from phaeton_models.analyzer import ConversionReport
+
 from workflow_analyzer.classifier.node_classifier import NodeClassifier
 from workflow_analyzer.classifier.payload_analyzer import PayloadAnalyzer
 from workflow_analyzer.expressions.expression_classifier import ExpressionClassifier
 from workflow_analyzer.graph.cross_node_detector import detect_cross_node_references
 from workflow_analyzer.graph.graph_builder import GraphBuilder
-from workflow_analyzer.models.report import ConversionReport
 from workflow_analyzer.parser.accessors import WorkflowAccessor
 from workflow_analyzer.parser.workflow_parser import WorkflowParser
 from workflow_analyzer.report import json_renderer, markdown_renderer
@@ -138,8 +139,8 @@ def test_markdown_low_confidence() -> None:
     """Test markdown low confidence."""
     from datetime import UTC, datetime
 
-    from workflow_analyzer.models.classification import ClassifiedNode, NodeCategory
-    from workflow_analyzer.models.n8n_workflow import N8nNode
+    from phaeton_models.analyzer import ClassifiedNode, NodeCategory
+    from phaeton_models.n8n_workflow import N8nNode
 
     node = N8nNode.model_validate(
         {

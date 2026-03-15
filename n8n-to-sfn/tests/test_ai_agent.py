@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import pytest
+from phaeton_models.translator import (
+    ClassifiedNode,
+    NodeClassification,
+    WorkflowAnalysis,
+)
 
 from n8n_to_sfn.ai_agent.fallback import (
     AITranslationResult,
     Confidence,
     MockAIAgent,
     StubAIAgent,
-)
-from n8n_to_sfn.models.analysis import (
-    ClassifiedNode,
-    NodeClassification,
-    WorkflowAnalysis,
 )
 from n8n_to_sfn.models.asl import PassState
 from n8n_to_sfn.models.n8n import N8nNode

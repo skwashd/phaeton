@@ -13,11 +13,10 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-from pydantic import BaseModel
-
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     WorkflowAnalysis,
 )
+from pydantic import BaseModel
 
 
 class ItemsPattern(StrEnum):

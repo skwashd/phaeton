@@ -2,11 +2,8 @@
 
 import re
 
-from workflow_analyzer.models.expression import (
-    ClassifiedExpression,
-    ExpressionCategory,
-)
-from workflow_analyzer.models.n8n_workflow import N8nNode
+from phaeton_models.analyzer import ClassifiedExpression, ExpressionCategory
+from phaeton_models.n8n_workflow import N8nNode
 
 # Cross-node reference patterns (Category B)
 _CROSS_NODE_PATTERNS: list[re.Pattern[str]] = [

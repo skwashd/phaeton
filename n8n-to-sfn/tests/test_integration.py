@@ -10,14 +10,14 @@ import json
 from pathlib import Path
 
 import pytest
-
-from n8n_to_sfn.engine import TranslationEngine
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ClassifiedNode,
     DependencyEdge,
     NodeClassification,
     WorkflowAnalysis,
 )
+
+from n8n_to_sfn.engine import TranslationEngine
 from n8n_to_sfn.models.n8n import N8nNode, N8nWorkflow
 from n8n_to_sfn.translators.aws_service import AWSServiceTranslator
 from n8n_to_sfn.translators.code_node import CodeNodeTranslator

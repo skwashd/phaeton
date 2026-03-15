@@ -8,12 +8,11 @@ from __future__ import annotations
 
 import re
 
-from pydantic import BaseModel
-
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ExpressionCategory,
     WorkflowAnalysis,
 )
+from pydantic import BaseModel
 
 
 class VariableResolution(BaseModel):

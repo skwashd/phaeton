@@ -2,14 +2,19 @@
 
 from datetime import UTC, datetime
 
+from phaeton_models.analyzer import (
+    ClassifiedExpression,
+    ClassifiedNode,
+    ConversionReport,
+    ExpressionCategory,
+    NodeCategory,
+    PayloadAnalysisResult,
+)
+from phaeton_models.n8n_workflow import N8nWorkflow
+
 import workflow_analyzer
 from workflow_analyzer.graph.cross_node_detector import CrossNodeReference
-from workflow_analyzer.models.classification import ClassifiedNode, NodeCategory
-from workflow_analyzer.models.expression import ClassifiedExpression, ExpressionCategory
 from workflow_analyzer.models.graph import WorkflowGraph
-from workflow_analyzer.models.n8n_workflow import N8nWorkflow
-from workflow_analyzer.models.payload import PayloadAnalysisResult
-from workflow_analyzer.models.report import ConversionReport
 
 
 class ReportGenerator:

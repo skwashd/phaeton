@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import jsonschema
 import pytest
-from pydantic import ValidationError
-
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ClassifiedExpression,
     ClassifiedNode,
     DependencyEdge,
@@ -14,6 +12,8 @@ from n8n_to_sfn.models.analysis import (
     NodeClassification,
     WorkflowAnalysis,
 )
+from pydantic import ValidationError
+
 from n8n_to_sfn.models.asl import (
     CatchConfig,
     ChoiceRule,

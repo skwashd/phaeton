@@ -1,10 +1,11 @@
 """Classifies n8n workflow nodes into translation categories."""
 
+from phaeton_models.analyzer import ClassifiedNode, NodeCategory
+
 from workflow_analyzer.classifier.registry import (
     TRANSLATION_STRATEGIES,
     NodeRegistry,
 )
-from workflow_analyzer.models.classification import ClassifiedNode, NodeCategory
 from workflow_analyzer.models.n8n_workflow import N8nNode
 
 

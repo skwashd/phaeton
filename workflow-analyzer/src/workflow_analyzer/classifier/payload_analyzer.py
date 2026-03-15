@@ -2,10 +2,14 @@
 
 import json
 
-from workflow_analyzer.models.classification import ClassifiedNode
+from phaeton_models.analyzer import (
+    ClassifiedNode,
+    PayloadAnalysisResult,
+    PayloadWarning,
+)
+from phaeton_models.n8n_workflow import N8nNode, N8nWorkflow
+
 from workflow_analyzer.models.graph import WorkflowGraph
-from workflow_analyzer.models.n8n_workflow import N8nNode, N8nWorkflow
-from workflow_analyzer.models.payload import PayloadAnalysisResult, PayloadWarning
 
 
 class PayloadAnalyzer:

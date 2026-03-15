@@ -1,6 +1,6 @@
 """Data-driven registry of known n8n node types per classification category."""
 
-from workflow_analyzer.models.classification import NodeCategory
+from phaeton_models.analyzer import NodeCategory
 
 FLOW_CONTROL_TYPES: set[str] = {
     "n8n-nodes-base.if",

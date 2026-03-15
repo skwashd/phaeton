@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from n8n_to_sfn.items_adapter import ItemsModelAdapter, ItemsPattern
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ClassifiedNode,
     DependencyEdge,
     NodeClassification,
     WorkflowAnalysis,
 )
+
+from n8n_to_sfn.items_adapter import ItemsModelAdapter, ItemsPattern
 from n8n_to_sfn.models.n8n import N8nNode
 
 

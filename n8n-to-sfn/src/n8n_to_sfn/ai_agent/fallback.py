@@ -9,9 +9,9 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Protocol
 
+from phaeton_models.translator import ClassifiedNode
 from pydantic import BaseModel
 
-from n8n_to_sfn.models.analysis import ClassifiedNode
 from n8n_to_sfn.translators.base import TranslationContext, TranslationResult
 
 

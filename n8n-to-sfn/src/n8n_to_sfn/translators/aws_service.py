@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from n8n_to_sfn.models.analysis import ClassifiedNode, NodeClassification
+from phaeton_models.translator import ClassifiedNode, NodeClassification
+
 from n8n_to_sfn.models.asl import RetryConfig, TaskState
 from n8n_to_sfn.translators.base import (
     BaseTranslator,

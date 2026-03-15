@@ -13,7 +13,8 @@ Converts n8n flow control nodes into equivalent ASL states:
 
 from __future__ import annotations
 
-from n8n_to_sfn.models.analysis import ClassifiedNode, NodeClassification
+from phaeton_models.translator import ClassifiedNode, NodeClassification
+
 from n8n_to_sfn.models.asl import (
     ChoiceRule,
     ChoiceState,

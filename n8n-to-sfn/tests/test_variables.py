@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ClassifiedExpression,
     ClassifiedNode,
     ExpressionCategory,
     NodeClassification,
     WorkflowAnalysis,
 )
+
 from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.variables import resolve_cross_node_references
 

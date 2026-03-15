@@ -2,9 +2,7 @@
 
 from typing import Any
 
-from workflow_analyzer.models.classification import NodeCategory
-from workflow_analyzer.models.expression import ExpressionCategory
-from workflow_analyzer.models.report import ConversionReport
+from phaeton_models.analyzer import ConversionReport, ExpressionCategory, NodeCategory
 
 
 def render(report: ConversionReport) -> str:

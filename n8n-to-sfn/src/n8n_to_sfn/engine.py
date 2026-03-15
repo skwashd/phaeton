@@ -5,13 +5,13 @@ from __future__ import annotations
 import graphlib
 from typing import TYPE_CHECKING, Any, Protocol
 
-from pydantic import BaseModel
-
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ClassifiedNode,
     NodeClassification,
     WorkflowAnalysis,
 )
+from pydantic import BaseModel
+
 from n8n_to_sfn.models.asl import PassState, StateMachine
 from n8n_to_sfn.translators.base import (
     BaseTranslator,

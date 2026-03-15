@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 from typing import Any
 
+from phaeton_models.translator import ClassifiedNode, WorkflowAnalysis
 from pydantic import BaseModel
 
-from n8n_to_sfn.models.analysis import ClassifiedNode, WorkflowAnalysis
 from n8n_to_sfn.models.asl import (
     CatchConfig,
     RetryConfig,

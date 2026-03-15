@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ClassifiedNode,
     DependencyEdge,
     NodeClassification,
     WorkflowAnalysis,
 )
+
 from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.base import TranslationContext
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator

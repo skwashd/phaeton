@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from n8n_to_sfn.models.analysis import (
+from phaeton_models.translator import (
     ClassifiedNode,
     NodeClassification,
     WorkflowAnalysis,
 )
+
 from n8n_to_sfn.models.asl import RetryConfig
 from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.aws_service import AWSServiceTranslator
