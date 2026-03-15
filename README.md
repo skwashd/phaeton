@@ -55,7 +55,8 @@ phaeton/end-to-end/
 ├── workflow-analyzer/    # Component 2: workflow analysis & feasibility reports
 ├── n8n-to-sfn/           # Component 3: translation engine
 ├── packager/             # Component 4: CDK application generator
-└── docs/                 # Architecture plans & coding guidelines
+├── docs/                 # Architecture plans & coding guidelines
+│   └── adr/             # Architecture Decision Records
 ```
 
 ## Prerequisites
@@ -113,6 +114,13 @@ Generates complete, deployable CDK applications from translation output. Produce
 
 - **CLI:** `uv run python -m n8n_to_sfn_packager --input <input.json> -o <output/>`
 - [Component README](packager/README.md)
+
+## Documentation
+
+- [Getting Started](docs/getting-started.md) — installation, quickstart, and first workflow conversion
+- [Supported Node Types](docs/supported-node-types.md) — reference of all translatable n8n nodes
+- [Troubleshooting](docs/troubleshooting.md) — common errors and debugging tips
+- [Architecture Decision Records](docs/adr/README.md) — key design decisions and their rationale
 
 ## Development
 
