@@ -137,3 +137,111 @@ class TestCodeNodeTranslator:
         node = _code_node("W", NodeClassification.CODE_JS, {"jsCode": ""})
         result = self.translator.translate(node, _context())
         assert any("review" in w.lower() or "n8n" in w.lower() for w in result.warnings)
+
+    def test_js_input_all_shimmed(self) -> None:
+        """Test JS code using $input.all() gets a compatibility shim."""
+        node = _code_node(
+            "InputAll",
+            NodeClassification.CODE_JS,
+            {"jsCode": "const data = $input.all();"},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "const $input" in handler
+        assert "all: () => items" in handler
+
+    def test_js_json_shimmed(self) -> None:
+        """Test JS code using $json gets mapped to event.items[0].json."""
+        node = _code_node(
+            "JsonRef",
+            NodeClassification.CODE_JS,
+            {"jsCode": "const val = $json.name;"},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "const $json" in handler
+        assert "items[0]" in handler
+
+    def test_js_items_shimmed(self) -> None:
+        """Test JS code using $items gets mapped to items."""
+        node = _code_node(
+            "ItemsRef",
+            NodeClassification.CODE_JS,
+            {"jsCode": "const all = $items;"},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "const $items = items;" in handler
+
+    def test_js_no_globals_no_shims(self) -> None:
+        """Test JS code with no n8n globals produces no shims."""
+        node = _code_node(
+            "NoGlobals",
+            NodeClassification.CODE_JS,
+            {"jsCode": "const result = items.map(i => i.json);"},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "const $input" not in handler
+        assert "const $json" not in handler
+        assert "const $items" not in handler
+
+    def test_js_untranslatable_globals_warning(self) -> None:
+        """Test that untranslatable globals emit warnings."""
+        node = _code_node(
+            "EnvRef",
+            NodeClassification.CODE_JS,
+            {"jsCode": "const key = $env.API_KEY;\nconst id = $execution.id;"},
+        )
+        result = self.translator.translate(node, _context())
+        env_warnings = [w for w in result.warnings if "$env" in w]
+        exec_warnings = [w for w in result.warnings if "$execution" in w]
+        assert len(env_warnings) == 1
+        assert len(exec_warnings) == 1
+        assert "environment variable" in env_warnings[0].lower()
+
+    def test_js_luxon_datetime_preamble(self) -> None:
+        """Test that luxon DateTime usage adds require to preamble."""
+        node = _code_node(
+            "LuxonNode",
+            NodeClassification.CODE_JS,
+            {"jsCode": "const now = DateTime.now();"},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "const { DateTime } = require('luxon');" in handler
+
+    def test_js_no_datetime_no_preamble(self) -> None:
+        """Test that luxon preamble is not added when DateTime is unused."""
+        node = _code_node(
+            "NoLuxon",
+            NodeClassification.CODE_JS,
+            {"jsCode": "const result = [];"},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "require('luxon')" not in handler
+
+    def test_python_input_shimmed(self) -> None:
+        """Test Python code using $input gets a compatibility shim."""
+        node = _code_node(
+            "PyInput",
+            NodeClassification.CODE_PYTHON,
+            {"pythonCode": "data = $input.all()"},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "_N8nInput" in handler
+        assert "_input.all()" in handler
+
+    def test_python_json_shimmed(self) -> None:
+        """Test Python code using $json gets shimmed and rewritten."""
+        node = _code_node(
+            "PyJson",
+            NodeClassification.CODE_PYTHON,
+            {"pythonCode": 'val = $json["name"]'},
+        )
+        result = self.translator.translate(node, _context())
+        handler = result.lambda_artifacts[0].handler_code
+        assert "_json" in handler
+        assert '_json["name"]' in handler

@@ -12,3 +12,4 @@ TASK-0010-observability-xray-instrumentation.md
 TASK-0011-execute-workflow-child-arn.md
 TASK-0012-merge-node-parallel-state.md
 TASK-0013-split-in-batches-map-state.md
+TASK-0014-code-node-n8n-runtime-globals.md
