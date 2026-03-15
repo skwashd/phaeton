@@ -20,6 +20,11 @@ from n8n_to_sfn.translators.database import DatabaseTranslator
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 from n8n_to_sfn.translators.http_request import HttpRequestTranslator
 from n8n_to_sfn.translators.picofun import PicoFunTranslator
+from n8n_to_sfn.translators.saas.airtable import AirtableTranslator
+from n8n_to_sfn.translators.saas.gmail import GmailTranslator
+from n8n_to_sfn.translators.saas.google_sheets import GoogleSheetsTranslator
+from n8n_to_sfn.translators.saas.notion import NotionTranslator
+from n8n_to_sfn.translators.saas.slack import SlackTranslator
 from n8n_to_sfn.translators.set_node import SetNodeTranslator
 from n8n_to_sfn.translators.triggers import TriggerTranslator
 
@@ -41,6 +46,11 @@ def create_default_engine() -> TranslationEngine:
             DatabaseTranslator(),
             HttpRequestTranslator(),
             SetNodeTranslator(),
+            SlackTranslator(),
+            GmailTranslator(),
+            GoogleSheetsTranslator(),
+            NotionTranslator(),
+            AirtableTranslator(),
             PicoFunTranslator(),
         ],
         ai_agent=ai_agent,
