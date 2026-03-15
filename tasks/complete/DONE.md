@@ -14,3 +14,4 @@ TASK-0012-merge-node-parallel-state.md
 TASK-0013-split-in-batches-map-state.md
 TASK-0014-code-node-n8n-runtime-globals.md
 TASK-0016-integration-tests-real-aws.md
+TASK-0017-ci-cd-pipeline.md

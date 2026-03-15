@@ -1,0 +1,56 @@
+name: Component Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        description: "Path to the component directory"
+        required: true
+        type: string
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.component }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.14
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Lint with ruff
+        run: uv run ruff check
+
+      - name: Type check with ty
+        run: uv run ty check
+
+      - name: Run tests with coverage
+        run: |
+          uv run coverage run -m pytest
+          uv run coverage report
+          uv run coverage xml -o coverage.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ inputs.component }}
+          path: ${{ inputs.component }}/coverage.xml
+          retention-days: 14
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ inputs.component }}
+          path: ${{ inputs.component }}/.pytest_cache/v/cache/lastfailed
+          retention-days: 14

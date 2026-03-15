@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      workflow-analyzer: ${{ github.event_name == 'push' || steps.filter.outputs.workflow-analyzer }}
+      n8n-to-sfn: ${{ github.event_name == 'push' || steps.filter.outputs.n8n-to-sfn }}
+      packager: ${{ github.event_name == 'push' || steps.filter.outputs.packager }}
+      n8n-release-parser: ${{ github.event_name == 'push' || steps.filter.outputs.n8n-release-parser }}
+      shared: ${{ github.event_name == 'push' || steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            workflow-analyzer:
+              - 'workflow-analyzer/**'
+            n8n-to-sfn:
+              - 'n8n-to-sfn/**'
+            packager:
+              - 'packager/**'
+            n8n-release-parser:
+              - 'n8n-release-parser/**'
+            shared:
+              - 'shared/**'
+
+  workflow-analyzer:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.workflow-analyzer == 'true' || needs.detect-changes.outputs.shared == 'true'
+    uses: ./.github/workflows/component-test.yml
+    with:
+      component: workflow-analyzer
+
+  n8n-to-sfn:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.n8n-to-sfn == 'true' || needs.detect-changes.outputs.shared == 'true'
+    uses: ./.github/workflows/component-test.yml
+    with:
+      component: n8n-to-sfn
+
+  packager:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.packager == 'true' || needs.detect-changes.outputs.shared == 'true'
+    uses: ./.github/workflows/component-test.yml
+    with:
+      component: packager
+
+  n8n-release-parser:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.n8n-release-parser == 'true' || needs.detect-changes.outputs.shared == 'true'
+    uses: ./.github/workflows/component-test.yml
+    with:
+      component: n8n-release-parser
+
+  ci-gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    needs:
+      - workflow-analyzer
+      - n8n-to-sfn
+      - packager
+      - n8n-release-parser
+    if: always()
+    steps:
+      - name: Check component results
+        run: |
+          failed=false
+          for component in workflow-analyzer n8n-to-sfn packager n8n-release-parser; do
+            result="${{ needs.workflow-analyzer.result }}"
+            case "$component" in
+              n8n-to-sfn) result="${{ needs.n8n-to-sfn.result }}" ;;
+              packager) result="${{ needs.packager.result }}" ;;
+              n8n-release-parser) result="${{ needs.n8n-release-parser.result }}" ;;
+            esac
+            echo "$component: $result"
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              failed=true
+            fi
+          done
+          if [[ "$failed" == "true" ]]; then
+            echo "One or more component quality gates failed."
+            exit 1
+          fi
+          echo "All component quality gates passed."
