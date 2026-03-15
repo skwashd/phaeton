@@ -10,7 +10,14 @@ from constructs import Construct
 class TranslationEngineStack(cdk.Stack):
     """Deploy the Translation Engine Lambda."""
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:  # noqa: ANN003
+    def __init__(
+        self,
+        scope: Construct,
+        construct_id: str,
+        *,
+        ai_agent_function: lambda_.IFunction | None = None,
+        **kwargs,  # noqa: ANN003
+    ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
         self.function = lambda_.Function(
@@ -24,3 +31,10 @@ class TranslationEngineStack(cdk.Stack):
             memory_size=512,
             timeout=cdk.Duration.seconds(300),
         )
+
+        if ai_agent_function is not None:
+            self.function.add_environment(
+                "AI_AGENT_FUNCTION_NAME",
+                ai_agent_function.function_name,
+            )
+            ai_agent_function.grant_invoke(self.function)

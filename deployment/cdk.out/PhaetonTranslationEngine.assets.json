@@ -1,0 +1,34 @@
+{
+  "version": "50.0.0",
+  "files": {
+    "abb9ec9a265ac231c61c283421c654b2d0baf3fed81ab4d5e9372219455cf09a": {
+      "displayName": "Function/Code",
+      "source": {
+        "path": "asset.abb9ec9a265ac231c61c283421c654b2d0baf3fed81ab4d5e9372219455cf09a",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "current_account-current_region-e12abfa3": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "abb9ec9a265ac231c61c283421c654b2d0baf3fed81ab4d5e9372219455cf09a.zip",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    },
+    "c396b68e751945e17408cc61454c715aa1c9fe96aff3992c7d58b4084e06586a": {
+      "displayName": "PhaetonTranslationEngine Template",
+      "source": {
+        "path": "PhaetonTranslationEngine.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-b86e084f": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "c396b68e751945e17408cc61454c715aa1c9fe96aff3992c7d58b4084e06586a.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

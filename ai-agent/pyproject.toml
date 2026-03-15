@@ -1,0 +1,47 @@
+[project]
+name = "phaeton-ai-agent"
+version = "0.1.0"
+description = "AI agent service for fallback translation of n8n nodes using Strands Agents SDK and AWS Bedrock."
+readme = { text = "", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+    "phaeton-models @ file:///${PROJECT_ROOT}/../shared/phaeton-models",
+    "pydantic==2.12.5",
+    "strands-agents>=0.1.7",
+    "strands-agents-builder>=0.1.1",
+]
+
+[tool.uv]
+override-dependencies = [
+    "docstring-parser>=0.16",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+# Rules listed at https://github.com/charliermarsh/ruff#supported-rules
+select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+ignore = ["D203", "D211", "D213", "E501", "F403", "F405"]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"test_*" = ["S101", "S108"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/phaeton_ai_agent"]
+
+[dependency-groups]
+dev = [
+    "aws-lambda-powertools==3.25.0",
+    "coverage==7.13.4",
+    "pytest==9.0.2",
+    "ruff==0.15.2",
+]

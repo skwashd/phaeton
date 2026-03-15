@@ -1,0 +1,34 @@
+{
+  "version": "50.0.0",
+  "files": {
+    "210c440aba6a5f89b53ba8ae5119db543ab50dd0d5d307f780123b9ec8a7371b": {
+      "displayName": "Function/Code",
+      "source": {
+        "path": "asset.210c440aba6a5f89b53ba8ae5119db543ab50dd0d5d307f780123b9ec8a7371b",
+        "packaging": "zip"
+      },
+      "destinations": {
+        "current_account-current_region-619ec320": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "210c440aba6a5f89b53ba8ae5119db543ab50dd0d5d307f780123b9ec8a7371b.zip",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    },
+    "4f1735ea03a98c1bafa6ddbd296eddd998e0f4fda8324c7d9555aa5c50bc1a7a": {
+      "displayName": "PhaetonAiAgent Template",
+      "source": {
+        "path": "PhaetonAiAgent.template.json",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-current_region-99a1499d": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}",
+          "objectKey": "4f1735ea03a98c1bafa6ddbd296eddd998e0f4fda8324c7d9555aa5c50bc1a7a.json",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-${AWS::Region}"
+        }
+      }
+    }
+  },
+  "dockerImages": {}
+}

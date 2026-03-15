@@ -3,6 +3,7 @@
 
 import aws_cdk as cdk
 
+from stacks.ai_agent_stack import AiAgentStack
 from stacks.orchestration_stack import OrchestrationStack
 from stacks.packager_stack import PackagerStack
 from stacks.release_parser_stack import ReleaseParserStack
@@ -13,7 +14,12 @@ app = cdk.App()
 
 release_parser = ReleaseParserStack(app, "PhaetonReleaseParser")
 workflow_analyzer = WorkflowAnalyzerStack(app, "PhaetonWorkflowAnalyzer")
-translation_engine = TranslationEngineStack(app, "PhaetonTranslationEngine")
+ai_agent = AiAgentStack(app, "PhaetonAiAgent")
+translation_engine = TranslationEngineStack(
+    app,
+    "PhaetonTranslationEngine",
+    ai_agent_function=ai_agent.function,
+)
 packager = PackagerStack(app, "PhaetonPackager")
 
 OrchestrationStack(
