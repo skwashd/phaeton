@@ -1,4 +1,3 @@
-TASK-0002-contract-mismatch-translator-to-packager.md
 TASK-0006-eventbridge-oauth-rotation-targets.md
 TASK-0015-translation-engine-service-entry-point.md
 TASK-0007-deployment-and-orchestration.md
