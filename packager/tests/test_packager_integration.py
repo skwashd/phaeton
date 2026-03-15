@@ -316,14 +316,17 @@ class TestSimpleWorkflow:
         assert (output / "reports" / "conversion_report.md").exists()
         assert (output / "README.md").exists()
 
-    def test_no_requirements_txt(self, tmp_path: Path) -> None:
-        """Test that no requirements.txt files are generated anywhere."""
+    def test_python_lambdas_have_requirements_txt(self, tmp_path: Path) -> None:
+        """Test that Python Lambdas have requirements.txt for CDK bundling."""
         packager = Packager(schema_path=_schema_path())
         output = packager.package(_simple_input(), tmp_path / "output")
 
-        # No requirements.txt anywhere
-        for req in output.rglob("requirements.txt"):
-            pytest.fail(f"Found requirements.txt at {req}")
+        # Python Lambdas should have requirements.txt for CDK bundling
+        req_files = list(output.rglob("requirements.txt"))
+        assert len(req_files) > 0
+        # Each requirements.txt should be inside a lambdas directory
+        for req in req_files:
+            assert "lambdas" in str(req)
 
     def test_cdk_files_syntactically_valid(self, tmp_path: Path) -> None:
         """Test that generated CDK files are syntactically valid Python."""
@@ -394,7 +397,6 @@ class TestComplexWorkflow:
         output = packager.package(_complex_input(), tmp_path / "output")
 
         code = (output / "cdk" / "stacks" / "workflow_stack.py").read_text()
-        assert "PythonFunction(" in code
         assert "lambda_.Function(" in code
         assert "add_function_url" in code
         assert "OAuthRotation" in code

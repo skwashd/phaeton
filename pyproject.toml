@@ -48,7 +48,6 @@ source = ["tests"]
 
 [dependency-groups]
 dev = [
-    "aws-cdk-aws-lambda-python-alpha>=2.239.0a0",
     "coverage==7.13.4",
     "pytest==9.0.2",
     "pytest-timeout>=2.3.0",

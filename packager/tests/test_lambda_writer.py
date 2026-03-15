@@ -111,6 +111,33 @@ class TestPythonLambda:
         assert "Source n8n node: Slack" in content
         assert "Function type: picofun_api_client" in content
 
+    def test_requirements_txt_exists(
+        self, writer: LambdaWriter, python_spec: LambdaFunctionSpec, tmp_path: Path
+    ) -> None:
+        """Test that requirements.txt is created alongside pyproject.toml."""
+        result = writer.write(python_spec, tmp_path)
+        assert (result / "requirements.txt").exists()
+
+    def test_requirements_txt_contains_dependencies(
+        self, writer: LambdaWriter, python_spec: LambdaFunctionSpec, tmp_path: Path
+    ) -> None:
+        """Test that requirements.txt contains the same dependencies."""
+        result = writer.write(python_spec, tmp_path)
+        content = (result / "requirements.txt").read_text()
+        assert "httpx==0.27.0" in content
+        assert "aws-lambda-powertools==2.40.0" in content
+
+    def test_requirements_txt_empty_when_no_deps(
+        self,
+        writer: LambdaWriter,
+        python_no_deps_spec: LambdaFunctionSpec,
+        tmp_path: Path,
+    ) -> None:
+        """Test that requirements.txt is empty when there are no dependencies."""
+        result = writer.write(python_no_deps_spec, tmp_path)
+        content = (result / "requirements.txt").read_text()
+        assert content == ""
+
     def test_no_deps_still_valid(
         self,
         writer: LambdaWriter,
@@ -529,6 +556,36 @@ class TestWriteLayer:
         content = pyproject_path.read_text()
         assert "httpx==0.27.0" in content
         assert "aws-lambda-powertools==2.40.0" in content
+
+    def test_python_layer_requirements_txt(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that Python layer creates requirements.txt alongside pyproject.toml."""
+        layer = LayerSpec(
+            layer_name="python-shared",
+            runtime=LambdaRuntime.PYTHON,
+            dependencies=["httpx==0.27.0", "aws-lambda-powertools==2.40.0"],
+            function_names=["fn_a", "fn_b"],
+        )
+        result = writer.write_layer(layer, tmp_path)
+        req_path = result / "requirements.txt"
+        assert req_path.exists()
+        content = req_path.read_text()
+        assert "httpx==0.27.0" in content
+        assert "aws-lambda-powertools==2.40.0" in content
+
+    def test_nodejs_layer_no_requirements_txt(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that Node.js layers do not generate requirements.txt."""
+        layer = LayerSpec(
+            layer_name="nodejs-shared",
+            runtime=LambdaRuntime.NODEJS,
+            dependencies=["luxon@3.4.4"],
+            function_names=["fn_a"],
+        )
+        result = writer.write_layer(layer, tmp_path)
+        assert not (result / "requirements.txt").exists()
 
     def test_nodejs_layer_version_parsing(
         self, writer: LambdaWriter, tmp_path: Path

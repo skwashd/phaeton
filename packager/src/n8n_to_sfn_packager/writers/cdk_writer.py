@@ -140,7 +140,6 @@ class CDKWriter:
             requires-python = ">=3.12"
             dependencies = [
                 "aws-cdk-lib==2.239.0",
-                "aws-cdk.aws-lambda-python-alpha==2.239.0a0",
                 "constructs==10.5.1",
             ]
 
@@ -252,7 +251,7 @@ class CDKWriter:
 
         layers, _ = analyze_shared_dependencies(input_data.lambda_functions)
 
-        self._wf_imports(lines, input_data, layers)
+        self._wf_imports(lines, input_data)
         self._wf_class_header(lines, stack_prefix)
         self._wf_vpc_lookup(lines, input_data)
         self._wf_ssm_parameters(lines, ssm_params)
@@ -272,7 +271,6 @@ class CDKWriter:
     def _wf_imports(
         lines: list[str],
         input_data: PackagerInput,
-        layers: list[LayerSpec] | None = None,
     ) -> None:
         """Append import statements."""
         has_webhook_fns = any(
@@ -309,22 +307,6 @@ class CDKWriter:
         lines.append("from aws_cdk import aws_sqs as sqs")
         lines.append("from aws_cdk import aws_ssm as ssm")
         lines.append("from aws_cdk import aws_stepfunctions as sfn")
-
-        has_python_lambda = any(
-            s.runtime == LambdaRuntime.PYTHON for s in input_data.lambda_functions
-        )
-        has_python_layer = any(
-            layer.runtime == LambdaRuntime.PYTHON for layer in (layers or [])
-        )
-        python_alpha_imports: list[str] = []
-        if has_python_lambda or input_data.oauth_credentials:
-            python_alpha_imports.append("PythonFunction")
-        if has_python_layer:
-            python_alpha_imports.append("PythonLayerVersion")
-        if python_alpha_imports:
-            lines.append(
-                f"from aws_cdk.aws_lambda_python_alpha import {', '.join(python_alpha_imports)}",
-            )
 
         lines.append("from constructs import Construct")
         lines.append("")
@@ -427,11 +409,29 @@ class CDKWriter:
                 lines.append(
                     f"        # Shared Python deps: {dep_summary}",
                 )
-                lines.append(f"        {var_name} = PythonLayerVersion(")
+                lines.append(f"        {var_name} = lambda_.LayerVersion(")
                 lines.append("            self,")
                 lines.append(f'            "{construct_id}",')
                 lines.append(
-                    f'            entry=str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}"),',
+                    "            code=lambda_.Code.from_asset(",
+                )
+                lines.append(
+                    f'                str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}"),',
+                )
+                lines.append(
+                    "                bundling=cdk.BundlingOptions(",
+                )
+                lines.append(
+                    '                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,',
+                )
+                lines.append(
+                    '                    command=["bash", "-c", "pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output/python"],',
+                )
+                lines.append(
+                    "                ),",
+                )
+                lines.append(
+                    "            ),",
                 )
                 lines.append(
                     "            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],"
@@ -502,16 +502,33 @@ class CDKWriter:
                     f"        # {spec.description or spec.function_name}{comment}",
                 )
                 lines.append(
-                    f'        lambda_functions["{spec.function_name}"] = PythonFunction('
+                    f'        lambda_functions["{spec.function_name}"] = lambda_.Function('
                 )
                 lines.append("            self,")
                 lines.append(f'            "{construct_id}Fn",')
-                lines.append(
-                    f'            entry=str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}"),',
-                )
                 lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
-                lines.append('            index="handler.py",')
-                lines.append('            handler="handler",')
+                lines.append('            handler="handler.handler",')
+                lines.append(
+                    "            code=lambda_.Code.from_asset(",
+                )
+                lines.append(
+                    f'                str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}"),',
+                )
+                lines.append(
+                    "                bundling=cdk.BundlingOptions(",
+                )
+                lines.append(
+                    '                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,',
+                )
+                lines.append(
+                    "                    command=[\"bash\", \"-c\", \"pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output && cp /asset-input/*.py /asset-output/\"],",
+                )
+                lines.append(
+                    "                ),",
+                )
+                lines.append(
+                    "            ),",
+                )
                 lines.extend(layer_lines)
                 lines.extend(vpc_lines)
                 lines.append("            tracing=lambda_.Tracing.ACTIVE,")
@@ -828,15 +845,32 @@ class CDKWriter:
 
             # Lambda function for OAuth token refresh
             lines.append(f"        # OAuth rotation for {cred_name}")
-            lines.append(f"        {var_name} = PythonFunction(")
+            lines.append(f"        {var_name} = lambda_.Function(")
             lines.append("            self,")
             lines.append(f'            "{construct_id}Fn",')
-            lines.append(
-                f'            entry=str(Path(__file__).parent.parent.parent / "lambdas" / "{var_name}"),',
-            )
             lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
-            lines.append('            index="handler.py",')
-            lines.append('            handler="handler",')
+            lines.append('            handler="handler.handler",')
+            lines.append(
+                "            code=lambda_.Code.from_asset(",
+            )
+            lines.append(
+                f'                str(Path(__file__).parent.parent.parent / "lambdas" / "{var_name}"),',
+            )
+            lines.append(
+                "                bundling=cdk.BundlingOptions(",
+            )
+            lines.append(
+                '                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,',
+            )
+            lines.append(
+                "                    command=[\"bash\", \"-c\", \"pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output && cp /asset-input/*.py /asset-output/\"],",
+            )
+            lines.append(
+                "                ),",
+            )
+            lines.append(
+                "            ),",
+            )
             lines.append("            environment={")
             lines.append(f'                "SSM_PARAMETER_PATH": "{param_path}",')
             lines.append(f'                "TOKEN_ENDPOINT_URL": "{token_url}",')

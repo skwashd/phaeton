@@ -189,6 +189,9 @@ class LambdaWriter:
             """)
             (layer_dir / "pyproject.toml").write_text(pyproject)
 
+            # requirements.txt — used by CDK BundlingOptions for pip install
+            self._write_requirements_txt(layer_dir, layer.dependencies)
+
         return layer_dir
 
     def write_all(
@@ -261,6 +264,9 @@ class LambdaWriter:
             build-backend = "hatchling.build"
         """)
         (func_dir / "pyproject.toml").write_text(pyproject)
+
+        # requirements.txt — used by CDK BundlingOptions for pip install
+        self._write_requirements_txt(func_dir, deps)
 
         # uv.lock
         self._run_uv_lock(func_dir, spec.function_name)
@@ -410,6 +416,16 @@ class LambdaWriter:
             f"}};\n"
             f"exports.handler = handler;\n"
         )
+
+    @staticmethod
+    def _write_requirements_txt(target_dir: Path, deps: list[str]) -> None:
+        """Write a ``requirements.txt`` from a dependency list.
+
+        Each dependency specifier is written on its own line.  The file is
+        consumed by CDK ``BundlingOptions`` (``pip install -r requirements.txt``).
+        """
+        content = "\n".join(deps) + "\n" if deps else ""
+        (target_dir / "requirements.txt").write_text(content)
 
     @staticmethod
     def _run_uv_lock(func_dir: Path, function_name: str) -> None:

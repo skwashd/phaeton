@@ -326,8 +326,8 @@ class TestPyprojectToml:
         data = tomllib.loads(content)
         assert "project" in data
 
-    def test_includes_lambda_python_alpha(self, tmp_path: Path) -> None:
-        """Test that pyproject.toml includes the lambda python alpha dependency."""
+    def test_no_lambda_python_alpha_dependency(self, tmp_path: Path) -> None:
+        """Test that pyproject.toml does not include the lambda python alpha dependency."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -336,14 +336,14 @@ class TestPyprojectToml:
             tmp_path,
         )
         content = (cdk_dir / "pyproject.toml").read_text()
-        assert "aws-cdk.aws-lambda-python-alpha" in content
+        assert "aws-cdk.aws-lambda-python-alpha" not in content
 
 
 class TestWorkflowStack:
     """Tests for the generated workflow stack."""
 
-    def test_python_function_import(self, tmp_path: Path) -> None:
-        """Test that PythonFunction is imported in the workflow stack."""
+    def test_python_function_uses_stable_construct(self, tmp_path: Path) -> None:
+        """Test that Python Lambdas use lambda_.Function, not PythonFunction."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _minimal_input(),
@@ -352,7 +352,8 @@ class TestWorkflowStack:
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        assert "PythonFunction" in code
+        assert "PythonFunction" not in code
+        assert "lambda_.Function(" in code
 
     def test_correct_number_of_functions_minimal(self, tmp_path: Path) -> None:
         """Test that minimal input produces the correct number of functions."""
@@ -365,7 +366,7 @@ class TestWorkflowStack:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         # Minimal input has 1 Python Lambda
-        assert code.count("PythonFunction(") == 1
+        assert code.count("lambda_.Function(") == 1
 
     def test_correct_number_of_functions_complex(self, tmp_path: Path) -> None:
         """Test that complex input produces the correct number of functions."""
@@ -378,8 +379,7 @@ class TestWorkflowStack:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         # Complex: 2 Python Lambdas + 1 Node.js Lambda + 1 OAuth refresh Lambda
-        assert code.count("PythonFunction(") == 3
-        assert code.count("lambda_.Function(") == 1
+        assert code.count("lambda_.Function(") == 4
 
     def test_webhook_function_url(self, tmp_path: Path) -> None:
         """Test that webhook function URL is configured."""
@@ -417,7 +417,7 @@ class TestWorkflowStack:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "OAuthRotation" in code
         # Lambda function is defined and used as target
-        assert "oauth_refresh_google = PythonFunction(" in code
+        assert "oauth_refresh_google = lambda_.Function(" in code
         assert "targets=[targets.LambdaFunction(oauth_refresh_google)]" in code
         # Environment variables for the Lambda
         assert '"SSM_PARAMETER_PATH": "/complex-wf/creds/google"' in code
@@ -449,8 +449,8 @@ class TestWorkflowStack:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         # Each credential gets its own Lambda and rule
-        assert "oauth_refresh_google = PythonFunction(" in code
-        assert "oauth_refresh_slack_oauth = PythonFunction(" in code
+        assert "oauth_refresh_google = lambda_.Function(" in code
+        assert "oauth_refresh_slack_oauth = lambda_.Function(" in code
         assert "targets=[targets.LambdaFunction(oauth_refresh_google)]" in code
         assert "targets=[targets.LambdaFunction(oauth_refresh_slack_oauth)]" in code
         assert "OAuthRotation0" in code
@@ -509,6 +509,33 @@ class TestWorkflowStack:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "Source n8n node: Slack" in code
+
+    def test_python_function_has_bundling_options(self, tmp_path: Path) -> None:
+        """Test that Python Lambda functions use BundlingOptions with pip install."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "cdk.BundlingOptions(" in code
+        assert "pip install" in code
+        assert "requirements.txt" in code
+
+    def test_no_alpha_import(self, tmp_path: Path) -> None:
+        """Test that generated code does not import from aws_lambda_python_alpha."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "aws_lambda_python_alpha" not in code
+        assert "PythonFunction" not in code
 
 
 class TestObservability:
@@ -1294,11 +1321,11 @@ class TestLambdaLayers:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "nodejs_shared_layer = lambda_.LayerVersion(" in code
-        assert "python_shared_layer = PythonLayerVersion(" in code
+        assert "python_shared_layer = lambda_.LayerVersion(" in code
         assert "PythonSharedLayer" in code
 
-    def test_python_layer_imports_python_layer_version(self, tmp_path: Path) -> None:
-        """Test that PythonLayerVersion is imported when Python layers exist."""
+    def test_python_layer_uses_stable_layer_version(self, tmp_path: Path) -> None:
+        """Test that Python layers use lambda_.LayerVersion, not PythonLayerVersion."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _mixed_runtime_shared_deps_input(),
@@ -1307,7 +1334,21 @@ class TestLambdaLayers:
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        assert "PythonLayerVersion" in code
+        assert "PythonLayerVersion" not in code
+        assert "lambda_.LayerVersion(" in code
+
+    def test_python_layer_has_bundling_options(self, tmp_path: Path) -> None:
+        """Test that Python layers use BundlingOptions targeting python/ subdir."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _mixed_runtime_shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "cdk.BundlingOptions(" in code
+        assert "/asset-output/python" in code
 
     def test_layer_description_includes_dep_names(self, tmp_path: Path) -> None:
         """Test that layer comments include dependency names."""
@@ -1359,5 +1400,4 @@ class TestLambdaLayers:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         # No layers because no deps are shared across functions of same runtime
         assert "LayerVersion(" not in code
-        assert "PythonFunction(" in code
         assert "lambda_.Function(" in code

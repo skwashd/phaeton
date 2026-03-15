@@ -24,8 +24,8 @@ from tests.e2e.conftest import PipelineResult, run_pipeline
 _FIXTURES_DIR = Path(__file__).parent.parent / "e2e" / "fixtures"
 
 # Context key that tells CDK to skip Docker-based asset bundling.
-# This allows PythonFunction / PythonLayerVersion constructs to
-# synthesize without requiring Docker in the test environment.
+# This allows Lambda bundling (Code.from_asset with BundlingOptions)
+# to synthesize without requiring Docker in the test environment.
 _NO_BUNDLING_CONTEXT = {"aws:cdk:bundling-stacks": []}
 
 
