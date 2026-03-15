@@ -1,4 +1,3 @@
-TASK-0007-deployment-and-orchestration.md
 TASK-0008-ai-agent-fallback-service.md
 TASK-0009-iam-wildcard-resource-arns.md
 TASK-0010-observability-xray-instrumentation.md

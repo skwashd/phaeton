@@ -57,6 +57,8 @@ This should be built as a new standalone component (Component 5) using the AWS S
    - In `TranslationEngine.__init__` (line 52), accept an `AIAgentProtocol` (already present as `ai_agent` parameter).
    - In `_translate_node` (line 117), the existing fallback to `self._ai_agent` should work once `StubAIAgent` is replaced.
 
+4. Use AWS CDK for the deployment.
+
 ### Testing Requirements
 
 - `ai-agent/tests/test_agent.py` — unit tests with mocked LLM responses.

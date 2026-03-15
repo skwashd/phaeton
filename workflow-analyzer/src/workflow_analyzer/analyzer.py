@@ -1,6 +1,7 @@
 """Orchestrator that wires all analysis components together."""
 
 from pathlib import Path
+from typing import Any
 
 from phaeton_models.analyzer import ConversionReport
 
@@ -26,6 +27,35 @@ class WorkflowAnalyzer:
         """Analyze an n8n workflow JSON file and return a conversion report."""
         parser = WorkflowParser()
         workflow = parser.parse_file(workflow_path)
+
+        accessor = WorkflowAccessor(workflow)
+        expressions = accessor.get_all_expressions()
+
+        classified_nodes = NodeClassifier().classify_all(workflow.nodes)
+
+        graph = GraphBuilder().build(workflow, expressions)
+
+        cross_refs = detect_cross_node_references(expressions)
+
+        classified_exprs = ExpressionClassifier().classify_all(expressions)
+
+        payload_result = PayloadAnalyzer(
+            payload_limit_kb=self._payload_limit_kb
+        ).analyze(workflow, classified_nodes, graph)
+
+        return ReportGenerator().generate(
+            workflow,
+            classified_nodes,
+            classified_exprs,
+            payload_result,
+            graph,
+            cross_refs,
+        )
+
+    def analyze_dict(self, data: dict[str, Any]) -> ConversionReport:
+        """Analyze an n8n workflow from a pre-parsed dictionary."""
+        parser = WorkflowParser()
+        workflow = parser.parse_dict(data)
 
         accessor = WorkflowAccessor(workflow)
         expressions = accessor.get_all_expressions()

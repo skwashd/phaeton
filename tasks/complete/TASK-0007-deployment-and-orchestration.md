@@ -33,6 +33,8 @@ Phaeton is a system of independent microservices with no deployment infrastructu
 
 ## Implementation Details
 
+Always use ARM64 as the compute architecture
+
 ### Files to Modify
 
 - `deployment/` (new directory)
