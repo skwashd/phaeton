@@ -153,12 +153,47 @@ class TestFlowControlTranslator:
         assert state.default == "Default"
 
     def test_split_in_batches(self) -> None:
-        """Test splitInBatches becomes Map state."""
+        """Test splitInBatches becomes Map state with metadata."""
         node = _fc_node("Batch", "n8n-nodes-base.splitInBatches")
         result = self.translator.translate(node, _context())
         state = result.states["Batch"]
         assert state.type == "Map"
         assert state.max_concurrency == 1
+        assert result.metadata.get("split_in_batches_node") is True
+        assert result.metadata.get("batch_size") == 10
+
+    def test_split_in_batches_custom_batch_size(self) -> None:
+        """Test splitInBatches reads custom batch size from parameters."""
+        node = _fc_node(
+            "Batch",
+            "n8n-nodes-base.splitInBatches",
+            params={"batchSize": 25},
+        )
+        result = self.translator.translate(node, _context())
+        state = result.states["Batch"]
+        assert state.type == "Map"
+        assert result.metadata.get("batch_size") == 25
+        assert "batch_size=25" in state.comment
+
+    def test_split_in_batches_done_output(self) -> None:
+        """Test splitInBatches records the done output in metadata."""
+        node = _fc_node("Batch", "n8n-nodes-base.splitInBatches")
+        edges = [
+            DependencyEdge(
+                from_node="Batch",
+                to_node="AfterLoop",
+                edge_type="CONNECTION",
+                output_index=0,
+            ),
+            DependencyEdge(
+                from_node="Batch",
+                to_node="LoopBody",
+                edge_type="CONNECTION",
+                output_index=1,
+            ),
+        ]
+        result = self.translator.translate(node, _context(edges))
+        assert result.metadata.get("done_next") == "AfterLoop"
 
     def test_wait_seconds(self) -> None:
         """Test Wait node with seconds."""

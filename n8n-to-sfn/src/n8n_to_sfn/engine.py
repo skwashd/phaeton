@@ -12,7 +12,14 @@ from phaeton_models.translator import (
 )
 from pydantic import BaseModel
 
-from n8n_to_sfn.models.asl import ParallelState, PassState, StateMachine
+from n8n_to_sfn.models.asl import (
+    ItemProcessor,
+    MapState,
+    ParallelState,
+    PassState,
+    ProcessorConfig,
+    StateMachine,
+)
 from n8n_to_sfn.translators.base import (
     BaseTranslator,
     LambdaArtifact,
@@ -70,6 +77,7 @@ class TranslationEngine:
         node_state_names: dict[str, str] = {}
         merge_metadata: dict[str, dict[str, Any]] = {}
 
+        split_in_batches_metadata: dict[str, dict[str, Any]] = {}
         node_by_name = {cn.node.name: cn for cn in analysis.classified_nodes}
 
         for node_name in ordered_names:
@@ -88,6 +96,9 @@ class TranslationEngine:
             if result.metadata.get("merge_node"):
                 merge_metadata[node_name] = result.metadata
 
+            if result.metadata.get("split_in_batches_node"):
+                split_in_batches_metadata[node_name] = result.metadata
+
             for state_name, state in result.states.items():
                 all_states[state_name] = state
                 node_state_names[node_name] = state_name
@@ -97,6 +108,11 @@ class TranslationEngine:
 
         self._apply_parallel_for_merges(
             all_states, analysis, node_state_names, merge_metadata, all_warnings
+        )
+
+        self._apply_map_for_split_in_batches(
+            all_states, analysis, node_state_names,
+            split_in_batches_metadata, all_warnings,
         )
 
         self._wire_transitions(all_states, analysis, node_state_names)
@@ -161,19 +177,58 @@ class TranslationEngine:
         )
 
     def _topological_sort(self, analysis: WorkflowAnalysis) -> list[str]:
-        """Topologically sort node names using the dependency graph."""
-        graph: dict[str, set[str]] = {}
+        """Topologically sort node names using the dependency graph.
+
+        Back-edges from SplitInBatches loop bodies are excluded to avoid
+        cycles.  A back-edge is an edge whose ``to_node`` is a
+        SplitInBatches node and whose ``from_node`` is reachable from
+        that node's loop output (output index 1).
+        """
         all_names = {cn.node.name for cn in analysis.classified_nodes}
+        back_edges = self._find_loop_back_edges(analysis)
 
-        for name in all_names:
-            graph[name] = set()
-
+        graph: dict[str, set[str]] = {name: set() for name in all_names}
         for edge in analysis.dependency_edges:
-            if edge.to_node in all_names and edge.from_node in all_names:
+            if (
+                edge.to_node in all_names
+                and edge.from_node in all_names
+                and (edge.from_node, edge.to_node) not in back_edges
+            ):
                 graph[edge.to_node].add(edge.from_node)
 
         sorter = graphlib.TopologicalSorter(graph)
         return list(sorter.static_order())
+
+    def _find_loop_back_edges(
+        self, analysis: WorkflowAnalysis
+    ) -> set[tuple[str, str]]:
+        """Identify back-edges from SplitInBatches loop bodies."""
+        sib_names = {
+            cn.node.name
+            for cn in analysis.classified_nodes
+            if cn.node.type == "n8n-nodes-base.splitInBatches"
+        }
+        if not sib_names:
+            return set()
+
+        successors: dict[str, list[str]] = {}
+        output_successors: dict[str, dict[int, list[str]]] = {}
+        for edge in analysis.dependency_edges:
+            if edge.edge_type == "CONNECTION":
+                successors.setdefault(edge.from_node, []).append(edge.to_node)
+                if edge.output_index is not None:
+                    output_successors.setdefault(
+                        edge.from_node, {}
+                    ).setdefault(edge.output_index, []).append(edge.to_node)
+
+        back_edges: set[tuple[str, str]] = set()
+        for sib_name in sib_names:
+            loop_starts = output_successors.get(sib_name, {}).get(1, [])
+            for loop_start in loop_starts:
+                body = self._collect_loop_body(loop_start, sib_name, successors)
+                if body:
+                    back_edges.add((body[-1], sib_name))
+        return back_edges
 
     def _apply_parallel_for_merges(
         self,
@@ -388,6 +443,163 @@ class TranslationEngine:
         max_depth = 100
         for _ in range(max_depth):
             if current == merge_name:
+                break
+            if current in visited:
+                break
+            visited.add(current)
+            chain.append(current)
+            nexts = successors.get(current, [])
+            if not nexts:
+                break
+            current = nexts[0]
+        return chain
+
+    def _apply_map_for_split_in_batches(
+        self,
+        all_states: dict[str, Any],
+        analysis: WorkflowAnalysis,
+        node_state_names: dict[str, str],
+        split_metadata: dict[str, dict[str, Any]],
+        warnings: list[str],
+    ) -> None:
+        """Fill Map state ItemProcessors with loop-body states.
+
+        For each SplitInBatches node, follow the "loop" output (index 1) to
+        collect all nodes that form the loop body — i.e. nodes reachable from
+        the loop output until they loop back to the SplitInBatches node.
+        These states are removed from the top-level state machine and placed
+        inside the Map state's ``ItemProcessor.States`` block.
+        """
+        if not split_metadata:
+            return
+
+        _, successors = self._build_adjacency(analysis)
+        output_successors = self._build_output_successors(analysis)
+
+        for sib_name in split_metadata:
+            self._process_single_split_in_batches(
+                sib_name, output_successors, successors,
+                all_states, node_state_names, warnings,
+            )
+
+    def _process_single_split_in_batches(
+        self,
+        sib_name: str,
+        output_successors: dict[str, dict[int, list[str]]],
+        successors: dict[str, list[str]],
+        all_states: dict[str, Any],
+        node_state_names: dict[str, str],
+        warnings: list[str],
+    ) -> None:
+        """Process a single SplitInBatches node's loop body into its Map state."""
+        loop_starts = output_successors.get(sib_name, {}).get(1, [])
+        if not loop_starts:
+            warnings.append(
+                f"SplitInBatches node '{sib_name}': no loop output "
+                "(output index 1) found.  ItemProcessor left as placeholder."
+            )
+            return
+
+        loop_body = self._collect_loop_body(loop_starts[0], sib_name, successors)
+        if not loop_body:
+            warnings.append(
+                f"SplitInBatches node '{sib_name}': loop body is empty.  "
+                "ItemProcessor left as placeholder."
+            )
+            return
+
+        inner_states = self._build_inner_states(
+            loop_body, node_state_names, all_states
+        )
+        if not inner_states:
+            return
+
+        self._wire_inner_transitions(loop_body, node_state_names, inner_states)
+
+        first_state_name = node_state_names.get(loop_body[0], loop_body[0])
+        sib_state_name = node_state_names.get(sib_name, sib_name)
+        map_state = all_states.get(sib_state_name)
+        if isinstance(map_state, MapState):
+            map_state.item_processor = ItemProcessor(
+                processor_config=ProcessorConfig(mode="INLINE"),
+                start_at=first_state_name,
+                states=inner_states,
+            )
+
+        # Remove loop-body states from the top-level state machine
+        for name in loop_body:
+            state_name = node_state_names.get(name, name)
+            all_states.pop(state_name, None)
+            node_state_names.pop(name, None)
+
+    @staticmethod
+    def _build_output_successors(
+        analysis: WorkflowAnalysis,
+    ) -> dict[str, dict[int, list[str]]]:
+        """Build a map from node names to their output-index-keyed successors."""
+        output_successors: dict[str, dict[int, list[str]]] = {}
+        for edge in analysis.dependency_edges:
+            if edge.edge_type == "CONNECTION" and edge.output_index is not None:
+                output_successors.setdefault(edge.from_node, {}).setdefault(
+                    edge.output_index, []
+                ).append(edge.to_node)
+        return output_successors
+
+    @staticmethod
+    def _build_inner_states(
+        loop_body: list[str],
+        node_state_names: dict[str, str],
+        all_states: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build the inner states dict from a loop body."""
+        inner_states: dict[str, Any] = {}
+        for name in loop_body:
+            state_name = node_state_names.get(name, name)
+            if state_name in all_states:
+                inner_states[state_name] = all_states[state_name]
+        return inner_states
+
+    @staticmethod
+    def _wire_inner_transitions(
+        loop_body: list[str],
+        node_state_names: dict[str, str],
+        inner_states: dict[str, Any],
+    ) -> None:
+        """Wire Next transitions within inner states and mark the last as terminal."""
+        for i, name in enumerate(loop_body[:-1]):
+            state_name = node_state_names.get(name, name)
+            next_name = node_state_names.get(loop_body[i + 1], loop_body[i + 1])
+            inner_state = inner_states.get(state_name)
+            if inner_state is not None and hasattr(inner_state, "next"):
+                inner_state.next = next_name
+                if hasattr(inner_state, "end"):
+                    inner_state.end = None
+
+        last_name = node_state_names.get(loop_body[-1], loop_body[-1])
+        last_state = inner_states.get(last_name)
+        if last_state is not None:
+            if hasattr(last_state, "next"):
+                last_state.next = None
+            if hasattr(last_state, "end"):
+                last_state.end = True
+
+    @staticmethod
+    def _collect_loop_body(
+        start: str,
+        sib_name: str,
+        successors: dict[str, list[str]],
+    ) -> list[str]:
+        """Collect the linear chain of loop-body nodes.
+
+        Walks from *start* following successors until the chain loops back
+        to the SplitInBatches node (*sib_name*) or has no more successors.
+        """
+        chain: list[str] = []
+        current = start
+        visited: set[str] = set()
+        max_depth = 100
+        for _ in range(max_depth):
+            if current == sib_name:
                 break
             if current in visited:
                 break

@@ -10,13 +10,14 @@ from phaeton_models.translator import (
 )
 
 from n8n_to_sfn.engine import TranslationEngine
-from n8n_to_sfn.models.asl import ParallelState, PassState
+from n8n_to_sfn.models.asl import MapState, ParallelState, PassState
 from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.base import (
     BaseTranslator,
     TranslationContext,
     TranslationResult,
 )
+from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 
 
 def _node(
@@ -535,3 +536,260 @@ class TestEngineMergeParallel:
         for branch in fork_asl["Branches"]:
             assert "StartAt" in branch
             assert "States" in branch
+
+
+class SplitInBatchesTranslator(BaseTranslator):
+    """Translator that delegates SplitInBatches to FlowControlTranslator."""
+
+    def __init__(self) -> None:
+        """Initialize with a FlowControlTranslator for SplitInBatches nodes."""
+        self._fc = FlowControlTranslator()
+
+    def can_translate(self, node: ClassifiedNode) -> bool:
+        """Accept all non-unsupported nodes."""
+        return node.classification != NodeClassification.UNSUPPORTED
+
+    def translate(
+        self, node: ClassifiedNode, context: TranslationContext
+    ) -> TranslationResult:
+        """Delegate SplitInBatches, translate everything else as Pass."""
+        if node.node.type == "n8n-nodes-base.splitInBatches":
+            return self._fc.translate(node, context)
+        return TranslationResult(
+            states={node.node.name: PassState(comment=node.node.name)},
+        )
+
+
+def _sib_node(
+    name: str,
+    node_type: str = "n8n-nodes-base.set",
+    params: dict[str, object] | None = None,
+) -> ClassifiedNode:
+    """Create a classified node for SplitInBatches tests."""
+    return ClassifiedNode(
+        node=N8nNode(
+            id=name,
+            name=name,
+            type=node_type,
+            type_version=1,
+            position=[0, 0],
+            parameters=params or {},
+        ),
+        classification=NodeClassification.FLOW_CONTROL,
+    )
+
+
+class TestEngineSplitInBatches:
+    """Tests for SplitInBatches -> Map state post-processing."""
+
+    def test_simple_loop_body(self) -> None:
+        """Test SplitInBatches with a single-node loop body.
+
+        Graph: SIB --(done, idx 0)--> After
+               SIB --(loop, idx 1)--> LoopStep --> SIB
+        """
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _sib_node("SIB", "n8n-nodes-base.splitInBatches"),
+                _sib_node("LoopStep"),
+                _sib_node("After"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="SIB", to_node="After",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+                DependencyEdge(
+                    from_node="SIB", to_node="LoopStep",
+                    edge_type="CONNECTION", output_index=1,
+                ),
+                DependencyEdge(
+                    from_node="LoopStep", to_node="SIB",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
+        output = engine.translate(analysis)
+
+        # SIB should be a Map state
+        sib_state = output.state_machine.states["SIB"]
+        assert isinstance(sib_state, MapState)
+        assert sib_state.max_concurrency == 1
+
+        # LoopStep should be inside the ItemProcessor, not top-level
+        assert "LoopStep" not in output.state_machine.states
+        inner_states = sib_state.item_processor.states
+        assert "LoopStep" in inner_states
+
+        # Inner state should be terminal
+        loop_step = inner_states["LoopStep"]
+        assert loop_step.end is True
+
+        # After should still be at top level
+        assert "After" in output.state_machine.states
+
+    def test_multi_step_loop_body(self) -> None:
+        """Test SplitInBatches with a multi-step loop body.
+
+        Graph: SIB --(done)--> After
+               SIB --(loop)--> Step1 --> Step2 --> SIB
+        """
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _sib_node("SIB", "n8n-nodes-base.splitInBatches"),
+                _sib_node("Step1"),
+                _sib_node("Step2"),
+                _sib_node("After"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="SIB", to_node="After",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+                DependencyEdge(
+                    from_node="SIB", to_node="Step1",
+                    edge_type="CONNECTION", output_index=1,
+                ),
+                DependencyEdge(
+                    from_node="Step1", to_node="Step2",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+                DependencyEdge(
+                    from_node="Step2", to_node="SIB",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
+        output = engine.translate(analysis)
+
+        sib_state = output.state_machine.states["SIB"]
+        assert isinstance(sib_state, MapState)
+
+        inner_states = sib_state.item_processor.states
+        assert "Step1" in inner_states
+        assert "Step2" in inner_states
+        assert len(inner_states) == 2
+
+        # Step1 should chain to Step2
+        assert inner_states["Step1"].next == "Step2"
+        # Step2 should be terminal
+        assert inner_states["Step2"].end is True
+
+        # Inner states should not be at top level
+        assert "Step1" not in output.state_machine.states
+        assert "Step2" not in output.state_machine.states
+
+    def test_custom_batch_size(self) -> None:
+        """Test SplitInBatches with custom batchSize."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _sib_node(
+                    "SIB", "n8n-nodes-base.splitInBatches",
+                    params={"batchSize": 50},
+                ),
+                _sib_node("LoopStep"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="SIB", to_node="LoopStep",
+                    edge_type="CONNECTION", output_index=1,
+                ),
+                DependencyEdge(
+                    from_node="LoopStep", to_node="SIB",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
+        output = engine.translate(analysis)
+
+        sib_state = output.state_machine.states["SIB"]
+        assert isinstance(sib_state, MapState)
+        assert "batch_size=50" in sib_state.comment
+
+    def test_no_loop_output_warns(self) -> None:
+        """Test SplitInBatches with no loop output produces warning."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _sib_node("SIB", "n8n-nodes-base.splitInBatches"),
+                _sib_node("After"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="SIB", to_node="After",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
+        output = engine.translate(analysis)
+
+        assert any("no loop output" in w for w in output.warnings)
+
+    def test_map_state_wires_to_downstream(self) -> None:
+        """Test Map state wires Next to the state after the loop."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _sib_node("SIB", "n8n-nodes-base.splitInBatches"),
+                _sib_node("LoopStep"),
+                _sib_node("Final"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="SIB", to_node="Final",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+                DependencyEdge(
+                    from_node="SIB", to_node="LoopStep",
+                    edge_type="CONNECTION", output_index=1,
+                ),
+                DependencyEdge(
+                    from_node="LoopStep", to_node="SIB",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
+        output = engine.translate(analysis)
+
+        sib_state = output.state_machine.states["SIB"]
+        assert isinstance(sib_state, MapState)
+        assert sib_state.next == "Final"
+
+    def test_map_asl_serialization(self) -> None:
+        """Test the Map state serializes to valid ASL structure."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _sib_node("SIB", "n8n-nodes-base.splitInBatches"),
+                _sib_node("Process"),
+                _sib_node("Done"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="SIB", to_node="Done",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+                DependencyEdge(
+                    from_node="SIB", to_node="Process",
+                    edge_type="CONNECTION", output_index=1,
+                ),
+                DependencyEdge(
+                    from_node="Process", to_node="SIB",
+                    edge_type="CONNECTION", output_index=0,
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
+        output = engine.translate(analysis)
+
+        asl = output.state_machine.model_dump(by_alias=True)
+        sib_asl = asl["States"]["SIB"]
+        assert sib_asl["Type"] == "Map"
+        assert sib_asl["MaxConcurrency"] == 1
+        assert "ItemProcessor" in sib_asl
+        ip = sib_asl["ItemProcessor"]
+        assert ip["ProcessorConfig"]["Mode"] == "INLINE"
+        assert ip["StartAt"] == "Process"
+        assert "Process" in ip["States"]

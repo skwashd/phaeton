@@ -288,9 +288,12 @@ def _translate_split_in_batches(
     """Translate an n8n SplitInBatches node to a MapState (MaxConcurrency=1).
 
     The inner processor is INLINE mode with a placeholder Pass state.  The
-    caller is expected to fill in the inner states after all nodes are
-    translated.
+    engine's ``_apply_map_for_split_in_batches`` post-processing step detects
+    the ``split_in_batches_node`` metadata and replaces the placeholder with
+    the actual loop-body states collected from the dependency graph.
     """
+    batch_size = int(node.node.parameters.get("batchSize", 10))
+
     processor_config = ProcessorConfig(mode="INLINE")
     placeholder_name = f"{node.node.name}_Item"
     item_processor = ItemProcessor(
@@ -304,14 +307,20 @@ def _translate_split_in_batches(
     state = MapState(
         max_concurrency=1,
         item_processor=item_processor,
-        comment=f"SplitInBatches: {node.node.name}",
+        comment=f"SplitInBatches (batch_size={batch_size}): {node.node.name}",
     )
+
+    # The "done" output (index 0) goes to the next state after the loop.
+    # The "loop" output (index 1) feeds back into the loop body.
+    done_next = _next_state_for_output(node, 0, context)
+
     return TranslationResult(
         states={node.node.name: state},
-        warnings=[
-            f"SplitInBatches node '{node.node.name}': inner workflow body must be "
-            "inserted into the ItemProcessor.States block after full graph traversal."
-        ],
+        metadata={
+            "split_in_batches_node": True,
+            "batch_size": batch_size,
+            "done_next": done_next,
+        },
     )
 
 
