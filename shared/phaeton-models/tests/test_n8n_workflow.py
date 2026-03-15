@@ -134,7 +134,7 @@ def test_isinstance_across_imports() -> None:
         id="1",
         name="Test",
         type="n8n-nodes-base.noOp",
-        type_version=1,
+        typeVersion=1,
         position=[0, 0],
     )
     assert isinstance(node, N8nNode)

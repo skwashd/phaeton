@@ -1,4 +1,5 @@
-"""Google Sheets node translator.
+"""
+Google Sheets node translator.
 
 Converts ``n8n-nodes-base.googleSheets`` nodes into Step Functions
 ``http:invoke`` Task states targeting the Google Sheets REST API v4.

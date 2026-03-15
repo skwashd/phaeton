@@ -1,4 +1,5 @@
-"""Expression translation (Category A n8n expressions to JSONata).
+"""
+Expression translation (Category A n8n expressions to JSONata).
 
 Translates n8n template expressions (wrapped in ``{{ }}``) into JSONata
 expressions (wrapped in ``{% %}``) for use in ASL state machines.
@@ -127,7 +128,8 @@ def _replace_json_refs(expr: str) -> str:
 
 
 def _translate_template_literal(expr: str) -> str:
-    """Translate JS template literals to JSONata string concatenation.
+    """
+    Translate JS template literals to JSONata string concatenation.
 
     Converts ``Hello ${$json.name}`` to ``"Hello " & $states.input.name``.
     """
@@ -159,7 +161,8 @@ def _translate_template_literal(expr: str) -> str:
 
 
 def translate_expression(expr: str) -> str:
-    """Translate a single n8n expression to JSONata.
+    """
+    Translate a single n8n expression to JSONata.
 
     The input should be the raw expression content (without ``{{ }}`` wrapper).
     Returns the JSONata expression (without ``{% %}`` wrapper).
@@ -195,7 +198,8 @@ def translate_expression(expr: str) -> str:
 
 
 def translate_n8n_expression(expr: str) -> str:
-    """Translate an n8n expression (with ``{{ }}`` wrapper) to JSONata (with ``{% %}`` wrapper).
+    """
+    Translate an n8n expression (with ``{{ }}`` wrapper) to JSONata (with ``{% %}`` wrapper).
 
     This is the main entry point for expression translation.
     """
@@ -217,7 +221,8 @@ def translate_n8n_expression(expr: str) -> str:
 def translate_all_expressions(
     parameters: dict[str, JsonValue],
 ) -> dict[str, JsonValue]:
-    """Walk a parameters dict and translate all n8n expressions.
+    """
+    Walk a parameters dict and translate all n8n expressions.
 
     Expression strings are those wrapped in ``{{ }}``. Non-expression values
     are passed through unchanged.

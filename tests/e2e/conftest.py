@@ -1,4 +1,5 @@
-"""Shared fixtures for end-to-end pipeline tests.
+"""
+Shared fixtures for end-to-end pipeline tests.
 
 Provides helpers to run the full Phaeton pipeline (analyze -> adapt ->
 translate -> adapt -> package) and return both the final output directory
@@ -58,7 +59,8 @@ class PipelineResult:
 
 
 def run_pipeline(workflow_path: Path, output_dir: Path) -> PipelineResult:
-    """Run the full Phaeton pipeline, capturing intermediate results.
+    """
+    Run the full Phaeton pipeline, capturing intermediate results.
 
     Stages
     ------

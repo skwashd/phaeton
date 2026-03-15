@@ -1,4 +1,5 @@
-"""Performance tests for the packaging pipeline stage.
+"""
+Performance tests for the packaging pipeline stage.
 
 Benchmarks the Packager (CDK code generation and file writing) with
 synthetic workflows of increasing size to detect scaling regressions.

@@ -1,4 +1,5 @@
-"""IAM policy generator.
+"""
+IAM policy generator.
 
 Analyses an ASL definition and Lambda function list to produce a
 least-privilege IAM policy for the Step Functions execution role.
@@ -13,7 +14,8 @@ from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
 
 
 def sdk_action_to_iam(service: str, action: str) -> str:
-    """Convert an ASL SDK integration pattern to the IAM action string.
+    """
+    Convert an ASL SDK integration pattern to the IAM action string.
 
     The ASL resource ``arn:aws:states:::aws-sdk:SERVICE:ACTION`` maps to
     ``service:Action`` in IAM, where the service is lowercased and the
@@ -42,7 +44,8 @@ class IAMPolicyGenerator:
         log_group_ref: str,
         sub_workflow_arns: list[str],
     ) -> dict[str, Any]:
-        """Generate an IAM policy document with minimum required permissions.
+        """
+        Generate an IAM policy document with minimum required permissions.
 
         Args:
             asl_definition: The ASL state-machine definition dict.
@@ -142,7 +145,8 @@ class IAMPolicyGenerator:
         }
 
     def _walk_asl(self, asl: dict[str, Any]) -> list[str]:
-        """Recursively walk the ASL definition to find all Task Resource values.
+        """
+        Recursively walk the ASL definition to find all Task Resource values.
 
         Descends into States, ItemProcessor, Branches, and Iterator.
 

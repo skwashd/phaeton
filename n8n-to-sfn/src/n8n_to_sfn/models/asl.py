@@ -1,4 +1,5 @@
-"""Pydantic models for ASL state machine output.
+"""
+Pydantic models for ASL state machine output.
 
 These models produce JSON that validates against the ASL JSON schema
 (``schemas/asl_schema.json``). All models use PascalCase aliases for JSON
@@ -17,7 +18,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 
 class RetryConfig(BaseModel):
-    """A single retry rule for a Task, Map, or Parallel state.
+    """
+    A single retry rule for a Task, Map, or Parallel state.
 
     Example::
 
@@ -57,7 +59,8 @@ class RetryConfig(BaseModel):
 
 
 class CatchConfig(BaseModel):
-    """A single catch rule for a Task, Map, or Parallel state.
+    """
+    A single catch rule for a Task, Map, or Parallel state.
 
     Example::
 
@@ -93,7 +96,8 @@ class CatchConfig(BaseModel):
 
 
 class ChoiceRule(BaseModel):
-    """A single rule within a Choice state's ``Choices`` array.
+    """
+    A single rule within a Choice state's ``Choices`` array.
 
     Supports JSONata ``Condition`` mode as well as JSONPath comparison operators.
 
@@ -169,7 +173,8 @@ class ChoiceRule(BaseModel):
 
 
 class ProcessorConfig(BaseModel):
-    """Configuration for a Map state's ``ItemProcessor``.
+    """
+    Configuration for a Map state's ``ItemProcessor``.
 
     Example::
 
@@ -192,7 +197,8 @@ class ProcessorConfig(BaseModel):
 
 
 class ItemProcessor(BaseModel):
-    """The ``ItemProcessor`` block inside a Map state.
+    """
+    The ``ItemProcessor`` block inside a Map state.
 
     Example::
 
@@ -263,7 +269,8 @@ def _add_next_or_end(
 
 
 class TaskState(BaseModel):
-    """An ASL Task state that invokes an AWS resource.
+    """
+    An ASL Task state that invokes an AWS resource.
 
     Example::
 
@@ -328,7 +335,8 @@ class TaskState(BaseModel):
 
 
 class PassState(BaseModel):
-    """An ASL Pass state that passes input to output with optional transformation.
+    """
+    An ASL Pass state that passes input to output with optional transformation.
 
     Example::
 
@@ -374,7 +382,8 @@ class PassState(BaseModel):
 
 
 class ChoiceState(BaseModel):
-    """An ASL Choice state that branches based on conditions.
+    """
+    An ASL Choice state that branches based on conditions.
 
     Example::
 
@@ -419,7 +428,8 @@ class ChoiceState(BaseModel):
 
 
 class WaitState(BaseModel):
-    """An ASL Wait state that pauses execution.
+    """
+    An ASL Wait state that pauses execution.
 
     Example::
 
@@ -467,7 +477,8 @@ class WaitState(BaseModel):
 
 
 class SucceedState(BaseModel):
-    """An ASL Succeed state (terminal).
+    """
+    An ASL Succeed state (terminal).
 
     Example::
 
@@ -496,7 +507,8 @@ class SucceedState(BaseModel):
 
 
 class FailState(BaseModel):
-    """An ASL Fail state (terminal).
+    """
+    An ASL Fail state (terminal).
 
     Example::
 
@@ -529,7 +541,8 @@ class FailState(BaseModel):
 
 
 class ParallelState(BaseModel):
-    """An ASL Parallel state that executes branches concurrently.
+    """
+    An ASL Parallel state that executes branches concurrently.
 
     Example::
 
@@ -583,7 +596,8 @@ class ParallelState(BaseModel):
 
 
 class MapState(BaseModel):
-    """An ASL Map state that iterates over a collection.
+    """
+    An ASL Map state that iterates over a collection.
 
     Example::
 
@@ -682,7 +696,8 @@ State = Annotated[
 
 
 class StateMachine(BaseModel):
-    """An ASL state machine definition.
+    """
+    An ASL state machine definition.
 
     Example::
 

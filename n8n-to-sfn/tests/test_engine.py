@@ -583,7 +583,8 @@ class TestEngineSplitInBatches:
     """Tests for SplitInBatches -> Map state post-processing."""
 
     def test_simple_loop_body(self) -> None:
-        """Test SplitInBatches with a single-node loop body.
+        """
+        Test SplitInBatches with a single-node loop body.
 
         Graph: SIB --(done, idx 0)--> After
                SIB --(loop, idx 1)--> LoopStep --> SIB
@@ -630,7 +631,8 @@ class TestEngineSplitInBatches:
         assert "After" in output.state_machine.states
 
     def test_multi_step_loop_body(self) -> None:
-        """Test SplitInBatches with a multi-step loop body.
+        """
+        Test SplitInBatches with a multi-step loop body.
 
         Graph: SIB --(done)--> After
                SIB --(loop)--> Step1 --> Step2 --> SIB

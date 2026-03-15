@@ -1,4 +1,5 @@
-"""Notion node translator.
+"""
+Notion node translator.
 
 Converts ``n8n-nodes-base.notion`` nodes into Step Functions
 ``http:invoke`` Task states targeting the Notion REST API.

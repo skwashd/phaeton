@@ -1,4 +1,5 @@
-"""HTTP Request node translator.
+"""
+HTTP Request node translator.
 
 Converts ``n8n-nodes-base.httpRequest`` nodes into Step Functions
 ``http:invoke`` Task states with authentication support.
@@ -43,7 +44,8 @@ def _build_ssm_path(workflow_name: str, credential_type: str) -> str:
 
 
 def _extract_key_value_pairs(params: list[dict[str, Any]]) -> dict[str, str]:
-    """Extract key-value pairs from n8n parameter lists.
+    """
+    Extract key-value pairs from n8n parameter lists.
 
     n8n stores header and query parameters as lists of dicts with
     ``name``/``value`` keys.

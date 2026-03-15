@@ -16,7 +16,8 @@ logger = Logger(service="phaeton-ai-agent")
 
 
 def handler(event: dict[str, Any], context: LambdaContext | None) -> dict[str, Any]:
-    """Lambda handler that routes AI agent translation requests.
+    """
+    Lambda handler that routes AI agent translation requests.
 
     Parameters
     ----------

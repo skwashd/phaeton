@@ -1,4 +1,5 @@
-"""Gmail node translator.
+"""
+Gmail node translator.
 
 Converts ``n8n-nodes-base.gmail`` nodes into Step Functions
 ``http:invoke`` Task states targeting the Gmail REST API.

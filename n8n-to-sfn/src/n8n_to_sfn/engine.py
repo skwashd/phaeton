@@ -231,7 +231,8 @@ class TranslationEngine:
             entry_state_overrides[cn.node.name] = eval_names[0]
 
     def _topological_sort(self, analysis: WorkflowAnalysis) -> list[str]:
-        """Topologically sort node names using the dependency graph.
+        """
+        Topologically sort node names using the dependency graph.
 
         Back-edges from SplitInBatches loop bodies are excluded to avoid
         cycles.  A back-edge is an edge whose ``to_node`` is a
@@ -292,7 +293,8 @@ class TranslationEngine:
         merge_metadata: dict[str, dict[str, Any]],
         warnings: list[str],
     ) -> None:
-        """Replace fork-to-merge regions with Parallel states.
+        """
+        Replace fork-to-merge regions with Parallel states.
 
         For each Merge node detected during translation, walk backwards along
         CONNECTION edges to find the common fork point and collect branch
@@ -453,7 +455,8 @@ class TranslationEngine:
         incoming: list[str],
         predecessors: dict[str, list[str]],
     ) -> str | None:
-        """Walk backwards from each incoming branch to find the common fork point.
+        """
+        Walk backwards from each incoming branch to find the common fork point.
 
         Returns the first common ancestor node of all incoming branches, or
         ``None`` if no common ancestor is found within a reasonable depth.
@@ -516,7 +519,8 @@ class TranslationEngine:
         split_metadata: dict[str, dict[str, Any]],
         warnings: list[str],
     ) -> None:
-        """Fill Map state ItemProcessors with loop-body states.
+        """
+        Fill Map state ItemProcessors with loop-body states.
 
         For each SplitInBatches node, follow the "loop" output (index 1) to
         collect all nodes that form the loop body — i.e. nodes reachable from
@@ -643,7 +647,8 @@ class TranslationEngine:
         sib_name: str,
         successors: dict[str, list[str]],
     ) -> list[str]:
-        """Collect the linear chain of loop-body nodes.
+        """
+        Collect the linear chain of loop-body nodes.
 
         Walks from *start* following successors until the chain loops back
         to the SplitInBatches node (*sib_name*) or has no more successors.

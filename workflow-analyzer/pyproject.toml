@@ -3,7 +3,7 @@ name = "workflow-analyzer"
 version = "0.1.0"
 description = "Analyzes n8n workflow JSON exports and produces conversion feasibility reports for AWS Step Functions migration."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "phaeton-models @ file:///${PROJECT_ROOT}/../shared/phaeton-models",
     "pydantic==2.12.5",
@@ -14,15 +14,15 @@ dependencies = [
 workflow-analyzer = "workflow_analyzer.cli:app"
 
 [build-system]
-requires = ["uv_build>=0.10.4,<0.11.0"]
+requires = ["uv-build==0.10.10"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
     "coverage==7.13.4",
     "pytest==9.0.2",
-    "ruff==0.15.2",
-    "ty==0.0.18",
+    "ruff==0.15.6",
+    "ty==0.0.23",
 ]
 
 [tool.ruff.lint]
@@ -36,6 +36,9 @@ unfixable = []
 
 [tool.ruff.lint.per-file-ignores]
 "test_*" = ["S101", "S108"]
+
+[tool.ty.environment]
+python = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

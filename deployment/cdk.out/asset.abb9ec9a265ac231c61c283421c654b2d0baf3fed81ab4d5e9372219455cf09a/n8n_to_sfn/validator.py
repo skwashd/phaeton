@@ -1,4 +1,5 @@
-"""ASL validation against the JSON schema.
+"""
+ASL validation against the JSON schema.
 
 Validates generated ASL state machine JSON against ``schemas/asl_schema.json``.
 """
@@ -30,7 +31,8 @@ _ASL_SCHEMA: dict[str, Any] = _load_schema()
 
 
 def validate_asl(state_machine: StateMachine) -> list[str]:
-    """Validate a StateMachine model against the ASL JSON schema.
+    """
+    Validate a StateMachine model against the ASL JSON schema.
 
     Returns a list of validation error messages (empty list means valid).
     """
@@ -39,7 +41,8 @@ def validate_asl(state_machine: StateMachine) -> list[str]:
 
 
 def validate_asl_json(asl_json: dict[str, Any]) -> list[str]:
-    """Validate a raw ASL dict against the ASL JSON schema.
+    """
+    Validate a raw ASL dict against the ASL JSON schema.
 
     Returns a list of validation error messages (empty list means valid).
     """

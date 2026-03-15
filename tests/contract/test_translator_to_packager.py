@@ -1,4 +1,5 @@
-"""Contract tests: Component 3 (Translator) -> Component 4 (Packager).
+"""
+Contract tests: Component 3 (Translator) -> Component 4 (Packager).
 
 Verifies that TranslationOutput can be deserialized by the adapter and
 converted to a valid PackagerInput, covering:

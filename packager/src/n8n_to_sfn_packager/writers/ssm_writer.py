@@ -1,4 +1,5 @@
-"""SSM Parameter Store writer.
+"""
+SSM Parameter Store writer.
 
 Generates SSM parameter definitions and credential setup documentation
 from credential and OAuth credential specs.
@@ -42,7 +43,8 @@ class SSMWriter:
         credentials: list[CredentialSpec],
         oauth_credentials: list[OAuthCredentialSpec],
     ) -> list[SSMParameterDefinition]:
-        """Produce SSM parameter definitions for all credentials.
+        """
+        Produce SSM parameter definitions for all credentials.
 
         Standard credentials produce one parameter each. OAuth credentials
         produce two parameters (access token and refresh token).
@@ -107,7 +109,8 @@ class SSMWriter:
         credentials: list[CredentialSpec],
         oauth_credentials: list[OAuthCredentialSpec],
     ) -> str:
-        """Generate a CREDENTIALS.md markdown document.
+        """
+        Generate a CREDENTIALS.md markdown document.
 
         Lists every credential required by the workflow with its SSM
         parameter path, setup instructions, and links to service

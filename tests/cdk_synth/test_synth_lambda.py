@@ -1,4 +1,5 @@
-"""CDK synthesis validation for the Code node (Lambda) workflow.
+"""
+CDK synthesis validation for the Code node (Lambda) workflow.
 
 Verifies that the generated CDK application for a Trigger -> Code node ->
 SNS workflow synthesizes into a valid CloudFormation template with Lambda

@@ -1,4 +1,5 @@
-"""Aurora RDS Data API database node translator.
+"""
+Aurora RDS Data API database node translator.
 
 Converts database nodes classified as ``AWS_NATIVE`` into Step Functions
 ``aws-sdk:rdsdata:executeStatement`` and ``aws-sdk:rdsdata:batchExecuteStatement``
@@ -47,7 +48,8 @@ def _build_ssm_path(workflow_name: str, credential_type: str) -> str:
 
 
 def _build_select_sql(params: dict[str, Any]) -> str:
-    """Build a SELECT SQL statement from ORM-style parameters.
+    """
+    Build a SELECT SQL statement from ORM-style parameters.
 
     These SQL templates are not executed directly — they are passed to the
     RDS Data API ``ExecuteStatement`` action, which handles parameterized
@@ -70,7 +72,8 @@ def _build_select_sql(params: dict[str, Any]) -> str:
 
 
 def _build_insert_sql(params: dict[str, Any]) -> str:
-    """Build an INSERT SQL statement from ORM-style parameters.
+    """
+    Build an INSERT SQL statement from ORM-style parameters.
 
     SQL template only — actual values are parameterized via RDS Data API.
     """
@@ -85,7 +88,8 @@ def _build_insert_sql(params: dict[str, Any]) -> str:
 
 
 def _build_update_sql(params: dict[str, Any]) -> str:
-    """Build an UPDATE SQL statement from ORM-style parameters.
+    """
+    Build an UPDATE SQL statement from ORM-style parameters.
 
     SQL template only — actual values are parameterized via RDS Data API.
     """
@@ -100,7 +104,8 @@ def _build_update_sql(params: dict[str, Any]) -> str:
 
 
 def _build_delete_sql(params: dict[str, Any]) -> str:
-    """Build a DELETE SQL statement from ORM-style parameters.
+    """
+    Build a DELETE SQL statement from ORM-style parameters.
 
     SQL template only — actual values are parameterized via RDS Data API.
     """

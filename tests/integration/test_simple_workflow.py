@@ -1,4 +1,5 @@
-"""Integration tests for a simple DynamoDB + Lambda workflow.
+"""
+Integration tests for a simple DynamoDB + Lambda workflow.
 
 These tests exercise the full Phaeton pipeline -- from n8n workflow JSON
 through analysis, translation, packaging, CDK deployment, state-machine
@@ -90,7 +91,8 @@ class TestPipelineProducesDeployableOutput:
 
 
 class TestDeployAndExecute:
-    """Deploy the generated CDK stack and execute the state machine.
+    """
+    Deploy the generated CDK stack and execute the state machine.
 
     These tests require valid AWS credentials and will create real AWS
     resources.  Resources are cleaned up automatically via the
@@ -178,7 +180,8 @@ def _find_state_machine_arn(
     stack_outputs: dict[str, str],
     sfn_client: object,
 ) -> str | None:
-    """Locate the state machine ARN from stack outputs or by listing.
+    """
+    Locate the state machine ARN from stack outputs or by listing.
 
     Checks stack outputs first for keys containing ``StateMachine``.
     Falls back to listing state machines tagged with ``phaeton-test``.

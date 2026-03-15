@@ -1,4 +1,5 @@
-"""Top-level Packager orchestrator.
+"""
+Top-level Packager orchestrator.
 
 Coordinates all writers to produce the complete deployable output
 directory from a ``PackagerInput``.
@@ -28,7 +29,8 @@ class Packager:
     """Orchestrate the full packaging pipeline."""
 
     def __init__(self, schema_path: Path | None = None) -> None:
-        """Initialise with an optional ASL schema path override.
+        """
+        Initialise with an optional ASL schema path override.
 
         Args:
             schema_path: Path to the ASL JSON Schema file.
@@ -42,7 +44,8 @@ class Packager:
         self._report_writer = ReportWriter()
 
     def package(self, input_data: PackagerInput, output_dir: Path) -> Path:
-        """Run the full packaging pipeline.
+        """
+        Run the full packaging pipeline.
 
         Args:
             input_data: The packager input (inter-component contract).

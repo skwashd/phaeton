@@ -1,4 +1,5 @@
-"""ASL definition writer and validator.
+"""
+ASL definition writer and validator.
 
 Validates ASL definitions against the JSON Schema and writes
 ``definition.asl.json`` to the output directory.
@@ -30,7 +31,8 @@ class ASLWriter:
     """Validates and writes ASL state-machine definitions."""
 
     def __init__(self, schema_path: Path | None = None) -> None:
-        """Initialise with an optional custom schema path.
+        """
+        Initialise with an optional custom schema path.
 
         Args:
             schema_path: Path to the ASL JSON Schema file.
@@ -52,7 +54,8 @@ class ASLWriter:
         return self._schema
 
     def validate(self, definition: dict[str, Any]) -> list[str]:
-        """Validate an ASL definition dict against the JSON Schema.
+        """
+        Validate an ASL definition dict against the JSON Schema.
 
         Args:
             definition: The ASL definition to validate.
@@ -75,7 +78,8 @@ class ASLWriter:
         return errors
 
     def write(self, definition: StateMachineDefinition, output_dir: Path) -> Path:
-        """Write ``definition.asl.json`` to the output directory.
+        """
+        Write ``definition.asl.json`` to the output directory.
 
         Validates the ASL before writing. Raises ``ASLValidationError`` if
         the definition is invalid.

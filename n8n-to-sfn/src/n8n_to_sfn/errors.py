@@ -1,4 +1,5 @@
-"""Custom exception hierarchy for the translation engine.
+"""
+Custom exception hierarchy for the translation engine.
 
 All translation engine exceptions inherit from ``TranslationError``.
 """
@@ -7,7 +8,8 @@ from __future__ import annotations
 
 
 class TranslationError(Exception):
-    """Base exception for all translation engine errors.
+    """
+    Base exception for all translation engine errors.
 
     Example::
 
@@ -16,7 +18,8 @@ class TranslationError(Exception):
 
 
 class ASLValidationError(TranslationError):
-    """Raised when generated ASL fails schema validation.
+    """
+    Raised when generated ASL fails schema validation.
 
     Example::
 
@@ -33,7 +36,8 @@ class ASLValidationError(TranslationError):
 
 
 class UnsupportedNodeError(TranslationError):
-    """Raised for n8n nodes the engine cannot translate.
+    """
+    Raised for n8n nodes the engine cannot translate.
 
     Example::
 
@@ -42,7 +46,8 @@ class UnsupportedNodeError(TranslationError):
 
 
 class ExpressionTranslationError(TranslationError):
-    """Raised when an n8n expression fails to translate to JSONata.
+    """
+    Raised when an n8n expression fails to translate to JSONata.
 
     Example::
 

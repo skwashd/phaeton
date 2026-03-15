@@ -19,7 +19,8 @@ class ReportWriter:
         ssm_params: list[SSMParameterDefinition],
         output_dir: Path,
     ) -> Path:
-        """Generate MIGRATE.md with structured pre/post-deployment checklists.
+        """
+        Generate MIGRATE.md with structured pre/post-deployment checklists.
 
         Args:
             input_data: The packager input.
@@ -155,7 +156,8 @@ class ReportWriter:
         input_data: PackagerInput,
         output_dir: Path,
     ) -> Path:
-        """Write the machine-readable conversion report.
+        """
+        Write the machine-readable conversion report.
 
         Args:
             input_data: The packager input.
@@ -193,7 +195,8 @@ class ReportWriter:
         input_data: PackagerInput,
         output_dir: Path,
     ) -> Path:
-        """Write the human-readable conversion report.
+        """
+        Write the human-readable conversion report.
 
         Args:
             input_data: The packager input.
@@ -302,7 +305,8 @@ class ReportWriter:
         return "\n".join(parts)
 
     def write_readme(self, input_data: PackagerInput, output_dir: Path) -> Path:
-        """Write the README.md for the generated package.
+        """
+        Write the README.md for the generated package.
 
         Args:
             input_data: The packager input.

@@ -114,7 +114,8 @@ def handler(event: dict, context: object) -> dict:
 
 
 def _extract_schedule_config(parameters: dict) -> dict:
-    """Extract EventBridge schedule configuration from a scheduleTrigger node.
+    """
+    Extract EventBridge schedule configuration from a scheduleTrigger node.
 
     Handles both cron-expression and interval-based trigger settings.
     Returns a dict suitable for use as ``TriggerArtifact.config``.
@@ -195,7 +196,8 @@ def _translate_schedule(node: ClassifiedNode) -> TranslationResult:
 
 
 def _translate_webhook(node: ClassifiedNode, workflow_name: str) -> TranslationResult:
-    """Translate a webhook node to a Lambda function URL artifact and trigger artifact.
+    """
+    Translate a webhook node to a Lambda function URL artifact and trigger artifact.
 
     Generates a Python Lambda handler that calls ``sfn_client.start_execution``
     and pairs it with a ``LAMBDA_FURL`` trigger artifact.
@@ -283,7 +285,8 @@ def _translate_unknown(node: ClassifiedNode, workflow_name: str) -> TranslationR
 
 
 class TriggerTranslator(BaseTranslator):
-    """Translator for n8n trigger nodes.
+    """
+    Translator for n8n trigger nodes.
 
     Trigger nodes do not produce ASL states. Instead they produce infrastructure
     artifacts (``TriggerArtifact`` and optionally ``LambdaArtifact``) that the
@@ -306,7 +309,8 @@ class TriggerTranslator(BaseTranslator):
         node: ClassifiedNode,
         context: TranslationContext,
     ) -> TranslationResult:
-        """Translate a trigger node into infrastructure artifacts.
+        """
+        Translate a trigger node into infrastructure artifacts.
 
         No ASL states are emitted. The returned ``TranslationResult`` carries
         ``trigger_artifacts`` (and, for webhook/unknown types, ``lambda_artifacts``)

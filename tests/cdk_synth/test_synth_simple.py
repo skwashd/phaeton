@@ -1,4 +1,5 @@
-"""CDK synthesis validation for the simple DynamoDB workflow.
+"""
+CDK synthesis validation for the simple DynamoDB workflow.
 
 Verifies that the generated CDK application for a Trigger -> DynamoDB ->
 Response workflow synthesizes into a valid CloudFormation template with the

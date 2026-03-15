@@ -58,7 +58,8 @@ def create_default_engine() -> TranslationEngine:
 
 
 def handler(event: dict[str, Any], context: LambdaContext | None) -> dict[str, Any]:
-    """Lambda handler that translates a WorkflowAnalysis into a TranslationOutput.
+    """
+    Lambda handler that translates a WorkflowAnalysis into a TranslationOutput.
 
     Parameters
     ----------

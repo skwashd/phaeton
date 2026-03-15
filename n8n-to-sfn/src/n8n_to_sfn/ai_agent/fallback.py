@@ -1,4 +1,5 @@
-"""AI agent fallback for Category C expressions and unresolvable nodes.
+"""
+AI agent fallback for Category C expressions and unresolvable nodes.
 
 Provides a protocol interface for AI agent integration, a stub implementation,
 and a mock implementation for testing.

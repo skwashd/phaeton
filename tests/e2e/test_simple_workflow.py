@@ -1,4 +1,5 @@
-"""End-to-end tests for a simple DynamoDB PutItem -> GetItem workflow.
+"""
+End-to-end tests for a simple DynamoDB PutItem -> GetItem workflow.
 
 Validates that the pipeline produces syntactically valid CDK code, a
 well-formed ASL definition, correct IAM policies, and preserves all
@@ -152,7 +153,8 @@ class TestSimpleDynamoDBBoundaryIntegrity:
     def test_no_pydantic_validation_errors(
         self, simple_dynamodb_result: PipelineResult
     ) -> None:
-        """Pipeline completes without raising Pydantic ValidationError.
+        """
+        Pipeline completes without raising Pydantic ValidationError.
 
         If we reach this test, all adapter boundaries validated successfully
         because the pipeline ran to completion in the fixture.

@@ -1,4 +1,5 @@
-"""Cross-node reference translator (Category B to Step Functions Variables).
+"""
+Cross-node reference translator (Category B to Step Functions Variables).
 
 Resolves n8n cross-node references (e.g., ``$('NodeName').first().json.field``)
 into Step Functions Variables via ``Assign`` blocks and JSONata variable references.

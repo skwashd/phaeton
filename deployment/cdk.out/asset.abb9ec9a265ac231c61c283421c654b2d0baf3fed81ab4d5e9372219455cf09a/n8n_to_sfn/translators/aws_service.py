@@ -115,7 +115,8 @@ _SERVICE_REGISTRY: dict[str, tuple[str, dict[tuple[str, str], str]]] = {
 
 
 def _camel_to_pascal(name: str) -> str:
-    """Convert a camelCase identifier to PascalCase.
+    """
+    Convert a camelCase identifier to PascalCase.
 
     Examples::
 
@@ -129,7 +130,8 @@ def _camel_to_pascal(name: str) -> str:
 
 
 def _convert_params(params: dict[str, object]) -> dict[str, object]:
-    """Return a new dict with all top-level keys converted to PascalCase.
+    """
+    Return a new dict with all top-level keys converted to PascalCase.
 
     Only the outermost keys are converted; nested dicts are left as-is so
     that caller-controlled structures (e.g. FilterExpression objects) are not
@@ -149,7 +151,8 @@ def _resolve_sdk_api_name(
     operation: str,
     service: str,
 ) -> tuple[str, list[str]]:
-    """Look up the SDK API method name, falling back to a best-effort heuristic.
+    """
+    Look up the SDK API method name, falling back to a best-effort heuristic.
 
     Returns the resolved API name and a (possibly empty) list of warning messages.
     """
@@ -189,7 +192,8 @@ def _translate_sdk_service(
     service: str,
     op_map: dict[tuple[str, str], str],
 ) -> tuple[TaskState, list[str]]:
-    """Build a TaskState for any generic SDK-integrated AWS service node.
+    """
+    Build a TaskState for any generic SDK-integrated AWS service node.
 
     Returns the constructed TaskState and a list of any warnings generated
     during translation.
@@ -214,7 +218,8 @@ def _translate_sdk_service(
 def _translate_lambda(
     node: ClassifiedNode,
 ) -> tuple[TaskState, list[str]]:
-    """Build a TaskState for an awsLambda node using the Lambda invoke integration.
+    """
+    Build a TaskState for an awsLambda node using the Lambda invoke integration.
 
     Returns the constructed TaskState and a list of any warnings generated
     during translation.
@@ -254,7 +259,8 @@ def _translate_lambda(
 
 
 class AWSServiceTranslator(BaseTranslator):
-    """Translate AWS-native n8n nodes into ASL TaskStates with SDK integrations.
+    """
+    Translate AWS-native n8n nodes into ASL TaskStates with SDK integrations.
 
     Handles S3, DynamoDB, SQS, SNS, SES, Lambda, and EventBridge nodes by
     mapping n8n resource/operation pairs to AWS SDK API method names and
@@ -268,7 +274,8 @@ class AWSServiceTranslator(BaseTranslator):
     def translate(
         self, node: ClassifiedNode, context: TranslationContext
     ) -> TranslationResult:
-        """Translate a single AWS-native node into a TranslationResult.
+        """
+        Translate a single AWS-native node into a TranslationResult.
 
         Dispatches to a per-service helper based on the n8n node type, applies
         default retry configuration, and delegates error handling to

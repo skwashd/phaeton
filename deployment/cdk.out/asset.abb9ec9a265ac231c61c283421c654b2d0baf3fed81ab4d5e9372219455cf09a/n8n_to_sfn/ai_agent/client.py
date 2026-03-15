@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class AIAgentClient:
-    """Invoke the AI agent Lambda to translate nodes and expressions.
+    """
+    Invoke the AI agent Lambda to translate nodes and expressions.
 
     Implements ``AIAgentProtocol`` so it can be plugged into the
     ``TranslationEngine`` as the ``ai_agent`` parameter.
@@ -40,7 +41,8 @@ class AIAgentClient:
         node: ClassifiedNode,
         context: TranslationContext,
     ) -> TranslationResult:
-        """Translate a node by invoking the AI agent Lambda.
+        """
+        Translate a node by invoking the AI agent Lambda.
 
         Parameters
         ----------
@@ -99,7 +101,8 @@ class AIAgentClient:
         node: ClassifiedNode,
         context: TranslationContext,
     ) -> str:
-        """Translate an expression by invoking the AI agent Lambda.
+        """
+        Translate an expression by invoking the AI agent Lambda.
 
         Parameters
         ----------

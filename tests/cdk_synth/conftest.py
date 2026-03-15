@@ -1,4 +1,5 @@
-"""Shared fixtures for CDK synthesis validation tests.
+"""
+Shared fixtures for CDK synthesis validation tests.
 
 Runs the Phaeton pipeline for representative workflows, then dynamically
 imports the generated CDK stacks and synthesizes them into CloudFormation
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -38,8 +40,8 @@ class SynthResult:
         pipeline_result: PipelineResult,
         workflow_template: Template,
         shared_template: Template,
-        workflow_cfn: dict[str, Any],
-        shared_cfn: dict[str, Any],
+        workflow_cfn: Mapping[str, Any],
+        shared_cfn: Mapping[str, Any],
     ) -> None:
         """Store synthesized templates and pipeline result."""
         self.pipeline_result = pipeline_result
@@ -50,7 +52,8 @@ class SynthResult:
 
 
 def _synth_generated_stacks(output_dir: Path) -> tuple[Template, Template]:
-    """Dynamically import generated CDK stacks and synthesize them.
+    """
+    Dynamically import generated CDK stacks and synthesize them.
 
     Args:
         output_dir: The pipeline output directory containing ``cdk/``.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,12 +21,12 @@ from phaeton_ai_agent.models import (
 
 
 @pytest.fixture(autouse=True)
-def _reset_agent_singleton() -> None:
+def _reset_agent_singleton() -> Generator[None]:
     """Reset the module-level agent singleton between tests."""
     import phaeton_ai_agent.agent as agent_mod
 
     agent_mod._agent = None
-    yield  # type: ignore[misc]
+    yield
     agent_mod._agent = None
 
 

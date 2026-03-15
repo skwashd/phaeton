@@ -6,7 +6,7 @@ See [README.md](README.md) for project overview, architecture, and CLI usage.
 
 ## Quick reference
 
-- **Build system:** Hatchling
+- **Build system:** uv_build
 - **Source layout:** `src/n8n_release_parser/`
 - **Entry point:** `n8n_release_parser.cli:main`
 

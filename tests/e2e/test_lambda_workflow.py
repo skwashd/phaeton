@@ -1,4 +1,5 @@
-"""End-to-end tests for a workflow containing a Code node (JavaScript).
+"""
+End-to-end tests for a workflow containing a Code node (JavaScript).
 
 Validates that the Code node produces a Lambda artifact, the ASL
 definition invokes it, and the CDK stack wires up the Lambda function.

@@ -1,4 +1,5 @@
-"""Performance tests for the analysis and translation pipeline stages.
+"""
+Performance tests for the analysis and translation pipeline stages.
 
 Benchmarks the Workflow Analyzer and Translation Engine with synthetic
 workflows of increasing size to detect scaling regressions.

@@ -1,4 +1,5 @@
-"""Lambda function writer.
+"""
+Lambda function writer.
 
 Generates Lambda function directories with handler code and dependency
 manifests. Python Lambdas use ``pyproject.toml`` + ``uv.lock``; Node.js
@@ -39,7 +40,8 @@ class LayerSpec:
 def analyze_shared_dependencies(
     specs: list[LambdaFunctionSpec],
 ) -> tuple[list[LayerSpec], dict[str, set[str]]]:
-    """Identify dependencies shared by 2+ functions of the same runtime.
+    """
+    Identify dependencies shared by 2+ functions of the same runtime.
 
     Args:
         specs: All Lambda function specifications.
@@ -107,7 +109,8 @@ class LambdaWriter:
         output_dir: Path,
         excluded_dependencies: set[str] | None = None,
     ) -> Path:
-        """Write a single Lambda function directory.
+        """
+        Write a single Lambda function directory.
 
         Args:
             spec: The Lambda function specification.
@@ -131,7 +134,8 @@ class LambdaWriter:
         return func_dir
 
     def write_layer(self, layer: LayerSpec, output_dir: Path) -> Path:
-        """Write a Lambda Layer directory with the shared dependency manifest.
+        """
+        Write a Lambda Layer directory with the shared dependency manifest.
 
         Args:
             layer: The layer specification.
@@ -197,7 +201,8 @@ class LambdaWriter:
     def write_all(
         self, specs: list[LambdaFunctionSpec], output_dir: Path
     ) -> list[Path]:
-        """Write all Lambda function directories and shared dependency layers.
+        """
+        Write all Lambda function directories and shared dependency layers.
 
         Analyses dependencies across all functions, creates shared layers for
         dependencies used by 2+ functions of the same runtime, and excludes
@@ -419,7 +424,8 @@ class LambdaWriter:
 
     @staticmethod
     def _write_requirements_txt(target_dir: Path, deps: list[str]) -> None:
-        """Write a ``requirements.txt`` from a dependency list.
+        """
+        Write a ``requirements.txt`` from a dependency list.
 
         Each dependency specifier is written on its own line.  The file is
         consumed by CDK ``BundlingOptions`` (``pip install -r requirements.txt``).

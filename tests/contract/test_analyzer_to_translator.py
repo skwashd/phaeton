@@ -1,4 +1,5 @@
-"""Contract tests: Component 2 (Analyzer) -> Component 3 (Translator).
+"""
+Contract tests: Component 2 (Analyzer) -> Component 3 (Translator).
 
 Verifies that ConversionReport output can be deserialized by the adapter
 and converted to a valid WorkflowAnalysis, covering:

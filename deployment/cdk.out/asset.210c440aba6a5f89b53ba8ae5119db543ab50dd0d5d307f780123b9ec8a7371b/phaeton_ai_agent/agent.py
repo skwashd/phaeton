@@ -115,7 +115,8 @@ def _parse_json_response(text: str) -> dict[str, Any]:
 
 
 def translate_node(request: NodeTranslationRequest) -> AIAgentResponse:
-    """Translate an n8n node using the Strands Agent.
+    """
+    Translate an n8n node using the Strands Agent.
 
     Parameters
     ----------
@@ -151,7 +152,8 @@ def translate_node(request: NodeTranslationRequest) -> AIAgentResponse:
 
 
 def translate_expression(request: ExpressionTranslationRequest) -> ExpressionResponse:
-    """Translate an n8n expression using the Strands Agent.
+    """
+    Translate an n8n expression using the Strands Agent.
 
     Parameters
     ----------

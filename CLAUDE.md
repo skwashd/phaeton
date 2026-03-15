@@ -18,7 +18,7 @@ phaeton/end-to-end/
 
 ## Language & tooling
 
-- **Python:** >=3.14 for most components; >=3.13 for workflow-analyzer, phaeton-models, and deployment
+- **Python:** >=3.14 for all components
 - **Package manager:** uv
 - **Build systems:** uv_build (most components), Hatchling (n8n-release-parser, deployment)
 - **Linting/formatting:** ruff
@@ -55,6 +55,7 @@ Ruff is configured in the root `pyproject.toml` with a shared rule set. Each com
 - **Test files follow production conventions:** `-> None` return annotations, docstrings on classes and methods, type annotations on all parameters.
 - All Pydantic models use `frozen=True` (immutable value objects).
 - **No `py.typed` marker files.** Do not create `py.typed` files. This project uses `ty` for type checking, not mypy/pyright. Always use modern type annotations (PEP 604 unions `X | Y`, `list[...]`/`dict[...]` builtins, etc.) directly in code.
+- **Python 3 exception syntax only.** Always use parenthesized tuples for multi-exception `except` clauses: `except (ExcA, ExcB):`. Never use the Python 2 comma syntax `except ExcA, ExcB:`.
 - **No CDK alpha constructs.** Generated CDK code must use stable `aws_cdk.aws_lambda` constructs (`lambda_.Function`, `lambda_.LayerVersion`) with explicit `cdk.BundlingOptions`, never `aws_cdk.aws_lambda_python_alpha` (`PythonFunction`, `PythonLayerVersion`).
 
 ## Dependency rules

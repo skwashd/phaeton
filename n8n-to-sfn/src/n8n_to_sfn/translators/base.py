@@ -102,7 +102,8 @@ def build_error_handling(
     next_state_name: str | None = None,
     default_retry: RetryConfig | None = None,
 ) -> tuple[list[RetryConfig], list[CatchConfig]]:
-    """Build Retry and Catch configs from n8n node error settings.
+    """
+    Build Retry and Catch configs from n8n node error settings.
 
     Merges explicit node settings with an optional default retry config.
     Explicit settings take precedence over defaults.

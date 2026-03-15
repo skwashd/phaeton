@@ -1,4 +1,5 @@
-"""Expression evaluator for REQUIRES_LAMBDA expressions (Category C).
+"""
+Expression evaluator for REQUIRES_LAMBDA expressions (Category C).
 
 Generates Lambda functions to evaluate complex n8n expressions that cannot
 be translated directly to JSONata or Step Functions Variables.  These
@@ -147,7 +148,8 @@ def evaluate_lambda_expressions(
     context: TranslationContext,
     ai_agent: AIExpressionTranslator | None = None,
 ) -> ExpressionEvalResult:
-    """Generate Lambda functions for REQUIRES_LAMBDA expressions on a node.
+    """
+    Generate Lambda functions for REQUIRES_LAMBDA expressions on a node.
 
     For each expression classified as ``REQUIRES_LAMBDA``, a Node.js Lambda
     function is generated that evaluates the expression at runtime.  If an
@@ -229,7 +231,8 @@ def _try_ai_agent(
     ai_agent: AIExpressionTranslator | None,
     node_refs: list[str],
 ) -> str | None:
-    """Try to use the AI agent to generate expression evaluation code.
+    """
+    Try to use the AI agent to generate expression evaluation code.
 
     Returns the full Lambda handler code on success, or ``None`` if the
     AI agent is unavailable or fails.

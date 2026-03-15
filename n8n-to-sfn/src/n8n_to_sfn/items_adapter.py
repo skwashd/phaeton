@@ -1,4 +1,5 @@
-"""Items model adaptation (Patterns 1-4).
+"""
+Items model adaptation (Patterns 1-4).
 
 Analyzes a workflow graph and determines which n8n items-model pattern applies
 to each segment, then restructures the graph accordingly:

@@ -20,7 +20,8 @@ logger = Logger(service="packager")
 
 
 def handler(event: dict[str, Any], context: LambdaContext | None) -> dict[str, Any]:
-    """Lambda handler that packages a translated workflow and uploads to S3.
+    """
+    Lambda handler that packages a translated workflow and uploads to S3.
 
     Parameters
     ----------

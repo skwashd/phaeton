@@ -1,4 +1,5 @@
-"""SSM Parameter Store writer.
+"""
+SSM Parameter Store writer.
 
 Generates SSM parameter definitions from credential and OAuth credential
 specs for inclusion in the CDK stack.
@@ -18,7 +19,8 @@ class SSMWriter:
         credentials: list[CredentialSpec],
         oauth_credentials: list[OAuthCredentialSpec],
     ) -> list[SSMParameterDefinition]:
-        """Produce SSM parameter definitions for all credentials.
+        """
+        Produce SSM parameter definitions for all credentials.
 
         Standard credentials produce one parameter each. OAuth credentials
         produce two parameters (access token and refresh token).

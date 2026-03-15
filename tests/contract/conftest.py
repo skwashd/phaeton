@@ -1,4 +1,5 @@
-"""Shared fixtures for contract tests.
+"""
+Shared fixtures for contract tests.
 
 Provides representative model instances that cover all fields, ensuring
 contract tests exercise the full serialisation surface between components.

@@ -23,7 +23,8 @@ _OPERATIONS = {
 
 
 def handler(event: dict[str, Any], context: LambdaContext | None) -> dict[str, Any]:
-    """Lambda handler that routes to the appropriate adapter conversion.
+    """
+    Lambda handler that routes to the appropriate adapter conversion.
 
     Parameters
     ----------

@@ -1,4 +1,5 @@
-"""Shared fixtures for integration tests against a real AWS account.
+"""
+Shared fixtures for integration tests against a real AWS account.
 
 Provides helpers to run the full Phaeton pipeline (analyze, translate,
 package) and to deploy / tear-down the resulting CDK application via
@@ -66,7 +67,8 @@ def _unique_stack_name(base: str) -> str:
 
 
 def _run_pipeline(workflow_path: Path, output_dir: Path) -> Path:
-    """Run the full Phaeton pipeline and return the packager output directory.
+    """
+    Run the full Phaeton pipeline and return the packager output directory.
 
     Stages:
         1. Analyse the n8n workflow JSON.
@@ -125,7 +127,8 @@ def _cdk_deploy(
     *,
     extra_context: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    """Deploy a CDK application and return the stack outputs.
+    """
+    Deploy a CDK application and return the stack outputs.
 
     Tags every resource with ``phaeton-test`` for easy identification
     and manual cleanup.
@@ -182,7 +185,7 @@ def _cdk_destroy(cdk_dir: Path) -> None:
             capture_output=True,
             text=True,
         )
-    except subprocess.CalledProcessError, subprocess.TimeoutExpired:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
         logger.exception("CDK destroy failed - manual cleanup may be required")
 
 
@@ -193,7 +196,8 @@ def _wait_for_execution(
     timeout: int = _SFN_EXECUTION_TIMEOUT,
     poll_interval: int = 5,
 ) -> dict[str, object]:
-    """Poll a Step Functions execution until it reaches a terminal state.
+    """
+    Poll a Step Functions execution until it reaches a terminal state.
 
     Returns
     -------
@@ -250,7 +254,8 @@ def fixtures_dir() -> Path:
 def pipeline_output(
     tmp_path: Path,
 ) -> Path:
-    """Run the full pipeline for the simple DynamoDB workflow.
+    """
+    Run the full pipeline for the simple DynamoDB workflow.
 
     Returns the packager output directory.
     """
@@ -263,7 +268,8 @@ def pipeline_output(
 def deployed_stack(
     pipeline_output: Path,
 ) -> Generator[dict[str, str]]:
-    """Deploy the packaged CDK application and yield its stack outputs.
+    """
+    Deploy the packaged CDK application and yield its stack outputs.
 
     Automatically destroys the stack after the test completes.
     """

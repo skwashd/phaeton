@@ -1,4 +1,5 @@
-"""SaaS integration node translators.
+"""
+SaaS integration node translators.
 
 Provides a base class for translating n8n SaaS nodes (Slack, Gmail,
 Google Sheets, Notion, Airtable, etc.) into Step Functions ``http:invoke``
@@ -47,7 +48,8 @@ class OperationMapping:
 
 
 class BaseSaaSTranslator(BaseTranslator):
-    """Base class for SaaS integration translators.
+    """
+    Base class for SaaS integration translators.
 
     Subclasses define the n8n node type, API base URL, credential type,
     and operation mappings.  The base class handles the common translation
@@ -159,7 +161,8 @@ class BaseSaaSTranslator(BaseTranslator):
         params: dict[str, Any],
         mapping: OperationMapping | None,
     ) -> dict[str, Any]:
-        """Build the request body from node parameters.
+        """
+        Build the request body from node parameters.
 
         Subclasses can override for service-specific body construction.
         The default extracts all non-routing parameters.

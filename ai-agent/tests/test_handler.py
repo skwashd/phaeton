@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 from phaeton_ai_agent.handler import handler
@@ -146,5 +147,5 @@ class TestHandlerWithContext:
                 "node_name": "Test",
             },
         }
-        result = handler(event, _FakeContext())
+        result = handler(event, cast(Any, _FakeContext()))
         assert "error" not in result

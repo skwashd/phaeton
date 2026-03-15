@@ -1,4 +1,5 @@
-"""End-to-end integration tests.
+"""
+End-to-end integration tests.
 
 Each test loads a fixture n8n workflow JSON, simulates Component 2 analysis,
 runs the full translation engine, and validates the output ASL.

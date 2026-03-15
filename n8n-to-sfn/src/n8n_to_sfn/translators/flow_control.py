@@ -1,4 +1,5 @@
-"""Flow control node translator (IF, Switch, Merge, SplitInBatches, Loop, Wait, NoOp, Execute Workflow).
+"""
+Flow control node translator (IF, Switch, Merge, SplitInBatches, Loop, Wait, NoOp, Execute Workflow).
 
 Converts n8n flow control nodes into equivalent ASL states:
 
@@ -60,7 +61,8 @@ _EXECUTE_WORKFLOW_RESOURCE = "arn:aws:states:::states:startExecution.sync:2"
 
 
 def _condition_for_if(node: ClassifiedNode) -> str:
-    """Build a JSONata condition string from an n8n IF node's parameters.
+    """
+    Build a JSONata condition string from an n8n IF node's parameters.
 
     n8n IF nodes store conditions in ``parameters.conditions``.  Each condition
     has a ``leftValue``, ``operator``, and ``rightValue``.  When the raw
@@ -248,7 +250,8 @@ def _rule_to_condition(rule: dict) -> str:
 def _translate_if(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
-    """Translate an n8n IF node to a ChoiceState.
+    """
+    Translate an n8n IF node to a ChoiceState.
 
     The true branch is connected to output index 0 and the false branch to
     output index 1.
@@ -291,7 +294,8 @@ def _translate_switch(
 def _translate_split_in_batches(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
-    """Translate an n8n SplitInBatches node to a MapState (MaxConcurrency=1).
+    """
+    Translate an n8n SplitInBatches node to a MapState (MaxConcurrency=1).
 
     The inner processor is INLINE mode with a placeholder Pass state.  The
     engine's ``_apply_map_for_split_in_batches`` post-processing step detects
@@ -333,7 +337,8 @@ def _translate_split_in_batches(
 def _translate_loop(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
-    """Translate an n8n Loop node to a Map state or Choice loop-back pattern.
+    """
+    Translate an n8n Loop node to a Map state or Choice loop-back pattern.
 
     The Loop node supports two modes:
 
@@ -438,7 +443,8 @@ def _translate_loop_condition(
 def _translate_merge(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
-    """Translate an n8n Merge node.
+    """
+    Translate an n8n Merge node.
 
     A Merge node joins multiple upstream branches.  In Step Functions this
     requires a Parallel state wrapping the upstream branches so their outputs
@@ -466,7 +472,8 @@ _DEFAULT_CALLBACK_TIMEOUT = 86400  # 24 hours
 def _translate_wait(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
-    """Translate an n8n Wait node to a WaitState or callback TaskState.
+    """
+    Translate an n8n Wait node to a WaitState or callback TaskState.
 
     Supported wait modes and their ASL equivalents:
 
@@ -520,7 +527,8 @@ def _translate_wait(
 def _translate_wait_callback(
     node: ClassifiedNode, resume: str
 ) -> TranslationResult:
-    """Translate a form-submission or webhook wait into a callback TaskState.
+    """
+    Translate a form-submission or webhook wait into a callback TaskState.
 
     Uses ``.waitForTaskToken`` so the state machine pauses until a Lambda
     function calls ``SendTaskSuccess`` with the submitted data.
@@ -663,7 +671,8 @@ def _translate_noop(
 def _translate_execute_workflow(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
-    """Translate an n8n Execute Workflow node to a TaskState.
+    """
+    Translate an n8n Execute Workflow node to a TaskState.
 
     Uses the ``startExecution.sync:2`` SDK integration so Step Functions waits
     for the child execution to complete before continuing.
@@ -743,7 +752,8 @@ _DISPATCH: dict[str, object] = {
 
 
 class FlowControlTranslator(BaseTranslator):
-    """Translator for n8n flow control nodes.
+    """
+    Translator for n8n flow control nodes.
 
     Handles IF, Switch, SplitInBatches, Loop, Merge, Wait, NoOp, and Execute
     Workflow nodes, converting each to an appropriate ASL state type.
@@ -756,7 +766,8 @@ class FlowControlTranslator(BaseTranslator):
     def translate(
         self, node: ClassifiedNode, context: TranslationContext
     ) -> TranslationResult:
-        """Dispatch translation to the handler for this node type.
+        """
+        Dispatch translation to the handler for this node type.
 
         Falls back to a PassState with a warning for unrecognised node types
         so that the overall translation can continue rather than failing hard.

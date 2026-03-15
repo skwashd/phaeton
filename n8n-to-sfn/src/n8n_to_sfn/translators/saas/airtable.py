@@ -1,4 +1,5 @@
-"""Airtable node translator.
+"""
+Airtable node translator.
 
 Converts ``n8n-nodes-base.airtable`` nodes into Step Functions
 ``http:invoke`` Task states targeting the Airtable REST API.

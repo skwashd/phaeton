@@ -1,4 +1,5 @@
-"""Slack node translator.
+"""
+Slack node translator.
 
 Converts ``n8n-nodes-base.slack`` nodes into Step Functions
 ``http:invoke`` Task states targeting the Slack Web API.

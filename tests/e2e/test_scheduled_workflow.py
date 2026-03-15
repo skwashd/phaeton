@@ -1,4 +1,5 @@
-"""End-to-end tests for a workflow with a Schedule Trigger.
+"""
+End-to-end tests for a workflow with a Schedule Trigger.
 
 Validates that the schedule trigger produces an EventBridge rule artifact,
 Lambda invoke and SQS states appear in the ASL definition, and the CDK

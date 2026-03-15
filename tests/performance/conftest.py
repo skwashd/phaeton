@@ -1,4 +1,5 @@
-"""Shared fixtures for performance and load tests.
+"""
+Shared fixtures for performance and load tests.
 
 Provides synthetic n8n workflow generators of configurable size and
 benchmarking helpers that measure execution time and peak memory usage.
@@ -102,7 +103,8 @@ def _make_node(index: int, template: dict[str, Any]) -> dict[str, Any]:
 
 
 def generate_workflow(num_nodes: int, *, seed: int = _RNG_SEED) -> dict[str, Any]:
-    """Generate a synthetic n8n workflow with *num_nodes* total nodes.
+    """
+    Generate a synthetic n8n workflow with *num_nodes* total nodes.
 
     The first node is always a manual trigger.  The remaining nodes are
     randomly chosen AWS-service nodes connected in a linear chain so that
@@ -141,11 +143,12 @@ class BenchmarkResult:
 
     elapsed_seconds: float
     peak_memory_bytes: int
-    result: object
+    result: Any
 
 
 def run_timed(func: Callable[..., object], *args: object, **kwargs: object) -> BenchmarkResult:
-    """Execute *func* while measuring wall-clock time and peak memory.
+    """
+    Execute *func* while measuring wall-clock time and peak memory.
 
     Uses ``tracemalloc`` to capture peak memory allocated during the call.
     """
@@ -213,4 +216,4 @@ WORKFLOW_SIZES = [10, 50, 100, 200]
 @pytest.fixture(params=WORKFLOW_SIZES)
 def workflow_size(request: pytest.FixtureRequest) -> int:
     """Parametrised fixture yielding each standard workflow size."""
-    return request.param  # type: ignore[return-value]
+    return request.param

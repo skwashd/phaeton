@@ -16,7 +16,8 @@ logger = Logger(service="phaeton-ai-agent")
 
 
 def handler(event: dict[str, Any], context: LambdaContext | None) -> dict[str, Any]:
-    """Lambda handler that routes AI agent translation requests.
+    """
+    Lambda handler that routes AI agent translation requests.
 
     Parameters
     ----------
@@ -109,7 +110,7 @@ def _error_response(
     status_code: int,
     error_type: str,
     message: str,
-    details: str | list[dict[str, str]] | None = None,
+    details: str | list[Any] | None = None,
 ) -> dict[str, Any]:
     """Build a structured error response."""
     return {

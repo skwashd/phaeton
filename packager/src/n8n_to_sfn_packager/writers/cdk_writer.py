@@ -1,4 +1,5 @@
-"""CDK stack generator.
+"""
+CDK stack generator.
 
 Generates source code files for a deployable CDK application: ``app.py``,
 ``cdk.json``, ``pyproject.toml``, and the stack modules (``shared_stack.py``
@@ -45,7 +46,8 @@ class CDKWriter:
         ssm_params: list[SSMParameterDefinition],
         output_dir: Path,
     ) -> Path:
-        """Write the complete ``cdk/`` directory.
+        """
+        Write the complete ``cdk/`` directory.
 
         Args:
             input_data: The packager input.

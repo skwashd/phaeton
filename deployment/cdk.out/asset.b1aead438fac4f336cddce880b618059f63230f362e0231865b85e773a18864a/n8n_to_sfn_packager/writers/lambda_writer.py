@@ -1,4 +1,5 @@
-"""Lambda function writer.
+"""
+Lambda function writer.
 
 Generates Lambda function directories with handler code and dependency
 manifests. Python Lambdas use ``pyproject.toml`` + ``uv.lock``; Node.js
@@ -28,7 +29,8 @@ class LambdaWriter:
     """Generates Lambda function directories from specs."""
 
     def write(self, spec: LambdaFunctionSpec, output_dir: Path) -> Path:
-        """Write a single Lambda function directory.
+        """
+        Write a single Lambda function directory.
 
         Args:
             spec: The Lambda function specification.
@@ -52,7 +54,8 @@ class LambdaWriter:
     def write_all(
         self, specs: list[LambdaFunctionSpec], output_dir: Path
     ) -> list[Path]:
-        """Write all Lambda function directories.
+        """
+        Write all Lambda function directories.
 
         Args:
             specs: List of Lambda function specifications.

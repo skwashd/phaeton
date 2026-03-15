@@ -1,4 +1,5 @@
-"""Set/Edit Fields node translator.
+"""
+Set/Edit Fields node translator.
 
 Converts ``n8n-nodes-base.set`` nodes into Step Functions ``Pass`` states
 with JSONata ``Output`` expressions for field mapping.
@@ -39,7 +40,8 @@ def _strip_expression_wrapper(value: str) -> str:
 
 
 def _translate_value(value: _FieldValue, field_type: str) -> str:
-    """Translate a single field value to a JSONata expression string.
+    """
+    Translate a single field value to a JSONata expression string.
 
     Returns the raw JSONata expression (without ``{% %}`` wrapper).
     """
@@ -60,7 +62,8 @@ def _build_manual_output(
     assignments: list[dict[str, Any]],
     include_input: bool,
 ) -> str:
-    """Build a JSONata Output expression from manual field assignments.
+    """
+    Build a JSONata Output expression from manual field assignments.
 
     Parameters
     ----------

@@ -1,4 +1,5 @@
-"""CDK synthesis validation for the scheduled trigger workflow.
+"""
+CDK synthesis validation for the scheduled trigger workflow.
 
 Verifies that the generated CDK application for an EventBridge Schedule ->
 Lambda -> SQS workflow synthesizes into a valid CloudFormation template with

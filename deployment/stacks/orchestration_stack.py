@@ -10,7 +10,8 @@ from constructs import Construct
 
 
 class OrchestrationStack(cdk.Stack):
-    """Deploy the Adapter Lambda and Step Functions state machine.
+    """
+    Deploy the Adapter Lambda and Step Functions state machine.
 
     The state machine orchestrates the full conversion pipeline:
     Analyzer -> Adapter1 -> Translator -> Adapter2 -> Packager

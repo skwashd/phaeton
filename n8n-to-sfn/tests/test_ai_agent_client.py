@@ -61,7 +61,8 @@ def _mock_lambda_response(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _create_client_with_mock(mock_invoke: MagicMock) -> AIAgentClient:
-    """Create an AIAgentClient with a mocked boto3 Lambda client.
+    """
+    Create an AIAgentClient with a mocked boto3 Lambda client.
 
     Injects a mock ``boto3`` module so the lazy import inside
     ``AIAgentClient.__init__`` resolves without the real package.

@@ -1,4 +1,5 @@
-"""Pydantic v2 models defining the Packager's input contract.
+"""
+Pydantic v2 models defining the Packager's input contract.
 
 These models represent the serialisation boundary between Component 3
 (Translation Engine) and Component 4 (Packager). The Translation Engine
@@ -344,7 +345,8 @@ class ConversionReport(BaseModel):
 
 
 class PackagerInput(BaseModel):
-    """Top-level input to the Packager.
+    """
+    Top-level input to the Packager.
 
     This is the serialisation contract between the Translation Engine
     (Component 3) and the Packager (Component 4). The Translation Engine

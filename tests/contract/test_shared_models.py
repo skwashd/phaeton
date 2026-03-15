@@ -1,4 +1,5 @@
-"""Contract tests for shared phaeton-models used across components.
+"""
+Contract tests for shared phaeton-models used across components.
 
 Verifies that N8nNode, ConnectionTarget, and WorkflowSettings from
 phaeton-models are the same classes imported by both workflow-analyzer
@@ -82,20 +83,20 @@ class TestN8nNodeJsonRoundTrip:
 
     def test_aliased_fields_round_trip(self) -> None:
         """Fields with aliases survive JSON serialization by alias."""
-        node = N8nNode(
-            id="abc",
-            name="Test",
-            type="n8n-nodes-base.set",
-            typeVersion=2,
-            position=[100.0, 200.0],
-            parameters={"key": "value"},
-            continueOnFail=True,
-            onError="continueRegularOutput",
-            retryOnFail=True,
-            maxTries=3,
-            waitBetweenTries=1000,
-            executeOnce=True,
-        )
+        node = N8nNode.model_validate({
+            "id": "abc",
+            "name": "Test",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [100.0, 200.0],
+            "parameters": {"key": "value"},
+            "continueOnFail": True,
+            "onError": "continueRegularOutput",
+            "retryOnFail": True,
+            "maxTries": 3,
+            "waitBetweenTries": 1000,
+            "executeOnce": True,
+        })
         json_data = node.model_dump(by_alias=True)
         assert "typeVersion" in json_data
         assert "continueOnFail" in json_data
@@ -112,13 +113,13 @@ class TestN8nNodeJsonRoundTrip:
 
     def test_python_field_names_round_trip(self) -> None:
         """Python-style field names also deserialize correctly."""
-        node = N8nNode(
-            id="abc",
-            name="Test",
-            type="n8n-nodes-base.set",
-            type_version=2,
-            position=[0.0, 0.0],
-        )
+        node = N8nNode.model_validate({
+            "id": "abc",
+            "name": "Test",
+            "type": "n8n-nodes-base.set",
+            "type_version": 2,
+            "position": [0.0, 0.0],
+        })
         json_data = node.model_dump()
         restored = N8nNode.model_validate(json_data)
         assert restored.type_version == 2
@@ -176,12 +177,12 @@ class TestWorkflowSettingsRoundTrip:
 
     def test_aliased_fields_round_trip(self) -> None:
         """Aliased fields survive JSON serialization."""
-        settings = WorkflowSettings(
-            executionOrder="v1",
-            timezone="UTC",
-            saveManualExecutions=True,
-            callerPolicy="workflowsFromSameOwner",
-        )
+        settings = WorkflowSettings.model_validate({
+            "executionOrder": "v1",
+            "timezone": "UTC",
+            "saveManualExecutions": True,
+            "callerPolicy": "workflowsFromSameOwner",
+        })
         json_data = settings.model_dump(by_alias=True)
         assert "executionOrder" in json_data
         assert "saveManualExecutions" in json_data
