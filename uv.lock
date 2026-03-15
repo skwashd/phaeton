@@ -61,6 +61,22 @@ wheels = [
 ]
 
 [[package]]
+name = "aws-cdk-aws-lambda-python-alpha"
+version = "2.239.0a0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aws-cdk-lib" },
+    { name = "constructs" },
+    { name = "jsii" },
+    { name = "publication" },
+    { name = "typeguard" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/35/41/e8355b8e49e09778aec09ab35004b31dd3494bc76ef0c05a7b101ab6b5c9/aws_cdk_aws_lambda_python_alpha-2.239.0a0.tar.gz", hash = "sha256:ef4c3cc6100c383a654f9886e799f6529cc69997c9ec876449a40d52307eb7c6", size = 98256, upload-time = "2026-02-19T21:58:09.779Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b9/11/df2433c2bf03100b259a39643efce94881b45cb7bdf93b504fe2dc7ef030/aws_cdk_aws_lambda_python_alpha-2.239.0a0-py3-none-any.whl", hash = "sha256:489f53808a243c20d5d6c54b181ae62214d2f023f2bf30f4ab5e0a66b3cdb9b4", size = 96739, upload-time = "2026-02-19T21:57:14.899Z" },
+]
+
+[[package]]
 name = "aws-cdk-cloud-assembly-schema"
 version = "50.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -378,6 +394,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "aws-cdk-aws-lambda-python-alpha" },
     { name = "coverage" },
     { name = "pytest" },
     { name = "pytest-timeout" },
@@ -395,6 +412,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aws-cdk-aws-lambda-python-alpha", specifier = ">=2.239.0a0" },
     { name = "coverage", specifier = "==7.13.4" },
     { name = "pytest", specifier = "==9.0.2" },
     { name = "pytest-timeout", specifier = ">=2.3.0" },
