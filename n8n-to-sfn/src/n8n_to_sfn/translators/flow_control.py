@@ -420,6 +420,11 @@ def _translate_execute_workflow(
 
     Uses the ``startExecution.sync:2`` SDK integration so Step Functions waits
     for the child execution to complete before continuing.
+
+    The child state machine ARN is emitted as a JSONata placeholder that
+    references ``$states.context.sub_workflow_arns['<id>']``.  The Packager
+    resolves this at deploy time — same-stack via a direct CDK reference, or
+    cross-stack via an SSM Parameter lookup.
     """
     params = node.node.parameters
     workflow_id = params.get("workflowId", {})
@@ -434,9 +439,14 @@ def _translate_execute_workflow(
         "Input": "{% $states.input %}",
     }
     if wf_id_value:
-        # The StateMachineArn for the child workflow must be resolved at deploy time.
-        # We emit a placeholder that the IaC layer replaces with the real ARN.
-        arguments["StateMachineArn"] = f"{{{{ WorkflowArn['{wf_id_value}'] }}}}"
+        # Emit a JSONata expression referencing the context-injected ARN map.
+        # The Packager populates sub_workflow_arns in the execution context at
+        # deploy time so this resolves to a real state machine ARN.
+        arguments["StateMachineArn"] = (
+            "{% $states.context.sub_workflow_arns['"
+            + wf_id_value
+            + "'] %}"
+        )
 
     state = TaskState(
         resource=_EXECUTE_WORKFLOW_RESOURCE,
@@ -447,11 +457,21 @@ def _translate_execute_workflow(
 
     warnings: list[str] = [
         f"Execute Workflow node '{node.node.name}': the child workflow ARN "
-        f"(id='{wf_id_value}') must be resolved and substituted in the "
-        "Arguments.StateMachineArn field during deployment."
+        f"(id='{wf_id_value}') must be resolved by the Packager.  "
+        "Same-stack: use a direct CDK StateMachine reference.  "
+        "Cross-stack: use an SSM Parameter at "
+        f"/phaeton/workflows/{wf_id_value}/arn.",
     ]
 
-    return TranslationResult(states={node.node.name: state}, warnings=warnings)
+    metadata: dict[str, object] = {}
+    if wf_id_value:
+        metadata["sub_workflow_references"] = [wf_id_value]
+
+    return TranslationResult(
+        states={node.node.name: state},
+        warnings=warnings,
+        metadata=metadata,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -212,8 +212,8 @@ class TestFlowControlTranslator:
         state = result.states["NoOp"]
         assert state.type == "Pass"
 
-    def test_execute_workflow(self) -> None:
-        """Test executeWorkflow becomes Task state."""
+    def test_execute_workflow_string_id(self) -> None:
+        """Test executeWorkflow with plain string workflowId."""
         node = _fc_node(
             "SubWF",
             "n8n-nodes-base.executeWorkflow",
@@ -225,6 +225,41 @@ class TestFlowControlTranslator:
         state = result.states["SubWF"]
         assert state.type == "Task"
         assert "startExecution" in state.resource
+        assert state.arguments["StateMachineArn"] == (
+            "{% $states.context.sub_workflow_arns['abc-123'] %}"
+        )
+        assert result.metadata["sub_workflow_references"] == ["abc-123"]
+
+    def test_execute_workflow_dict_id(self) -> None:
+        """Test executeWorkflow with dict-style workflowId containing a value key."""
+        node = _fc_node(
+            "SubWF",
+            "n8n-nodes-base.executeWorkflow",
+            params={
+                "workflowId": {"value": "wf-456"},
+            },
+        )
+        result = self.translator.translate(node, _context())
+        state = result.states["SubWF"]
+        assert state.type == "Task"
+        assert state.arguments["StateMachineArn"] == (
+            "{% $states.context.sub_workflow_arns['wf-456'] %}"
+        )
+        assert result.metadata["sub_workflow_references"] == ["wf-456"]
+
+    def test_execute_workflow_empty_id(self) -> None:
+        """Test executeWorkflow with empty workflowId omits ARN and metadata."""
+        node = _fc_node(
+            "SubWF",
+            "n8n-nodes-base.executeWorkflow",
+            params={
+                "workflowId": "",
+            },
+        )
+        result = self.translator.translate(node, _context())
+        state = result.states["SubWF"]
+        assert "StateMachineArn" not in state.arguments
+        assert "sub_workflow_references" not in result.metadata
 
     def test_merge_produces_warning(self) -> None:
         """Test Merge node produces warning."""

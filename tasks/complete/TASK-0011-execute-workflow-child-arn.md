@@ -43,10 +43,6 @@ This is not valid ASL and will fail at deploy time. The ARN must resolve to an a
      ```python
      "StateMachineArn.$": "{% $states.context.sub_workflow_arns['" + workflow_id + "'] %}"
      ```
-     Or use a convention the Packager recognizes:
-     ```python
-     "StateMachineArn": "${SubWorkflow:" + workflow_id + "}"
-     ```
    - Add the workflow ID to `TranslationResult.metadata` under a `sub_workflow_references` key so the Packager knows which child workflows need resolution.
 
 2. The Packager should later resolve these references using:
