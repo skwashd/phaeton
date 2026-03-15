@@ -208,7 +208,7 @@ class IAMPolicyGenerator:
                     sdk_idx = parts.index("aws-sdk")
                     service = parts[sdk_idx + 1]
                     action = parts[sdk_idx + 2] if len(parts) > sdk_idx + 2 else ""
-                except ValueError, IndexError:
+                except (ValueError, IndexError):
                     continue
 
                 iam_action = sdk_action_to_iam(service, action)

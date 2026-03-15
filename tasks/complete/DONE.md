@@ -1,1 +1,2 @@
 TASK-0003-deduplicate-n8n-node-models.md
+TASK-0004-fix-python-syntax-error-iam-writer.md

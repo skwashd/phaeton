@@ -1,4 +1,3 @@
-TASK-0004-fix-python-syntax-error-iam-writer.md
 TASK-0005-eventbridge-schedule-targets.md
 TASK-0001-contract-mismatch-analyzer-to-translator.md
 TASK-0002-contract-mismatch-translator-to-packager.md
