@@ -54,6 +54,7 @@ Ruff is configured in the root `pyproject.toml` with a shared rule set. Each com
 - **Never change linting rules** (ruff config, per-file-ignores) to suppress warnings. Always fix the actual code.
 - **Test files follow production conventions:** `-> None` return annotations, docstrings on classes and methods, type annotations on all parameters.
 - All Pydantic models use `frozen=True` (immutable value objects).
+- **No `py.typed` marker files.** Do not create `py.typed` files. This project uses `ty` for type checking, not mypy/pyright. Always use modern type annotations (PEP 604 unions `X | Y`, `list[...]`/`dict[...]` builtins, etc.) directly in code.
 
 ## Dependency rules
 
