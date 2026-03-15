@@ -1,0 +1,52 @@
+{
+  "name": "simple_dynamodb_test",
+  "nodes": [
+    {
+      "id": "int-test-0001-4000-8000-000000000001",
+      "name": "ManualTrigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "int-test-0001-4000-8000-000000000002",
+      "name": "GenerateData",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "language": "python",
+        "pythonCode": "return [{'json': {'pk': 'test-item-001', 'message': 'hello from phaeton', 'status': 'ok'}}]"
+      }
+    },
+    {
+      "id": "int-test-0001-4000-8000-000000000003",
+      "name": "DDBPut",
+      "type": "n8n-nodes-base.awsDynamoDB",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "tableName": "PhaetonTestTable",
+        "additionalFields": {}
+      }
+    }
+  ],
+  "connections": {
+    "ManualTrigger": {
+      "main": [
+        [{"node": "GenerateData", "type": "main", "index": 0}]
+      ]
+    },
+    "GenerateData": {
+      "main": [
+        [{"node": "DDBPut", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

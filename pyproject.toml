@@ -1,0 +1,54 @@
+[project]
+name = "phaeton-integration-tests"
+version = "0.1.0"
+description = "Cross-component integration tests for the Phaeton pipeline."
+requires-python = ">=3.14"
+dependencies = [
+    "boto3>=1.35.0",
+    "phaeton-models",
+    "workflow-analyzer",
+    "n8n-to-sfn",
+    "n8n-to-sfn-packager",
+]
+
+[tool.uv.sources]
+phaeton-models = { path = "shared/phaeton-models", editable = true }
+workflow-analyzer = { path = "workflow-analyzer", editable = true }
+n8n-to-sfn = { path = "n8n-to-sfn", editable = true }
+n8n-to-sfn-packager = { path = "packager", editable = true }
+
+[tool.uv]
+override-dependencies = [
+    "phaeton-models @ file://${PROJECT_ROOT}/shared/phaeton-models",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN", "BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+ignore = ["D203", "D211", "D213", "E501", "F403", "F405"]
+
+fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN", "BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"test_*" = ["S101", "S108"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: end-to-end tests that deploy to a real AWS account (require AWS credentials)",
+]
+
+[tool.coverage.run]
+source = ["tests"]
+
+[dependency-groups]
+dev = [
+    "coverage==7.13.4",
+    "pytest==9.0.2",
+    "pytest-timeout>=2.3.0",
+    "ruff==0.15.2",
+]
