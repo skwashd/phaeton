@@ -27,6 +27,7 @@ from n8n_to_sfn.translators.base import (
     TranslationResult,
     TriggerArtifact,
 )
+from n8n_to_sfn.translators.expression_evaluator import evaluate_lambda_expressions
 from n8n_to_sfn.validator import validate_asl
 
 if TYPE_CHECKING:
@@ -40,6 +41,12 @@ class AIAgentProtocol(Protocol):
         self, node: ClassifiedNode, context: TranslationContext
     ) -> TranslationResult:
         """Translate a node using AI agent fallback."""
+        ...
+
+    def translate_expression(
+        self, expr: str, node: ClassifiedNode, context: TranslationContext
+    ) -> str:
+        """Translate an expression using AI agent fallback."""
         ...
 
 
@@ -75,6 +82,7 @@ class TranslationEngine:
         all_triggers: list[TriggerArtifact] = []
         all_warnings: list[str] = []
         node_state_names: dict[str, str] = {}
+        entry_state_overrides: dict[str, str] = {}
         merge_metadata: dict[str, dict[str, Any]] = {}
 
         split_in_batches_metadata: dict[str, dict[str, Any]] = {}
@@ -88,6 +96,11 @@ class TranslationEngine:
             result = self._translate_node(cn, context)
             if result is None:
                 continue
+
+            self._process_lambda_expressions(
+                cn, context, result, all_states,
+                all_lambdas, all_warnings, entry_state_overrides,
+            )
 
             all_lambdas.extend(result.lambda_artifacts)
             all_triggers.extend(result.trigger_artifacts)
@@ -115,9 +128,13 @@ class TranslationEngine:
             split_in_batches_metadata, all_warnings,
         )
 
-        self._wire_transitions(all_states, analysis, node_state_names)
+        self._wire_transitions(
+            all_states, analysis, node_state_names, entry_state_overrides,
+        )
 
-        start_at = self._determine_start_at(ordered_names, node_state_names)
+        start_at = self._determine_start_at(
+            ordered_names, node_state_names, entry_state_overrides,
+        )
         sm = StateMachine(start_at=start_at, states=all_states)
 
         context.state_machine = sm
@@ -175,6 +192,43 @@ class TranslationEngine:
         return TranslationResult(
             warnings=[f"No translator found for node: {cn.node.name} ({cn.node.type})"],
         )
+
+    def _process_lambda_expressions(
+        self,
+        cn: ClassifiedNode,
+        context: TranslationContext,
+        result: TranslationResult,
+        all_states: dict[str, Any],
+        all_lambdas: list[LambdaArtifact],
+        all_warnings: list[str],
+        entry_state_overrides: dict[str, str],
+    ) -> None:
+        """Generate and wire Lambda eval states for REQUIRES_LAMBDA expressions."""
+        expr_result = evaluate_lambda_expressions(cn, context, self._ai_agent)
+        if not expr_result.states:
+            return
+
+        all_lambdas.extend(expr_result.lambda_artifacts)
+        all_warnings.extend(expr_result.warnings)
+
+        for es_name, es_state in expr_result.states.items():
+            all_states[es_name] = es_state
+
+        eval_names = expr_result.eval_state_names
+        first_node_state = next(iter(result.states), None)
+
+        for idx in range(len(eval_names) - 1):
+            es = all_states[eval_names[idx]]
+            es.next = eval_names[idx + 1]
+            es.end = None
+
+        if first_node_state and eval_names:
+            last_es = all_states[eval_names[-1]]
+            last_es.next = first_node_state
+            last_es.end = None
+
+        if eval_names:
+            entry_state_overrides[cn.node.name] = eval_names[0]
 
     def _topological_sort(self, analysis: WorkflowAnalysis) -> list[str]:
         """Topologically sort node names using the dependency graph.
@@ -616,6 +670,7 @@ class TranslationEngine:
         all_states: dict[str, Any],
         analysis: WorkflowAnalysis,
         node_state_names: dict[str, str],
+        entry_state_overrides: dict[str, str] | None = None,
     ) -> None:
         """Wire up Next transitions between states based on dependency edges."""
         successors: dict[str, list[str]] = {}
@@ -623,7 +678,9 @@ class TranslationEngine:
             if edge.edge_type == "CONNECTION":
                 successors.setdefault(edge.from_node, []).append(edge.to_node)
 
-        self._apply_next_transitions(all_states, node_state_names, successors)
+        self._apply_next_transitions(
+            all_states, node_state_names, successors, entry_state_overrides,
+        )
         self._apply_end_to_terminal_states(all_states)
 
     def _apply_next_transitions(
@@ -631,8 +688,10 @@ class TranslationEngine:
         all_states: dict[str, Any],
         node_state_names: dict[str, str],
         successors: dict[str, list[str]],
+        entry_state_overrides: dict[str, str] | None = None,
     ) -> None:
         """Set Next on states that have downstream successors."""
+        overrides = entry_state_overrides or {}
         for node_name, state_name in node_state_names.items():
             state = all_states.get(state_name)
             if state is None:
@@ -641,7 +700,9 @@ class TranslationEngine:
             if not nexts:
                 continue
             next_state_names = [
-                node_state_names[n] for n in nexts if n in node_state_names
+                overrides.get(n, node_state_names[n])
+                for n in nexts
+                if n in node_state_names
             ]
             if not next_state_names:
                 continue
@@ -673,11 +734,13 @@ class TranslationEngine:
         self,
         ordered_names: list[str],
         node_state_names: dict[str, str],
+        entry_state_overrides: dict[str, str] | None = None,
     ) -> str:
         """Determine the StartAt state name."""
+        overrides = entry_state_overrides or {}
         for name in ordered_names:
             if name in node_state_names:
-                return node_state_names[name]
+                return overrides.get(name, node_state_names[name])
         return next(iter(node_state_names.values())) if node_state_names else "Empty"
 
     def _build_report(
