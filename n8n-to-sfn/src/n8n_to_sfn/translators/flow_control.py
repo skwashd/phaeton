@@ -5,7 +5,7 @@ Converts n8n flow control nodes into equivalent ASL states:
 - IF              → ChoiceState with JSONata Condition
 - Switch          → ChoiceState with multiple ChoiceRules + Default
 - SplitInBatches  → MapState (MaxConcurrency=1, INLINE mode)
-- Merge           → PassState with a warning (Parallel wrapping is done by the items adapter)
+- Merge           → PassState placeholder (engine post-processing wraps in Parallel)
 - Wait            → WaitState
 - NoOp            → PassState
 - Execute Workflow → TaskState (startExecution.sync:2)
@@ -322,18 +322,20 @@ def _translate_merge(
 
     A Merge node joins multiple upstream branches.  In Step Functions this
     requires a Parallel state wrapping the upstream branches so their outputs
-    can be combined.  That Parallel wrapping is done by the items adapter
-    during post-processing; here we emit a PassState placeholder and record a
-    warning so the adapter knows to act.
+    can be combined.  Here we emit a PassState placeholder; the engine's
+    ``_apply_parallel_for_merges`` post-processing step detects merge metadata
+    and replaces the fork-to-merge region with a proper Parallel state.
     """
+    params = node.node.parameters
+    merge_mode = str(params.get("mode", "append"))
+
     state = PassState(comment=f"Merge placeholder: {node.node.name}")
     return TranslationResult(
         states={node.node.name: state},
-        warnings=[
-            f"Merge node '{node.node.name}': Step Functions requires a Parallel state "
-            "wrapping all upstream branches.  This placeholder must be replaced by the "
-            "items adapter during post-processing."
-        ],
+        metadata={
+            "merge_node": True,
+            "merge_mode": merge_mode,
+        },
     )
 
 

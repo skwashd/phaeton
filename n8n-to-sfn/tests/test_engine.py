@@ -10,7 +10,7 @@ from phaeton_models.translator import (
 )
 
 from n8n_to_sfn.engine import TranslationEngine
-from n8n_to_sfn.models.asl import PassState
+from n8n_to_sfn.models.asl import ParallelState, PassState
 from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.base import (
     BaseTranslator,
@@ -233,3 +233,305 @@ class TestEngineAIAgent:
         assert "AI" in output.state_machine.states
         state = output.state_machine.states["AI"]
         assert state.comment == "AI-generated"
+
+
+class MergePassTranslator(BaseTranslator):
+    """Translator that handles Merge nodes with metadata and others as Pass."""
+
+    def can_translate(self, node: ClassifiedNode) -> bool:
+        """Accept all non-unsupported nodes."""
+        return node.classification != NodeClassification.UNSUPPORTED
+
+    def translate(
+        self, node: ClassifiedNode, context: TranslationContext
+    ) -> TranslationResult:
+        """Translate Merge nodes with metadata, everything else as Pass."""
+        if node.node.type == "n8n-nodes-base.merge":
+            mode = node.node.parameters.get("mode", "append")
+            return TranslationResult(
+                states={node.node.name: PassState(comment=f"Merge: {node.node.name}")},
+                metadata={"merge_node": True, "merge_mode": str(mode)},
+            )
+        return TranslationResult(
+            states={node.node.name: PassState(comment=node.node.name)},
+        )
+
+
+def _merge_node(
+    name: str,
+    node_type: str = "n8n-nodes-base.set",
+    params: dict[str, object] | None = None,
+) -> ClassifiedNode:
+    """Create a classified node for merge tests."""
+    return ClassifiedNode(
+        node=N8nNode(
+            id=name,
+            name=name,
+            type=node_type,
+            type_version=1,
+            position=[0, 0],
+            parameters=params or {},
+        ),
+        classification=NodeClassification.FLOW_CONTROL,
+    )
+
+
+class TestEngineMergeParallel:
+    """Tests for Merge node -> Parallel state post-processing."""
+
+    def test_two_branch_merge(self) -> None:
+        """Test IF -> BranchA / BranchB -> Merge produces Parallel state."""
+        # Graph: Fork -> BranchA -> Merge
+        #        Fork -> BranchB -> Merge
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _merge_node("Fork"),
+                _merge_node("BranchA"),
+                _merge_node("BranchB"),
+                _merge_node("Merge", "n8n-nodes-base.merge"),
+                _merge_node("After"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="Fork", to_node="BranchA", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Fork", to_node="BranchB", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="BranchA", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="BranchB", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Merge", to_node="After", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[MergePassTranslator()])
+        output = engine.translate(analysis)
+
+        # Fork should now be a Parallel state
+        assert "Fork" in output.state_machine.states
+        fork_state = output.state_machine.states["Fork"]
+        assert isinstance(fork_state, ParallelState)
+        assert len(fork_state.branches) == 2
+        # Branch states should not be at top level
+        assert "BranchA" not in output.state_machine.states
+        assert "BranchB" not in output.state_machine.states
+        assert "Merge" not in output.state_machine.states
+
+        # After should still exist
+        assert "After" in output.state_machine.states
+
+        # Each branch should contain its respective state
+        branch_start_ats = {b.start_at for b in fork_state.branches}
+        assert "BranchA" in branch_start_ats
+        assert "BranchB" in branch_start_ats
+
+    def test_three_branch_merge(self) -> None:
+        """Test fork with three branches merging produces Parallel with 3 branches."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _merge_node("Fork"),
+                _merge_node("A"),
+                _merge_node("B"),
+                _merge_node("C"),
+                _merge_node("Merge", "n8n-nodes-base.merge"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="Fork", to_node="A", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Fork", to_node="B", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Fork", to_node="C", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="A", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="B", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="C", to_node="Merge", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[MergePassTranslator()])
+        output = engine.translate(analysis)
+
+        fork_state = output.state_machine.states["Fork"]
+        assert isinstance(fork_state, ParallelState)
+        assert len(fork_state.branches) == 3
+    def test_merge_mode_in_comment(self) -> None:
+        """Test merge mode is reflected in the Parallel state comment."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _merge_node("Fork"),
+                _merge_node("A"),
+                _merge_node("B"),
+                _merge_node(
+                    "Merge", "n8n-nodes-base.merge", params={"mode": "combine"}
+                ),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="Fork", to_node="A", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Fork", to_node="B", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="A", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="B", to_node="Merge", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[MergePassTranslator()])
+        output = engine.translate(analysis)
+
+        fork_state = output.state_machine.states["Fork"]
+        assert isinstance(fork_state, ParallelState)
+        assert "combine" in fork_state.comment
+
+    def test_multi_step_branches(self) -> None:
+        """Test branches with multiple steps are collected correctly."""
+        # Fork -> A1 -> A2 -> Merge
+        # Fork -> B1 -> B2 -> Merge
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _merge_node("Fork"),
+                _merge_node("A1"),
+                _merge_node("A2"),
+                _merge_node("B1"),
+                _merge_node("B2"),
+                _merge_node("Merge", "n8n-nodes-base.merge"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="Fork", to_node="A1", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="A1", to_node="A2", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="A2", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Fork", to_node="B1", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="B1", to_node="B2", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="B2", to_node="Merge", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[MergePassTranslator()])
+        output = engine.translate(analysis)
+
+        fork_state = output.state_machine.states["Fork"]
+        assert isinstance(fork_state, ParallelState)
+        assert len(fork_state.branches) == 2
+        # Each branch should have 2 states
+        for branch in fork_state.branches:
+            assert len(branch.states) == 2
+        # Multi-step states should not be at top level
+        for name in ("A1", "A2", "B1", "B2", "Merge"):
+            assert name not in output.state_machine.states
+
+    def test_merge_single_incoming_warns(self) -> None:
+        """Test merge with single incoming branch produces warning."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _merge_node("A"),
+                _merge_node("Merge", "n8n-nodes-base.merge"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="A", to_node="Merge", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[MergePassTranslator()])
+        output = engine.translate(analysis)
+
+        assert any("expected >=2" in w for w in output.warnings)
+
+    def test_parallel_state_wires_to_downstream(self) -> None:
+        """Test Parallel state wires Next to the state after the merge."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _merge_node("Fork"),
+                _merge_node("A"),
+                _merge_node("B"),
+                _merge_node("Merge", "n8n-nodes-base.merge"),
+                _merge_node("Final"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="Fork", to_node="A", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Fork", to_node="B", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="A", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="B", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Merge", to_node="Final", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[MergePassTranslator()])
+        output = engine.translate(analysis)
+
+        fork_state = output.state_machine.states["Fork"]
+        assert isinstance(fork_state, ParallelState)
+        assert fork_state.next == "Final"
+
+    def test_parallel_asl_serialization(self) -> None:
+        """Test the Parallel state serializes to valid ASL structure."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                _merge_node("Fork"),
+                _merge_node("A"),
+                _merge_node("B"),
+                _merge_node("Merge", "n8n-nodes-base.merge"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="Fork", to_node="A", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="Fork", to_node="B", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="A", to_node="Merge", edge_type="CONNECTION"
+                ),
+                DependencyEdge(
+                    from_node="B", to_node="Merge", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[MergePassTranslator()])
+        output = engine.translate(analysis)
+
+        asl = output.state_machine.model_dump(by_alias=True)
+        fork_asl = asl["States"]["Fork"]
+        assert fork_asl["Type"] == "Parallel"
+        assert "Branches" in fork_asl
+        assert len(fork_asl["Branches"]) == 2
+        for branch in fork_asl["Branches"]:
+            assert "StartAt" in branch
+            assert "States" in branch

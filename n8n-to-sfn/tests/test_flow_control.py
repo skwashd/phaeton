@@ -261,12 +261,21 @@ class TestFlowControlTranslator:
         assert "StateMachineArn" not in state.arguments
         assert "sub_workflow_references" not in result.metadata
 
-    def test_merge_produces_warning(self) -> None:
-        """Test Merge node produces warning."""
+    def test_merge_produces_metadata(self) -> None:
+        """Test Merge node produces merge metadata for post-processing."""
         node = _fc_node("Merge", "n8n-nodes-base.merge")
         result = self.translator.translate(node, _context())
         assert "Merge" in result.states
-        assert any("Merge" in w or "Parallel" in w for w in result.warnings)
+        assert result.metadata.get("merge_node") is True
+        assert result.metadata.get("merge_mode") == "append"
+
+    def test_merge_mode_combine(self) -> None:
+        """Test Merge node with combine mode."""
+        node = _fc_node(
+            "Merge", "n8n-nodes-base.merge", params={"mode": "combine"}
+        )
+        result = self.translator.translate(node, _context())
+        assert result.metadata.get("merge_mode") == "combine"
 
     def test_continue_on_fail(self) -> None:
         """Test continueOnFail on executeWorkflow."""
