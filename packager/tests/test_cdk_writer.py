@@ -366,7 +366,7 @@ class TestWorkflowStack:
         assert "OAuthRotation" in code
 
     def test_schedule_trigger(self, tmp_path: Path) -> None:
-        """Test that schedule trigger is present."""
+        """Test that schedule trigger is present with state machine target."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -376,6 +376,20 @@ class TestWorkflowStack:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "ScheduleRule" in code
+        assert "targets.SfnStateMachine(state_machine)" in code
+
+    def test_state_machine_variable_defined(self, tmp_path: Path) -> None:
+        """Test that cfn_state_machine and state_machine variables are defined."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "cfn_state_machine = sfn.CfnStateMachine(" in code
+        assert "state_machine = sfn.StateMachine.from_state_machine_arn(" in code
 
     def test_sub_workflow_params(self, tmp_path: Path) -> None:
         """Test that sub-workflow parameters are present."""

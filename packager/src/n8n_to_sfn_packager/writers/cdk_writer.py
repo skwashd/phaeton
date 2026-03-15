@@ -373,7 +373,7 @@ class CDKWriter:
         lines.append(
             '        definition_path = str(Path(__file__).parent.parent.parent / "statemachine" / "definition.asl.json")',
         )
-        lines.append("        sfn.CfnStateMachine(")
+        lines.append("        cfn_state_machine = sfn.CfnStateMachine(")
         lines.append("            self,")
         lines.append('            "StateMachine",')
         lines.append(
@@ -406,6 +406,9 @@ class CDKWriter:
         lines.append("                enabled=True,")
         lines.append("            ),")
         lines.append("        )")
+        lines.append("        state_machine = sfn.StateMachine.from_state_machine_arn(")
+        lines.append('            self, "StateMachineRef", cfn_state_machine.attr_arn,')
+        lines.append("        )")
         lines.append("")
 
     @staticmethod
@@ -425,7 +428,7 @@ class CDKWriter:
             lines.append(f'            "ScheduleRule{i}",')
             lines.append(f'            schedule=events.Schedule.expression("{expr}"),')
             lines.append(
-                "            # Target should reference the state machine",
+                "            targets=[targets.SfnStateMachine(state_machine)],",
             )
             lines.append("        )")
             lines.append("")
