@@ -373,6 +373,31 @@ class CDKWriter:
                 lines.append("        )")
                 lines.append("")
 
+                # Webhook authentication: SSM env var + IAM permission
+                if spec.webhook_auth:
+                    param_path = spec.webhook_auth.credential_parameter_path
+                    param_path_stripped = param_path.strip("/")
+                    lines.append(
+                        f'        lambda_functions["{spec.function_name}"].add_environment(',
+                    )
+                    lines.append(
+                        f'            "WEBHOOK_AUTH_PARAMETER", "{param_path}",',
+                    )
+                    lines.append("        )")
+                    lines.append(
+                        f'        lambda_functions["{spec.function_name}"].add_to_role_policy(',
+                    )
+                    lines.append("            iam.PolicyStatement(")
+                    lines.append(
+                        '                actions=["ssm:GetParameter"],'
+                    )
+                    lines.append(
+                        f'                resources=["arn:aws:ssm:*:*:parameter/{param_path_stripped}"],',
+                    )
+                    lines.append("            )")
+                    lines.append("        )")
+                    lines.append("")
+
     @staticmethod
     def _wf_state_machine(
         lines: list[str],

@@ -11,6 +11,8 @@ from n8n_to_sfn_packager.models.inputs import (
     LambdaFunctionSpec,
     LambdaFunctionType,
     LambdaRuntime,
+    WebhookAuthConfig,
+    WebhookAuthType,
 )
 from n8n_to_sfn_packager.writers.lambda_writer import LambdaWriter
 
@@ -200,3 +202,129 @@ class TestSanitisation:
         assert result.exists()
         # Directory name should be filesystem-safe
         assert result.name == "my_func"
+
+
+class TestWebhookAuthCodeInjection:
+    """Tests for webhook authentication code injection in handlers."""
+
+    def test_api_key_auth_preamble(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that API key auth injects SSM client and _authenticate function."""
+        spec = LambdaFunctionSpec(
+            function_name="webhook_handler",
+            runtime=LambdaRuntime.PYTHON,
+            handler_code="def handler(event, context):\n    return {'statusCode': 200}",
+            function_type=LambdaFunctionType.WEBHOOK_HANDLER,
+            source_node_name="Webhook",
+            webhook_auth=WebhookAuthConfig(
+                auth_type=WebhookAuthType.API_KEY,
+                credential_parameter_path="/wf/webhooks/api-key",
+            ),
+        )
+        result = writer.write(spec, tmp_path)
+        content = (result / "handler.py").read_text()
+        assert "boto3.client" in content
+        assert "_get_webhook_secret" in content
+        assert "_authenticate" in content
+        assert "x-api-key" in content
+        assert '"statusCode": 401' in content
+
+    def test_hmac_auth_preamble(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that HMAC auth injects signature verification logic."""
+        spec = LambdaFunctionSpec(
+            function_name="webhook_handler",
+            runtime=LambdaRuntime.PYTHON,
+            handler_code="def handler(event, context):\n    return {'statusCode': 200}",
+            function_type=LambdaFunctionType.WEBHOOK_HANDLER,
+            source_node_name="Webhook",
+            webhook_auth=WebhookAuthConfig(
+                auth_type=WebhookAuthType.HMAC_SHA256,
+                credential_parameter_path="/wf/webhooks/signing-secret",
+                header_name="x-hub-signature-256",
+            ),
+        )
+        result = writer.write(spec, tmp_path)
+        content = (result / "handler.py").read_text()
+        assert "hmac.new" in content
+        assert "hashlib.sha256" in content
+        assert "compare_digest" in content
+        assert "x-hub-signature-256" in content
+        assert '"statusCode": 403' in content
+
+    def test_custom_header_name(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that custom header name is used in auth code."""
+        spec = LambdaFunctionSpec(
+            function_name="webhook_handler",
+            runtime=LambdaRuntime.PYTHON,
+            handler_code="def handler(event, context):\n    return {'statusCode': 200}",
+            function_type=LambdaFunctionType.WEBHOOK_HANDLER,
+            source_node_name="Webhook",
+            webhook_auth=WebhookAuthConfig(
+                auth_type=WebhookAuthType.API_KEY,
+                credential_parameter_path="/wf/webhooks/api-key",
+                header_name="authorization",
+            ),
+        )
+        result = writer.write(spec, tmp_path)
+        content = (result / "handler.py").read_text()
+        assert '"authorization"' in content
+
+    def test_no_auth_no_preamble(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that webhook handler without auth has no auth preamble."""
+        spec = LambdaFunctionSpec(
+            function_name="webhook_handler",
+            runtime=LambdaRuntime.PYTHON,
+            handler_code="def handler(event, context):\n    return {'statusCode': 200}",
+            function_type=LambdaFunctionType.WEBHOOK_HANDLER,
+            source_node_name="Webhook",
+        )
+        result = writer.write(spec, tmp_path)
+        content = (result / "handler.py").read_text()
+        assert "_authenticate" not in content
+        assert "WEBHOOK_AUTH_PARAMETER" not in content
+
+    def test_handler_code_preserved_with_auth(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that original handler code is preserved after auth preamble."""
+        handler = "def handler(event, context):\n    return {'statusCode': 200}"
+        spec = LambdaFunctionSpec(
+            function_name="webhook_handler",
+            runtime=LambdaRuntime.PYTHON,
+            handler_code=handler,
+            function_type=LambdaFunctionType.WEBHOOK_HANDLER,
+            source_node_name="Webhook",
+            webhook_auth=WebhookAuthConfig(
+                auth_type=WebhookAuthType.API_KEY,
+                credential_parameter_path="/wf/webhooks/api-key",
+            ),
+        )
+        result = writer.write(spec, tmp_path)
+        content = (result / "handler.py").read_text()
+        assert handler in content
+
+    def test_callback_handler_also_gets_auth(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that callback handlers also receive auth injection."""
+        spec = LambdaFunctionSpec(
+            function_name="callback_handler",
+            runtime=LambdaRuntime.PYTHON,
+            handler_code="def handler(event, context):\n    return {'statusCode': 200}",
+            function_type=LambdaFunctionType.CALLBACK_HANDLER,
+            source_node_name="Wait",
+            webhook_auth=WebhookAuthConfig(
+                auth_type=WebhookAuthType.API_KEY,
+                credential_parameter_path="/wf/callbacks/api-key",
+            ),
+        )
+        result = writer.write(spec, tmp_path)
+        content = (result / "handler.py").read_text()
+        assert "_authenticate" in content

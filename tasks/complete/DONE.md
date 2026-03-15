@@ -24,3 +24,4 @@ TASK-0023-saas-integration-nodes.md
 TASK-0024-complex-expression-translation.md
 TASK-0025-loop-node.md
 TASK-0026-form-trigger-resumable-workflows.md
+TASK-0027-webhook-authentication.md

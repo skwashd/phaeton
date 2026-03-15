@@ -46,9 +46,42 @@ class TriggerType(StrEnum):
     APP_EVENT = "app_event"
 
 
+class WebhookAuthType(StrEnum):
+    """Supported webhook authentication methods."""
+
+    API_KEY = "api_key"
+    HMAC_SHA256 = "hmac_sha256"
+
+
 # ---------------------------------------------------------------------------
 # Sub-models
 # ---------------------------------------------------------------------------
+
+
+class WebhookAuthConfig(BaseModel):
+    """Authentication configuration for webhook/callback Lambda handlers."""
+
+    auth_type: WebhookAuthType = Field(
+        ...,
+        description="Type of authentication to apply.",
+    )
+    credential_parameter_path: str = Field(
+        ...,
+        description="SSM Parameter Store path for the authentication secret.",
+    )
+    header_name: str = Field(
+        default="x-api-key",
+        description="HTTP header containing the API key or HMAC signature.",
+    )
+
+    @field_validator("credential_parameter_path")
+    @classmethod
+    def validate_credential_path(cls, v: str) -> str:
+        """SSM parameter paths must start with '/'."""
+        if not v.startswith("/"):
+            msg = f"credential_parameter_path must start with '/': {v!r}"
+            raise ValueError(msg)
+        return v
 
 
 class WorkflowMetadata(BaseModel):
@@ -124,6 +157,10 @@ class LambdaFunctionSpec(BaseModel):
     function_type: LambdaFunctionType = Field(
         ...,
         description="Classification of this Lambda function.",
+    )
+    webhook_auth: WebhookAuthConfig | None = Field(
+        default=None,
+        description="Authentication configuration for webhook/callback handlers.",
     )
 
     @field_validator("function_name")

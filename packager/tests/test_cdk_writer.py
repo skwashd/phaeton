@@ -17,6 +17,8 @@ from n8n_to_sfn_packager.models.inputs import (
     SubWorkflowReference,
     TriggerSpec,
     TriggerType,
+    WebhookAuthConfig,
+    WebhookAuthType,
     WorkflowMetadata,
 )
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
@@ -48,6 +50,53 @@ def _minimal_input() -> PackagerInput:
             CredentialSpec(
                 parameter_path="/minimal-wf/creds/token",
                 credential_type="apiKey",
+            ),
+        ],
+        conversion_report=ConversionReport(
+            total_nodes=2,
+            confidence_score=0.9,
+        ),
+    )
+
+
+def _webhook_auth_input() -> PackagerInput:
+    """Input with webhook handler that has API key authentication."""
+    return PackagerInput(
+        metadata=WorkflowMetadata(
+            workflow_name="auth-wf",
+            source_n8n_version="1.42.0",
+            converter_version="0.1.0",
+            timestamp="2025-06-15T10:30:00Z",
+            confidence_score=0.9,
+        ),
+        state_machine=StateMachineDefinition(
+            asl={"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}},
+        ),
+        lambda_functions=[
+            LambdaFunctionSpec(
+                function_name="webhook_handler",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="def handler(event, context):\n    return {'statusCode': 200}",
+                function_type=LambdaFunctionType.WEBHOOK_HANDLER,
+                source_node_name="Webhook",
+                webhook_auth=WebhookAuthConfig(
+                    auth_type=WebhookAuthType.API_KEY,
+                    credential_parameter_path="/auth-wf/webhooks/api-key",
+                ),
+            ),
+        ],
+        credentials=[
+            CredentialSpec(
+                parameter_path="/auth-wf/webhooks/api-key",
+                credential_type="apiKey",
+                description="Webhook authentication API key",
+            ),
+        ],
+        triggers=[
+            TriggerSpec(
+                trigger_type=TriggerType.WEBHOOK,
+                configuration={"path": "/webhook"},
+                associated_lambda_name="webhook_handler",
             ),
         ],
         conversion_report=ConversionReport(
@@ -621,3 +670,59 @@ class TestCredentialsMd:
         assert "OAuth Credentials" in content
         assert "/complex-wf/creds/google/access_token" in content
         assert "oauth2.googleapis.com" in content
+
+
+class TestWebhookAuthentication:
+    """Tests for webhook authentication CDK constructs."""
+
+    def test_webhook_auth_env_var(self, tmp_path: Path) -> None:
+        """Test that webhook auth adds WEBHOOK_AUTH_PARAMETER env var."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _webhook_auth_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert '"WEBHOOK_AUTH_PARAMETER"' in code
+        assert '"/auth-wf/webhooks/api-key"' in code
+
+    def test_webhook_auth_ssm_permission(self, tmp_path: Path) -> None:
+        """Test that webhook auth adds ssm:GetParameter IAM permission."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _webhook_auth_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert 'actions=["ssm:GetParameter"]' in code
+        assert "auth-wf/webhooks/api-key" in code
+
+    def test_no_auth_no_env_var(self, tmp_path: Path) -> None:
+        """Test that webhook without auth does not add env var or IAM permission."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "WEBHOOK_AUTH_PARAMETER" not in code
+        # The add_function_url should still be present
+        assert "add_function_url" in code
+
+    def test_webhook_auth_function_url_still_none(self, tmp_path: Path) -> None:
+        """Test that Function URL auth type remains NONE even with webhook auth."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _webhook_auth_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "FunctionUrlAuthType.NONE" in code

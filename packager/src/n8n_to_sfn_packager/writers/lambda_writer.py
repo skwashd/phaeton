@@ -17,6 +17,7 @@ from n8n_to_sfn_packager.models.inputs import (
     LambdaFunctionSpec,
     LambdaFunctionType,
     LambdaRuntime,
+    WebhookAuthType,
 )
 
 
@@ -142,7 +143,81 @@ class LambdaWriter:
         ):
             return self._wrap_js_code_node(header, spec)
 
+        # Inject authentication preamble for webhook/callback handlers
+        if spec.webhook_auth and spec.function_type in (
+            LambdaFunctionType.WEBHOOK_HANDLER,
+            LambdaFunctionType.CALLBACK_HANDLER,
+        ):
+            auth_code = self._generate_auth_preamble(spec)
+            return header + "\n" + auth_code + "\n" + spec.handler_code + "\n"
+
         return header + "\n" + spec.handler_code + "\n"
+
+    @staticmethod
+    def _generate_auth_preamble(spec: LambdaFunctionSpec) -> str:
+        """Generate Python authentication preamble for webhook handlers."""
+        auth = spec.webhook_auth
+        if auth is None:
+            return ""
+
+        common = textwrap.dedent("""\
+            import json
+            import os
+
+            import boto3
+
+            _ssm = boto3.client("ssm")
+            _cached_secret = None
+
+
+            def _get_webhook_secret():
+                global _cached_secret  # noqa: PLW0603
+                if _cached_secret is None:
+                    resp = _ssm.get_parameter(
+                        Name=os.environ["WEBHOOK_AUTH_PARAMETER"],
+                        WithDecryption=True,
+                    )
+                    _cached_secret = resp["Parameter"]["Value"]
+                return _cached_secret
+
+        """)
+
+        if auth.auth_type == WebhookAuthType.API_KEY:
+            verify = textwrap.dedent(f"""\
+                def _authenticate(event):
+                    secret = _get_webhook_secret()
+                    request_key = event.get("headers", {{}}).get("{auth.header_name}", "")
+                    if request_key != secret:
+                        return {{
+                            "statusCode": 401,
+                            "body": json.dumps({{"error": "Unauthorized"}}),
+                        }}
+                    return None
+
+            """)
+        else:
+            verify = textwrap.dedent(f"""\
+                import hashlib
+                import hmac
+
+
+                def _authenticate(event):
+                    secret = _get_webhook_secret()
+                    body = event.get("body", "")
+                    signature = event.get("headers", {{}}).get("{auth.header_name}", "")
+                    expected = "sha256=" + hmac.new(
+                        secret.encode(), body.encode(), hashlib.sha256,
+                    ).hexdigest()
+                    if not hmac.compare_digest(expected, signature):
+                        return {{
+                            "statusCode": 403,
+                            "body": json.dumps({{"error": "Invalid signature"}}),
+                        }}
+                    return None
+
+            """)
+
+        return common + verify
 
     @staticmethod
     def _wrap_js_code_node(header: str, spec: LambdaFunctionSpec) -> str:
