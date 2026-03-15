@@ -1,0 +1,54 @@
+{
+  "name": "simple_dynamodb_e2e",
+  "nodes": [
+    {
+      "id": "e2e-0001-4000-8000-000000000001",
+      "name": "ManualTrigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "e2e-0001-4000-8000-000000000002",
+      "name": "DDBPut",
+      "type": "n8n-nodes-base.awsDynamoDB",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "tableName": "TestTable",
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "e2e-0001-4000-8000-000000000003",
+      "name": "DDBGet",
+      "type": "n8n-nodes-base.awsDynamoDB",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "item",
+        "operation": "get",
+        "tableName": "TestTable",
+        "additionalFields": {}
+      }
+    }
+  ],
+  "connections": {
+    "ManualTrigger": {
+      "main": [
+        [{"node": "DDBPut", "type": "main", "index": 0}]
+      ]
+    },
+    "DDBPut": {
+      "main": [
+        [{"node": "DDBGet", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

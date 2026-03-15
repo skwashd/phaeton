@@ -1,0 +1,52 @@
+{
+  "name": "code_node_e2e",
+  "nodes": [
+    {
+      "id": "e2e-0002-4000-8000-000000000001",
+      "name": "ManualTrigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {}
+    },
+    {
+      "id": "e2e-0002-4000-8000-000000000002",
+      "name": "TransformData",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "return items.map(item => ({ json: { message: item.json.input + ' processed' } }));"
+      }
+    },
+    {
+      "id": "e2e-0002-4000-8000-000000000003",
+      "name": "PublishSNS",
+      "type": "n8n-nodes-base.awsSns",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "topic",
+        "operation": "publish",
+        "topicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+        "message": "notification"
+      }
+    }
+  ],
+  "connections": {
+    "ManualTrigger": {
+      "main": [
+        [{"node": "TransformData", "type": "main", "index": 0}]
+      ]
+    },
+    "TransformData": {
+      "main": [
+        [{"node": "PublishSNS", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "scheduled_e2e",
+  "nodes": [
+    {
+      "id": "e2e-0003-4000-8000-000000000001",
+      "name": "ScheduleTrigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "values": [
+            {
+              "mode": "everyHour"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "e2e-0003-4000-8000-000000000002",
+      "name": "InvokeLambda",
+      "type": "n8n-nodes-base.awsLambda",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "parameters": {
+        "functionName": "my-processor",
+        "payload": "{\"action\": \"process\"}"
+      }
+    },
+    {
+      "id": "e2e-0003-4000-8000-000000000003",
+      "name": "SendToSQS",
+      "type": "n8n-nodes-base.awsSqs",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "queueUrl": "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue"
+      }
+    }
+  ],
+  "connections": {
+    "ScheduleTrigger": {
+      "main": [
+        [{"node": "InvokeLambda", "type": "main", "index": 0}]
+      ]
+    },
+    "InvokeLambda": {
+      "main": [
+        [{"node": "SendToSQS", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
