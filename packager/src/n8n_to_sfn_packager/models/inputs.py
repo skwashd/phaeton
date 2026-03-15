@@ -53,9 +53,45 @@ class WebhookAuthType(StrEnum):
     HMAC_SHA256 = "hmac_sha256"
 
 
+class VpcBoundService(StrEnum):
+    """Services that require VPC access for Lambda functions."""
+
+    RDS_MYSQL = "rds_mysql"
+    RDS_POSTGRESQL = "rds_postgresql"
+    ELASTICACHE_REDIS = "elasticache_redis"
+    ELASTICACHE_MEMCACHED = "elasticache_memcached"
+    REDSHIFT = "redshift"
+
+
 # ---------------------------------------------------------------------------
 # Sub-models
 # ---------------------------------------------------------------------------
+
+
+class VpcConfig(BaseModel):
+    """VPC configuration for Lambda functions that access VPC-bound resources."""
+
+    vpc_bound_services: list[VpcBoundService] = Field(
+        ...,
+        min_length=1,
+        description="List of VPC-bound services the workflow accesses.",
+    )
+
+    @property
+    def security_group_rules(self) -> list[dict[str, Any]]:
+        """Derive egress rules from the declared VPC-bound services."""
+        port_map: dict[VpcBoundService, tuple[int, str]] = {
+            VpcBoundService.RDS_MYSQL: (3306, "MySQL"),
+            VpcBoundService.RDS_POSTGRESQL: (5432, "PostgreSQL"),
+            VpcBoundService.ELASTICACHE_REDIS: (6379, "Redis"),
+            VpcBoundService.ELASTICACHE_MEMCACHED: (11211, "Memcached"),
+            VpcBoundService.REDSHIFT: (5439, "Redshift"),
+        }
+        rules = []
+        for svc in self.vpc_bound_services:
+            port, desc = port_map[svc]
+            rules.append({"port": port, "description": desc})
+        return rules
 
 
 class WebhookAuthConfig(BaseModel):
@@ -342,6 +378,10 @@ class PackagerInput(BaseModel):
     sub_workflows: list[SubWorkflowReference] = Field(
         default_factory=list,
         description="Sub-workflows referenced by this workflow.",
+    )
+    vpc_config: VpcConfig | None = Field(
+        default=None,
+        description="VPC configuration when workflow accesses VPC-bound resources.",
     )
     conversion_report: ConversionReport = Field(
         ...,

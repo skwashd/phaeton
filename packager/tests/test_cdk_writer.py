@@ -17,6 +17,8 @@ from n8n_to_sfn_packager.models.inputs import (
     SubWorkflowReference,
     TriggerSpec,
     TriggerType,
+    VpcBoundService,
+    VpcConfig,
     WebhookAuthConfig,
     WebhookAuthType,
     WorkflowMetadata,
@@ -726,3 +728,279 @@ class TestWebhookAuthentication:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "FunctionUrlAuthType.NONE" in code
+
+
+def _vpc_input() -> PackagerInput:
+    """Input with VPC-bound resources (RDS PostgreSQL)."""
+    return PackagerInput(
+        metadata=WorkflowMetadata(
+            workflow_name="vpc-wf",
+            source_n8n_version="1.42.0",
+            converter_version="0.1.0",
+            timestamp="2025-06-15T10:30:00Z",
+            confidence_score=0.9,
+        ),
+        state_machine=StateMachineDefinition(
+            asl={"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}},
+        ),
+        lambda_functions=[
+            LambdaFunctionSpec(
+                function_name="db_query",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="pass",
+                function_type=LambdaFunctionType.PICOFUN_API_CLIENT,
+                source_node_name="Postgres",
+            ),
+        ],
+        vpc_config=VpcConfig(
+            vpc_bound_services=[VpcBoundService.RDS_POSTGRESQL],
+        ),
+        conversion_report=ConversionReport(
+            total_nodes=2,
+            confidence_score=0.9,
+        ),
+    )
+
+
+def _vpc_multi_service_input() -> PackagerInput:
+    """Input with multiple VPC-bound services."""
+    return PackagerInput(
+        metadata=WorkflowMetadata(
+            workflow_name="vpc-multi-wf",
+            source_n8n_version="1.42.0",
+            converter_version="0.1.0",
+            timestamp="2025-06-15T10:30:00Z",
+            confidence_score=0.9,
+        ),
+        state_machine=StateMachineDefinition(
+            asl={"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}},
+        ),
+        lambda_functions=[
+            LambdaFunctionSpec(
+                function_name="db_query",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="pass",
+                function_type=LambdaFunctionType.PICOFUN_API_CLIENT,
+                source_node_name="Postgres",
+            ),
+            LambdaFunctionSpec(
+                function_name="cache_lookup",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async (e) => e;",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                source_node_name="Redis",
+            ),
+        ],
+        vpc_config=VpcConfig(
+            vpc_bound_services=[
+                VpcBoundService.RDS_POSTGRESQL,
+                VpcBoundService.ELASTICACHE_REDIS,
+            ],
+        ),
+        conversion_report=ConversionReport(
+            total_nodes=3,
+            confidence_score=0.9,
+        ),
+    )
+
+
+class TestVpcConfiguration:
+    """Tests for VPC configuration in CDK constructs."""
+
+    def test_shared_stack_vpc_constructs(self, tmp_path: Path) -> None:
+        """Test that shared stack includes VPC constructs when VPC config is present."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        assert "from aws_cdk import aws_ec2 as ec2" in code
+        assert "ec2.Vpc.from_lookup" in code
+        assert "ec2.Vpc(self" in code
+        assert 'ec2.SecurityGroup(' in code
+
+    def test_shared_stack_no_vpc_without_config(self, tmp_path: Path) -> None:
+        """Test that shared stack omits VPC constructs when no VPC config."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        assert "ec2" not in code
+        assert "vpc" not in code.lower()
+
+    def test_vpc_security_group_rules_postgresql(self, tmp_path: Path) -> None:
+        """Test that PostgreSQL security group rules are generated."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        assert "ec2.Port.tcp(5432)" in code
+        assert "PostgreSQL access" in code
+
+    def test_vpc_security_group_rules_multiple_services(self, tmp_path: Path) -> None:
+        """Test that security group rules are generated for each VPC-bound service."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_multi_service_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        assert "ec2.Port.tcp(5432)" in code
+        assert "ec2.Port.tcp(6379)" in code
+        assert "PostgreSQL access" in code
+        assert "Redis access" in code
+
+    def test_vpc_https_egress_for_nat(self, tmp_path: Path) -> None:
+        """Test that HTTPS egress rule is added for NAT Gateway path."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        assert "ec2.Port.tcp(443)" in code
+        assert "HTTPS outbound" in code
+
+    def test_lambda_vpc_params_python(self, tmp_path: Path) -> None:
+        """Test that Python Lambda functions include VPC parameters."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "vpc=vpc," in code
+        assert "vpc_subnets=vpc_subnets," in code
+        assert "security_groups=[lambda_sg]," in code
+
+    def test_lambda_vpc_params_nodejs(self, tmp_path: Path) -> None:
+        """Test that Node.js Lambda functions include VPC parameters."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_multi_service_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        # Both Python and Node.js lambdas should have VPC config
+        assert code.count("vpc=vpc,") == 2
+        assert code.count("security_groups=[lambda_sg],") == 2
+
+    def test_no_vpc_params_without_config(self, tmp_path: Path) -> None:
+        """Test that Lambda functions do not include VPC params without VPC config."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "vpc=vpc" not in code
+        assert "vpc_subnets" not in code
+        assert "security_groups" not in code
+
+    def test_workflow_stack_ec2_import(self, tmp_path: Path) -> None:
+        """Test that workflow stack imports ec2 when VPC is configured."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "from aws_cdk import aws_ec2 as ec2" in code
+
+    def test_workflow_stack_no_ec2_import_without_vpc(self, tmp_path: Path) -> None:
+        """Test that workflow stack does not import ec2 without VPC config."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "aws_ec2" not in code
+
+    def test_vpc_subnet_selection(self, tmp_path: Path) -> None:
+        """Test that VPC subnet selection uses PRIVATE_WITH_EGRESS."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "ec2.SubnetType.PRIVATE_WITH_EGRESS" in code
+
+    def test_cdk_json_vpc_context_variables(self, tmp_path: Path) -> None:
+        """Test that cdk.json includes VPC context variables."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        data = json.loads((cdk_dir / "cdk.json").read_text())
+        assert "vpc_id" in data["context"]
+        assert "subnet_ids" in data["context"]
+        assert "security_group_ids" in data["context"]
+
+    def test_cdk_json_no_vpc_context_without_config(self, tmp_path: Path) -> None:
+        """Test that cdk.json does not include VPC context without VPC config."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        data = json.loads((cdk_dir / "cdk.json").read_text())
+        assert "vpc_id" not in data.get("context", {})
+
+    def test_vpc_lookup_from_context(self, tmp_path: Path) -> None:
+        """Test that VPC lookup uses context variables."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        assert 'self.node.try_get_context("vpc_id")' in code
+        assert "Vpc.from_lookup" in code
+
+    def test_shared_stack_allow_all_outbound_false(self, tmp_path: Path) -> None:
+        """Test that the security group does not allow all outbound by default."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        assert "allow_all_outbound=False" in code

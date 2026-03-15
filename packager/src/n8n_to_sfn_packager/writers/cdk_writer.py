@@ -17,6 +17,7 @@ from n8n_to_sfn_packager.models.inputs import (
     LambdaRuntime,
     PackagerInput,
     TriggerType,
+    VpcConfig,
 )
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
 from n8n_to_sfn_packager.writers.ssm_writer import SSMWriter
@@ -54,7 +55,7 @@ class CDKWriter:
         self._write_app_py(cdk_dir, stack_prefix)
         self._write_cdk_json(cdk_dir, input_data)
         self._write_pyproject_toml(cdk_dir)
-        self._write_shared_stack(stacks_dir, stack_prefix)
+        self._write_shared_stack(stacks_dir, stack_prefix, input_data.vpc_config)
         self._write_stacks_init(stacks_dir)
         self._write_workflow_stack(
             stacks_dir,
@@ -114,6 +115,11 @@ class CDKWriter:
             key = f"sub_workflow_arn_{sw.name.replace('-', '_')}"
             context[key] = f"<ARN for {sw.name}>"
 
+        if input_data.vpc_config:
+            context["vpc_id"] = "<your-vpc-id>"
+            context["subnet_ids"] = "<comma-separated-private-subnet-ids>"
+            context["security_group_ids"] = "<comma-separated-security-group-ids>"
+
         config = {
             "app": "uv run python app.py",
             "context": context,
@@ -141,41 +147,85 @@ class CDKWriter:
         (cdk_dir / "pyproject.toml").write_text(toml)
 
     @staticmethod
-    def _write_shared_stack(stacks_dir: Path, stack_prefix: str) -> None:
+    def _write_shared_stack(
+        stacks_dir: Path,
+        stack_prefix: str,
+        vpc_config: VpcConfig | None = None,
+    ) -> None:
         """Write the shared stack with KMS key, log group, and X-Ray group."""
-        code = textwrap.dedent(f"""\
-            \"\"\"Shared infrastructure: KMS key, CloudWatch log group, X-Ray group.\"\"\"
+        imports = [
+            '"""Shared infrastructure: KMS key, CloudWatch log group, X-Ray group."""',
+            "",
+            "import aws_cdk as cdk",
+            "from aws_cdk import aws_kms as kms",
+            "from aws_cdk import aws_logs as logs",
+        ]
+        if vpc_config:
+            imports.append("from aws_cdk import aws_ec2 as ec2")
+        imports.append("from constructs import Construct")
+        imports.append("")
+        imports.append("")
 
-            import aws_cdk as cdk
-            from aws_cdk import aws_kms as kms
-            from aws_cdk import aws_logs as logs
-            from constructs import Construct
+        body = [
+            "class SharedStack(cdk.Stack):",
+            '    """Shared resources used by the workflow stack."""',
+            "",
+            "    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:",
+            "        super().__init__(scope, construct_id, **kwargs)",
+            "",
+            "        # KMS key for encrypting state machine data, SSM parameters, and logs",
+            "        self.kms_key = kms.Key(",
+            "            self,",
+            '            "WorkflowKey",',
+            f'            alias="{stack_prefix}-key",',
+            f'            description="Encryption key for {stack_prefix} workflow",',
+            "            enable_key_rotation=True,",
+            "        )",
+            "",
+            "        # CloudWatch log group for Step Functions execution logs",
+            "        self.log_group = logs.LogGroup(",
+            "            self,",
+            '            "ExecutionLogs",',
+            f'            log_group_name="/aws/stepfunctions/{stack_prefix}",',
+            "            retention=logs.RetentionDays.ONE_MONTH,",
+            "            encryption_key=self.kms_key,",
+            "        )",
+        ]
 
+        if vpc_config:
+            body.append("")
+            body.append("        # --- VPC Configuration ---")
+            body.append("        vpc_id = self.node.try_get_context(\"vpc_id\")")
+            body.append("        if vpc_id:")
+            body.append("            self.vpc = ec2.Vpc.from_lookup(self, \"VPC\", vpc_id=vpc_id)")
+            body.append("        else:")
+            body.append('            self.vpc = ec2.Vpc(self, "PhaethonVPC", max_azs=2, nat_gateways=1)')
+            body.append("")
+            body.append("        # Security group for Lambda functions")
+            body.append("        self.lambda_security_group = ec2.SecurityGroup(")
+            body.append("            self,")
+            body.append('            "LambdaSG",')
+            body.append("            vpc=self.vpc,")
+            body.append(f'            description="Security group for {stack_prefix} Lambda functions",')
+            body.append("            allow_all_outbound=False,")
+            body.append("        )")
 
-            class SharedStack(cdk.Stack):
-                \"\"\"Shared resources used by the workflow stack.\"\"\"
+            for rule in vpc_config.security_group_rules:
+                body.append("        self.lambda_security_group.add_egress_rule(")
+                body.append("            ec2.Peer.any_ipv4(),")
+                body.append(f"            ec2.Port.tcp({rule['port']}),")
+                body.append(f'            "{rule["description"]} access",')
+                body.append("        )")
 
-                def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
-                    super().__init__(scope, construct_id, **kwargs)
+            # HTTPS egress for NAT Gateway path (outbound internet for non-VPC services)
+            body.append("        self.lambda_security_group.add_egress_rule(")
+            body.append("            ec2.Peer.any_ipv4(),")
+            body.append("            ec2.Port.tcp(443),")
+            body.append('            "HTTPS outbound for AWS APIs and internet access",')
+            body.append("        )")
 
-                    # KMS key for encrypting state machine data, SSM parameters, and logs
-                    self.kms_key = kms.Key(
-                        self,
-                        "WorkflowKey",
-                        alias="{stack_prefix}-key",
-                        description="Encryption key for {stack_prefix} workflow",
-                        enable_key_rotation=True,
-                    )
-
-                    # CloudWatch log group for Step Functions execution logs
-                    self.log_group = logs.LogGroup(
-                        self,
-                        "ExecutionLogs",
-                        log_group_name="/aws/stepfunctions/{stack_prefix}",
-                        retention=logs.RetentionDays.ONE_MONTH,
-                        encryption_key=self.kms_key,
-                    )
-        """)
+        body.append("")
+        code = "\n".join(imports + body)
         (stacks_dir / "shared_stack.py").write_text(code)
 
     @staticmethod
@@ -198,6 +248,7 @@ class CDKWriter:
 
         self._wf_imports(lines, input_data)
         self._wf_class_header(lines, stack_prefix)
+        self._wf_vpc_lookup(lines, input_data)
         self._wf_ssm_parameters(lines, ssm_params)
         self._wf_dead_letter_queue(lines, stack_prefix)
         self._wf_lambda_functions(lines, input_data)
@@ -221,6 +272,8 @@ class CDKWriter:
         lines.append("")
         lines.append("import aws_cdk as cdk")
         lines.append("from aws_cdk import aws_cloudwatch as cloudwatch")
+        if input_data.vpc_config:
+            lines.append("from aws_cdk import aws_ec2 as ec2")
         lines.append("from aws_cdk import aws_events as events")
         lines.append("from aws_cdk import aws_events_targets as targets")
         lines.append("from aws_cdk import aws_iam as iam")
@@ -259,6 +312,19 @@ class CDKWriter:
         lines.append("        **kwargs,")
         lines.append("    ) -> None:")
         lines.append("        super().__init__(scope, construct_id, **kwargs)")
+        lines.append("")
+
+    @staticmethod
+    def _wf_vpc_lookup(lines: list[str], input_data: PackagerInput) -> None:
+        """Append VPC resource references from the shared stack."""
+        if not input_data.vpc_config:
+            return
+        lines.append("        # --- VPC Configuration ---")
+        lines.append("        vpc = shared_stack.vpc")
+        lines.append("        lambda_sg = shared_stack.lambda_security_group")
+        lines.append(
+            "        vpc_subnets = ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS)"
+        )
         lines.append("")
 
     @staticmethod
@@ -318,6 +384,12 @@ class CDKWriter:
                 else ""
             )
 
+            vpc_lines: list[str] = []
+            if input_data.vpc_config:
+                vpc_lines.append("            vpc=vpc,")
+                vpc_lines.append("            vpc_subnets=vpc_subnets,")
+                vpc_lines.append("            security_groups=[lambda_sg],")
+
             if spec.runtime == LambdaRuntime.PYTHON:
                 lines.append(
                     f"        # {spec.description or spec.function_name}{comment}",
@@ -333,6 +405,7 @@ class CDKWriter:
                 lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
                 lines.append('            index="handler.py",')
                 lines.append('            handler="handler",')
+                lines.extend(vpc_lines)
                 lines.append("            tracing=lambda_.Tracing.ACTIVE,")
                 lines.append("            dead_letter_queue=dlq,")
                 lines.append("        )")
@@ -354,6 +427,7 @@ class CDKWriter:
                 lines.append(
                     f'            code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}")),',
                 )
+                lines.extend(vpc_lines)
                 lines.append("            tracing=lambda_.Tracing.ACTIVE,")
                 lines.append("            dead_letter_queue=dlq,")
                 lines.append("        )")
