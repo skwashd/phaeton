@@ -1,26 +1,14 @@
 # CLAUDE.md
 
+See the [top-level CLAUDE.md](../CLAUDE.md) for repo-wide commands, linting rules, and conventions.
+
 See [README.md](README.md) for project overview, architecture, and CLI usage.
 
 ## Quick reference
 
-- **Language:** Python >= 3.14
-- **Package manager:** uv
 - **Build system:** Hatchling
 - **Source layout:** `src/n8n_release_parser/`
 - **Entry point:** `n8n_release_parser.cli:main`
-
-## Commands
-
-```bash
-uv run pytest                        # run all tests
-uv run pytest tests/unit             # unit tests only
-uv run pytest tests/integration      # integration tests only
-uv run ruff check --fix .            # lint
-uv run ruff format .                 # format
-uv run ty check                      # type check
-uv run coverage run -m pytest && uv run coverage report -m  # coverage
-```
 
 ## Code conventions
 
@@ -29,15 +17,6 @@ uv run coverage run -m pytest && uv run coverage report -m  # coverage
 - `fetcher.py` uses async (`httpx`); the CLI wraps calls with `asyncio.run()`.
 - Storage backends implement the `StorageBackend` protocol in `storage.py`. Use `create_backend()` to instantiate.
 - `boto3` is lazy-imported only when `s3://` URIs are detected — do not add top-level boto3 imports elsewhere.
-
-## Linting rules
-
-Ruff is configured in `pyproject.toml` with an extensive rule set. Key points:
-
-- Docstrings required on all public modules, classes, and functions (D rules).
-- Type annotations required (ANN rules).
-- Test files (`test_*`, `conftest.py`) are exempt from `S101` (assert) and `S108` (tmp paths) only.
-- Line length is not enforced (`E501` ignored).
 
 ## Test patterns
 
