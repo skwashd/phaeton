@@ -34,6 +34,7 @@ source = ["src/n8n_to_sfn"]
 
 [dependency-groups]
 dev = [
+    "aws-lambda-powertools==3.25.0",
     "coverage==7.13.4",
     "pytest==9.0.2",
     "ruff==0.15.2",
