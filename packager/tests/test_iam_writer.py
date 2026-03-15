@@ -8,7 +8,11 @@ from n8n_to_sfn_packager.models.inputs import (
     LambdaRuntime,
 )
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
-from n8n_to_sfn_packager.writers.iam_writer import IAMPolicyGenerator, sdk_action_to_iam
+from n8n_to_sfn_packager.writers.iam_writer import (
+    _SERVICE_ARN_PATTERNS,
+    IAMPolicyGenerator,
+    sdk_action_to_iam,
+)
 
 
 def _make_lambda_spec(name: str = "my_func") -> LambdaFunctionSpec:
@@ -96,6 +100,112 @@ class TestSdkIntegrations:
 
         assert "s3:PutObject" in all_actions
         assert "dynamodb:PutItem" in all_actions
+
+
+class TestSdkResourceArns:
+    """Tests for SDK integration resource ARN patterns."""
+
+    def test_s3_arn_pattern(self) -> None:
+        """Test that S3 uses global ARN without region/account."""
+        gen = IAMPolicyGenerator()
+        asl = {
+            "StartAt": "Put",
+            "States": {
+                "Put": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::aws-sdk:S3:PutObject",
+                    "End": True,
+                },
+            },
+        }
+        policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
+        s3_stmt = next(
+            s for s in policy["Statement"] if "s3:PutObject" in s["Action"]
+        )
+        assert s3_stmt["Resource"] == ["arn:aws:s3:::*"]
+
+    def test_dynamodb_arn_pattern(self) -> None:
+        """Test that DynamoDB uses table-scoped ARN with wildcards."""
+        gen = IAMPolicyGenerator()
+        asl = {
+            "StartAt": "Put",
+            "States": {
+                "Put": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::aws-sdk:DynamoDB:PutItem",
+                    "End": True,
+                },
+            },
+        }
+        policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
+        ddb_stmt = next(
+            s for s in policy["Statement"] if "dynamodb:PutItem" in s["Action"]
+        )
+        assert ddb_stmt["Resource"] == ["arn:aws:dynamodb:*:*:table/*"]
+
+    def test_sqs_arn_pattern(self) -> None:
+        """Test that SQS uses region/account-scoped ARN."""
+        gen = IAMPolicyGenerator()
+        asl = {
+            "StartAt": "Send",
+            "States": {
+                "Send": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::aws-sdk:SQS:SendMessage",
+                    "End": True,
+                },
+            },
+        }
+        policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
+        sqs_stmt = next(
+            s for s in policy["Statement"] if "sqs:SendMessage" in s["Action"]
+        )
+        assert sqs_stmt["Resource"] == ["arn:aws:sqs:*:*:*"]
+
+    def test_sns_arn_pattern(self) -> None:
+        """Test that SNS uses region/account-scoped ARN."""
+        gen = IAMPolicyGenerator()
+        asl = {
+            "StartAt": "Pub",
+            "States": {
+                "Pub": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::aws-sdk:SNS:Publish",
+                    "End": True,
+                },
+            },
+        }
+        policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
+        sns_stmt = next(
+            s for s in policy["Statement"] if "sns:Publish" in s["Action"]
+        )
+        assert sns_stmt["Resource"] == ["arn:aws:sns:*:*:*"]
+
+    def test_unknown_service_fallback(self) -> None:
+        """Test that unknown services fall back to arn:aws:{service}:*:*:*."""
+        gen = IAMPolicyGenerator()
+        asl = {
+            "StartAt": "Call",
+            "States": {
+                "Call": {
+                    "Type": "Task",
+                    "Resource": "arn:aws:states:::aws-sdk:Textract:DetectDocumentText",
+                    "End": True,
+                },
+            },
+        }
+        policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
+        stmt = next(
+            s
+            for s in policy["Statement"]
+            if "textract:DetectDocumentText" in s["Action"]
+        )
+        assert stmt["Resource"] == ["arn:aws:textract:*:*:*"]
+
+    def test_all_known_services_have_patterns(self) -> None:
+        """Test that the service ARN pattern map covers key services."""
+        for svc in ("dynamodb", "s3", "sqs", "sns", "lambda", "states"):
+            assert svc in _SERVICE_ARN_PATTERNS
 
 
 class TestSubWorkflows:

@@ -1,4 +1,3 @@
-TASK-0009-iam-wildcard-resource-arns.md
 TASK-0010-observability-xray-instrumentation.md
 TASK-0011-execute-workflow-child-arn.md
 TASK-0012-merge-node-parallel-state.md

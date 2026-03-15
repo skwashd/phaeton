@@ -11,6 +11,17 @@ from typing import Any
 from n8n_to_sfn_packager.models.inputs import LambdaFunctionSpec
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
 
+# Well-known ARN patterns per service.  S3 is global (no region/account),
+# others scope to any-region / any-account with a resource-type segment.
+_SERVICE_ARN_PATTERNS: dict[str, str] = {
+    "dynamodb": "arn:aws:dynamodb:*:*:table/*",
+    "s3": "arn:aws:s3:::*",
+    "sqs": "arn:aws:sqs:*:*:*",
+    "sns": "arn:aws:sns:*:*:*",
+    "lambda": "arn:aws:lambda:*:*:function:*",
+    "states": "arn:aws:states:*:*:stateMachine:*",
+}
+
 
 def sdk_action_to_iam(service: str, action: str) -> str:
     """Convert an ASL SDK integration pattern to the IAM action string.
@@ -212,7 +223,10 @@ class IAMPolicyGenerator:
                     continue
 
                 iam_action = sdk_action_to_iam(service, action)
-                resource_arn = f"arn:aws:{service.lower()}:::*"
+                svc = service.lower()
+                resource_arn = _SERVICE_ARN_PATTERNS.get(
+                    svc, f"arn:aws:{svc}:*:*:*"
+                )
                 if iam_action not in actions:
                     actions[iam_action] = set()
                 actions[iam_action].add(resource_arn)
