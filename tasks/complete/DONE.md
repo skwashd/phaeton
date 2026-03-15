@@ -22,3 +22,4 @@ TASK-0021-set-edit-fields-node.md
 TASK-0022-aurora-rds-data-api.md
 TASK-0023-saas-integration-nodes.md
 TASK-0024-complex-expression-translation.md
+TASK-0025-loop-node.md

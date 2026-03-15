@@ -1,10 +1,11 @@
-"""Flow control node translator (IF, Switch, Merge, SplitInBatches, Wait, NoOp, Execute Workflow).
+"""Flow control node translator (IF, Switch, Merge, SplitInBatches, Loop, Wait, NoOp, Execute Workflow).
 
 Converts n8n flow control nodes into equivalent ASL states:
 
 - IF              → ChoiceState with JSONata Condition
 - Switch          → ChoiceState with multiple ChoiceRules + Default
 - SplitInBatches  → MapState (MaxConcurrency=1, INLINE mode)
+- Loop            → MapState (count-based) or ChoiceState loop-back (condition-based)
 - Merge           → PassState placeholder (engine post-processing wraps in Parallel)
 - Wait            → WaitState
 - NoOp            → PassState
@@ -42,6 +43,7 @@ _TYPE_SPLIT_IN_BATCHES = "n8n-nodes-base.splitInBatches"
 _TYPE_MERGE = "n8n-nodes-base.merge"
 _TYPE_WAIT = "n8n-nodes-base.wait"
 _TYPE_NOOP = "n8n-nodes-base.noOp"
+_TYPE_LOOP = "n8n-nodes-base.loop"
 _TYPE_EXECUTE_WORKFLOW = "n8n-nodes-base.executeWorkflow"
 
 # ARN for synchronous nested execution (SDK integration pattern v2)
@@ -324,6 +326,111 @@ def _translate_split_in_batches(
     )
 
 
+def _translate_loop(
+    node: ClassifiedNode, context: TranslationContext
+) -> TranslationResult:
+    """Translate an n8n Loop node to a Map state or Choice loop-back pattern.
+
+    The Loop node supports two modes:
+
+    - **Count-based** (``loopMode="count"``): produces a Map state that iterates
+      over a generated array of the specified size, with ``MaxConcurrency=1`` to
+      ensure sequential execution.
+    - **Condition-based** (``loopMode="condition"``): produces a Choice state
+      that evaluates a condition each iteration and loops back to the body or
+      exits.  The engine's post-processing step detects the ``loop_node``
+      metadata and wires up the loop-back edge.
+    """
+    params = node.node.parameters
+    loop_mode = str(params.get("loopMode", "count"))
+
+    # The "done" output (index 0) goes to the next state after the loop.
+    done_next = _next_state_for_output(node, 0, context)
+
+    if loop_mode == "condition":
+        return _translate_loop_condition(node, context, done_next)
+    return _translate_loop_count(node, context, done_next)
+
+
+def _translate_loop_count(
+    node: ClassifiedNode,
+    context: TranslationContext,
+    done_next: str | None,
+) -> TranslationResult:
+    """Translate a count-based Loop node to a Map state."""
+    params = node.node.parameters
+    loop_count = int(params.get("loopCount", 10))
+
+    processor_config = ProcessorConfig(mode="INLINE")
+    placeholder_name = f"{node.node.name}_Item"
+    item_processor = ItemProcessor(
+        processor_config=processor_config,
+        start_at=placeholder_name,
+        states={
+            placeholder_name: PassState(end=True, comment="Loop body placeholder")
+        },
+    )
+
+    state = MapState(
+        items_path="{% $range($states.input.loopCount) %}",
+        max_concurrency=1,
+        item_processor=item_processor,
+        comment=f"Loop (count={loop_count}): {node.node.name}",
+    )
+
+    return TranslationResult(
+        states={node.node.name: state},
+        metadata={
+            "loop_node": True,
+            "loop_mode": "count",
+            "loop_count": loop_count,
+            "done_next": done_next,
+        },
+    )
+
+
+def _translate_loop_condition(
+    node: ClassifiedNode,
+    context: TranslationContext,
+    done_next: str | None,
+) -> TranslationResult:
+    """Translate a condition-based Loop node to a Choice + loop-back pattern."""
+    params = node.node.parameters
+    condition = str(params.get("condition", "true"))
+
+    # The loop body is connected to output index 1
+    loop_body = _next_state_for_output(node, 1, context)
+    exit_name = done_next or f"{node.node.name}_Exit"
+
+    choices: list[ChoiceRule] = []
+    if loop_body:
+        choices.append(ChoiceRule(condition=condition, next=loop_body))
+
+    state = ChoiceState(
+        choices=choices,
+        default=exit_name,
+        comment=f"Loop (condition): {node.node.name}",
+    )
+
+    states: dict[str, object] = {node.node.name: state}
+
+    # If there is no downstream "done" state, emit a terminal Pass state as the
+    # exit target so the ASL remains valid.
+    if done_next is None:
+        states[exit_name] = PassState(end=True, comment="Loop exit")
+
+    return TranslationResult(
+        states=states,
+        metadata={
+            "loop_node": True,
+            "loop_mode": "condition",
+            "condition": condition,
+            "loop_body": loop_body,
+            "done_next": done_next,
+        },
+    )
+
+
 def _translate_merge(
     node: ClassifiedNode, context: TranslationContext
 ) -> TranslationResult:
@@ -493,6 +600,7 @@ _DISPATCH: dict[str, object] = {
     _TYPE_IF: _translate_if,
     _TYPE_SWITCH: _translate_switch,
     _TYPE_SPLIT_IN_BATCHES: _translate_split_in_batches,
+    _TYPE_LOOP: _translate_loop,
     _TYPE_MERGE: _translate_merge,
     _TYPE_WAIT: _translate_wait,
     _TYPE_NOOP: _translate_noop,
@@ -508,7 +616,7 @@ _DISPATCH: dict[str, object] = {
 class FlowControlTranslator(BaseTranslator):
     """Translator for n8n flow control nodes.
 
-    Handles IF, Switch, SplitInBatches, Merge, Wait, NoOp, and Execute
+    Handles IF, Switch, SplitInBatches, Loop, Merge, Wait, NoOp, and Execute
     Workflow nodes, converting each to an appropriate ASL state type.
     """
 
