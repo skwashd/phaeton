@@ -325,8 +325,8 @@ class TestWorkflowStack:
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        # Complex: 2 Python Lambdas + 1 Node.js Lambda
-        assert code.count("PythonFunction(") == 2
+        # Complex: 2 Python Lambdas + 1 Node.js Lambda + 1 OAuth refresh Lambda
+        assert code.count("PythonFunction(") == 3
         assert code.count("lambda_.Function(") == 1
 
     def test_webhook_function_url(self, tmp_path: Path) -> None:
@@ -354,7 +354,7 @@ class TestWorkflowStack:
         assert "StringParameter(" in code
 
     def test_oauth_rotation(self, tmp_path: Path) -> None:
-        """Test that OAuth rotation construct is present."""
+        """Test that OAuth rotation construct targets a Lambda function."""
         writer = CDKWriter()
         cdk_dir = writer.write(
             _complex_input(),
@@ -364,6 +364,48 @@ class TestWorkflowStack:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "OAuthRotation" in code
+        # Lambda function is defined and used as target
+        assert "oauth_refresh_google = PythonFunction(" in code
+        assert "targets=[targets.LambdaFunction(oauth_refresh_google)]" in code
+        # Environment variables for the Lambda
+        assert '"SSM_PARAMETER_PATH": "/complex-wf/creds/google"' in code
+        assert '"TOKEN_ENDPOINT_URL": "https://oauth2.googleapis.com/token"' in code
+        # IAM permissions for SSM
+        assert "ssm:GetParameter" in code
+        assert "ssm:PutParameter" in code
+
+    def test_oauth_rotation_multiple_credentials(self, tmp_path: Path) -> None:
+        """Test that multiple OAuth credentials each get their own Lambda and rule."""
+        inp = _complex_input()
+        inp.oauth_credentials.append(
+            OAuthCredentialSpec(
+                credential_spec=CredentialSpec(
+                    parameter_path="/complex-wf/creds/slack-oauth",
+                    credential_type="oauth2",
+                    associated_node_names=["Slack"],
+                ),
+                token_endpoint_url="https://slack.com/api/oauth.v2.access",  # noqa: S106
+                refresh_schedule_expression="rate(30 minutes)",
+            ),
+        )
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            inp,
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        # Each credential gets its own Lambda and rule
+        assert "oauth_refresh_google = PythonFunction(" in code
+        assert "oauth_refresh_slack_oauth = PythonFunction(" in code
+        assert "targets=[targets.LambdaFunction(oauth_refresh_google)]" in code
+        assert "targets=[targets.LambdaFunction(oauth_refresh_slack_oauth)]" in code
+        assert "OAuthRotation0" in code
+        assert "OAuthRotation1" in code
+        # Each has correct schedule
+        assert 'expression("rate(50 minutes)")' in code
+        assert 'expression("rate(30 minutes)")' in code
 
     def test_schedule_trigger(self, tmp_path: Path) -> None:
         """Test that schedule trigger is present with state machine target."""

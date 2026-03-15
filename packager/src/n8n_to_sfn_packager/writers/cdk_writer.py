@@ -212,7 +212,7 @@ class CDKWriter:
         has_python_lambda = any(
             s.runtime == LambdaRuntime.PYTHON for s in input_data.lambda_functions
         )
-        if has_python_lambda:
+        if has_python_lambda or input_data.oauth_credentials:
             lines.append(
                 "from aws_cdk.aws_lambda_python_alpha import PythonFunction",
             )
@@ -443,7 +443,46 @@ class CDKWriter:
         for i, oauth in enumerate(input_data.oauth_credentials):
             cred_name = oauth.credential_spec.parameter_path.strip("/").split("/")[-1]
             schedule_expr = oauth.refresh_schedule_expression
+            param_path = oauth.credential_spec.parameter_path
+            token_url = oauth.token_endpoint_url
+            var_name = f"oauth_refresh_{cred_name.replace('-', '_')}"
+            construct_id = (
+                "OAuthRefresh"
+                + cred_name.replace("_", " ").replace("-", " ").title().replace(" ", "")
+            )
+
+            # Lambda function for OAuth token refresh
             lines.append(f"        # OAuth rotation for {cred_name}")
+            lines.append(f"        {var_name} = PythonFunction(")
+            lines.append("            self,")
+            lines.append(f'            "{construct_id}Fn",')
+            lines.append(
+                f'            entry=str(Path(__file__).parent.parent.parent / "lambdas" / "{var_name}"),',
+            )
+            lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
+            lines.append('            index="handler.py",')
+            lines.append('            handler="handler",')
+            lines.append("            environment={")
+            lines.append(f'                "SSM_PARAMETER_PATH": "{param_path}",')
+            lines.append(f'                "TOKEN_ENDPOINT_URL": "{token_url}",')
+            lines.append("            },")
+            lines.append("        )")
+
+            # IAM permissions to read/write SSM parameters for this credential
+            param_path_stripped = param_path.strip("/")
+            lines.append(f"        {var_name}.add_to_role_policy(")
+            lines.append("            iam.PolicyStatement(")
+            lines.append(
+                '                actions=["ssm:GetParameter", "ssm:PutParameter"],'
+            )
+            lines.append(
+                f'                resources=["arn:aws:ssm:*:*:parameter/{param_path_stripped}/*"],',
+            )
+            lines.append("            )")
+            lines.append("        )")
+            lines.append("")
+
+            # EventBridge rule targeting the refresh Lambda
             lines.append("        events.Rule(")
             lines.append("            self,")
             lines.append(f'            "OAuthRotation{i}",')
@@ -451,7 +490,7 @@ class CDKWriter:
                 f'            schedule=events.Schedule.expression("{schedule_expr}"),',
             )
             lines.append(
-                f"            # Target: oauth_refresh Lambda for {cred_name}",
+                f"            targets=[targets.LambdaFunction({var_name})],",
             )
             lines.append("        )")
             lines.append("")
