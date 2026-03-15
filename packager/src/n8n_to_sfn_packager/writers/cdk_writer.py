@@ -19,6 +19,7 @@ from n8n_to_sfn_packager.models.inputs import (
     TriggerType,
 )
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
+from n8n_to_sfn_packager.writers.ssm_writer import SSMWriter
 
 
 class CDKWriter:
@@ -63,7 +64,22 @@ class CDKWriter:
             stack_prefix,
         )
 
+        self._write_credentials_doc(output_dir, input_data)
+
         return cdk_dir
+
+    @staticmethod
+    def _write_credentials_doc(
+        output_dir: Path,
+        input_data: PackagerInput,
+    ) -> None:
+        """Write CREDENTIALS.md to the output directory."""
+        ssm_writer = SSMWriter()
+        content = ssm_writer.generate_credential_documentation(
+            input_data.credentials,
+            input_data.oauth_credentials,
+        )
+        (output_dir / "CREDENTIALS.md").write_text(content)
 
     @staticmethod
     def _write_app_py(cdk_dir: Path, stack_prefix: str) -> None:

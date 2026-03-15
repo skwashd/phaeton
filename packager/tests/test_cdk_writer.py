@@ -174,6 +174,7 @@ class TestFileCreation:
         assert (cdk_dir / "stacks" / "shared_stack.py").exists()
         assert (cdk_dir / "stacks" / "workflow_stack.py").exists()
         assert (cdk_dir / "stacks" / "__init__.py").exists()
+        assert (tmp_path / "CREDENTIALS.md").exists()
 
     def test_cdk_dir_path(self, tmp_path: Path) -> None:
         """Test that the CDK directory is at the expected path."""
@@ -584,3 +585,39 @@ class TestObservability:
         assert "state_machine.metric_failed()" in code
         assert "state_machine.metric_timed_out()" in code
         assert "state_machine.metric_throttled()" in code
+
+
+class TestCredentialsMd:
+    """Tests for the generated CREDENTIALS.md file."""
+
+    def test_credentials_md_created(self, tmp_path: Path) -> None:
+        """Test that CREDENTIALS.md is created in the output directory."""
+        writer = CDKWriter()
+        writer.write(_minimal_input(), _make_iam_policy(), _make_ssm_params(), tmp_path)
+        assert (tmp_path / "CREDENTIALS.md").exists()
+
+    def test_credentials_md_lists_parameter_paths(self, tmp_path: Path) -> None:
+        """Test that CREDENTIALS.md lists the SSM parameter paths from input."""
+        writer = CDKWriter()
+        writer.write(_minimal_input(), _make_iam_policy(), _make_ssm_params(), tmp_path)
+        content = (tmp_path / "CREDENTIALS.md").read_text()
+        assert "/minimal-wf/creds/token" in content
+
+    def test_credentials_md_has_placeholder_warning(self, tmp_path: Path) -> None:
+        """Test that CREDENTIALS.md warns about placeholder values."""
+        writer = CDKWriter()
+        writer.write(_minimal_input(), _make_iam_policy(), _make_ssm_params(), tmp_path)
+        content = (tmp_path / "CREDENTIALS.md").read_text()
+        assert "WARNING" in content
+        assert "will fail" in content
+
+    def test_credentials_md_includes_oauth(self, tmp_path: Path) -> None:
+        """Test that CREDENTIALS.md includes OAuth credential sections."""
+        writer = CDKWriter()
+        writer.write(
+            _complex_input(), _make_iam_policy(), _make_ssm_params(), tmp_path,
+        )
+        content = (tmp_path / "CREDENTIALS.md").read_text()
+        assert "OAuth Credentials" in content
+        assert "/complex-wf/creds/google/access_token" in content
+        assert "oauth2.googleapis.com" in content

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from n8n_to_sfn_packager.models.inputs import CredentialSpec, OAuthCredentialSpec
-from n8n_to_sfn_packager.writers.ssm_writer import SSMWriter
+from n8n_to_sfn_packager.writers.ssm_writer import _CREDENTIAL_DOCS, SSMWriter
 
 
 def _make_standard_cred() -> CredentialSpec:
@@ -128,3 +128,145 @@ class TestMixedCredentials:
         )
         for param in params:
             assert param.parameter_path.startswith("/")
+
+
+class TestCredentialDocumentationStandard:
+    """Tests for credential documentation with standard credentials."""
+
+    def test_contains_parameter_path(self) -> None:
+        """Test that the SSM parameter path appears in the documentation."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([_make_standard_cred()], [])
+        assert "/my-workflow/credentials/slack_token" in doc
+
+    def test_contains_credential_type(self) -> None:
+        """Test that the credential type appears in the documentation."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([_make_standard_cred()], [])
+        assert "apiKey" in doc
+
+    def test_contains_placeholder_warning(self) -> None:
+        """Test that a placeholder warning is prominently displayed."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([_make_standard_cred()], [])
+        assert "WARNING" in doc
+        assert "will fail" in doc
+        assert "placeholder" in doc.lower()
+
+    def test_contains_aws_cli_instructions(self) -> None:
+        """Test that AWS CLI put-parameter instructions are included."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([_make_standard_cred()], [])
+        assert "aws ssm put-parameter" in doc
+
+    def test_contains_associated_nodes(self) -> None:
+        """Test that associated node names are listed."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([_make_standard_cred()], [])
+        assert "Slack" in doc
+
+    def test_contains_description(self) -> None:
+        """Test that the credential description is used as section header."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([_make_standard_cred()], [])
+        assert "Slack Bot Token" in doc
+
+    def test_known_service_docs_url(self) -> None:
+        """Test that a known credential type gets a documentation link."""
+        writer = SSMWriter()
+        cred = CredentialSpec(
+            parameter_path="/wf/creds/slack",
+            credential_type="slackApi",
+            associated_node_names=["Slack"],
+        )
+        doc = writer.generate_credential_documentation([cred], [])
+        assert _CREDENTIAL_DOCS["slack"] in doc
+
+
+class TestCredentialDocumentationOAuth:
+    """Tests for credential documentation with OAuth credentials."""
+
+    def test_contains_access_token_path(self) -> None:
+        """Test that the access token SSM path appears."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [_make_oauth_cred()])
+        assert "/my-workflow/credentials/google_oauth/access_token" in doc
+
+    def test_contains_refresh_token_path(self) -> None:
+        """Test that the refresh token SSM path appears."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [_make_oauth_cred()])
+        assert "/my-workflow/credentials/google_oauth/refresh_token" in doc
+
+    def test_contains_token_endpoint(self) -> None:
+        """Test that the token endpoint URL appears."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [_make_oauth_cred()])
+        assert "https://oauth2.googleapis.com/token" in doc
+
+    def test_contains_refresh_schedule(self) -> None:
+        """Test that the refresh schedule expression appears."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [_make_oauth_cred()])
+        assert "rate(50 minutes)" in doc
+
+    def test_contains_scopes(self) -> None:
+        """Test that OAuth scopes appear in the documentation."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [_make_oauth_cred()])
+        assert "spreadsheets" in doc
+
+    def test_contains_oauth_setup_instructions(self) -> None:
+        """Test that OAuth-specific setup steps are included."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [_make_oauth_cred()])
+        assert "client ID" in doc
+        assert "authorization flow" in doc
+        assert "token rotation" in doc.lower()
+
+
+class TestCredentialDocumentationEmpty:
+    """Tests for credential documentation with no credentials."""
+
+    def test_no_credentials_produces_minimal_doc(self) -> None:
+        """Test that no credentials produces a document stating none are needed."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [])
+        assert "does not require any credentials" in doc
+
+    def test_no_credentials_still_has_title(self) -> None:
+        """Test that the no-credentials document still has a title."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [])
+        assert "# Credential Setup Guide" in doc
+
+    def test_no_credentials_still_has_warning(self) -> None:
+        """Test that the placeholder warning appears even with no credentials."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation([], [])
+        assert "WARNING" in doc
+
+
+class TestCredentialDocumentationMixed:
+    """Tests for credential documentation with mixed credentials."""
+
+    def test_all_parameter_paths_present(self) -> None:
+        """Test that all SSM parameter paths appear in the documentation."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation(
+            [_make_standard_cred()],
+            [_make_oauth_cred()],
+        )
+        assert "/my-workflow/credentials/slack_token" in doc
+        assert "/my-workflow/credentials/google_oauth/access_token" in doc
+        assert "/my-workflow/credentials/google_oauth/refresh_token" in doc
+
+    def test_has_both_sections(self) -> None:
+        """Test that both standard and OAuth sections are present."""
+        writer = SSMWriter()
+        doc = writer.generate_credential_documentation(
+            [_make_standard_cred()],
+            [_make_oauth_cred()],
+        )
+        assert "## Standard Credentials" in doc
+        assert "## OAuth Credentials" in doc
