@@ -1,4 +1,4 @@
-"""Pydantic v2 models for n8n workflows, re-exported from phaeton_models."""
+"""Shared Pydantic v2 models for the Phaeton pipeline."""
 
 from phaeton_models.n8n_workflow import (
     ConnectionTarget,
