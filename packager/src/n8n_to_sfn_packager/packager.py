@@ -82,14 +82,14 @@ class Packager:
         logger.info("Wrote statemachine/definition.asl.json")
 
     def _step_write_lambdas(self, input_data: PackagerInput, output_dir: Path) -> None:
-        """Write all Lambda function directories."""
-        for spec in input_data.lambda_functions:
-            try:
-                self._lambda_writer.write(spec, output_dir)
+        """Write all Lambda function directories and shared dependency layers."""
+        try:
+            self._lambda_writer.write_all(input_data.lambda_functions, output_dir)
+            for spec in input_data.lambda_functions:
                 logger.info("Wrote Lambda: %s", spec.function_name)
-            except Exception as e:
-                msg = f"Failed to write Lambda '{spec.function_name}': {e}"
-                raise PackagerError(msg) from e
+        except Exception as e:
+            msg = f"Failed to write Lambda functions: {e}"
+            raise PackagerError(msg) from e
 
     def _step_generate_ssm(self, input_data: PackagerInput) -> list:
         """Generate SSM parameter definitions."""

@@ -1,4 +1,3 @@
-TASK-0030-lambda-layers-shared-deps.md
 TASK-0031-end-to-end-tests.md
 TASK-0032-contract-tests.md
 TASK-0033-cdk-synth-validation.md

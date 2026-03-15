@@ -20,6 +20,10 @@ from n8n_to_sfn_packager.models.inputs import (
     VpcConfig,
 )
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
+from n8n_to_sfn_packager.writers.lambda_writer import (
+    LayerSpec,
+    analyze_shared_dependencies,
+)
 from n8n_to_sfn_packager.writers.ssm_writer import SSMWriter
 
 
@@ -246,12 +250,15 @@ class CDKWriter:
         """Write the main workflow stack."""
         lines: list[str] = []
 
-        self._wf_imports(lines, input_data)
+        layers, _ = analyze_shared_dependencies(input_data.lambda_functions)
+
+        self._wf_imports(lines, input_data, layers)
         self._wf_class_header(lines, stack_prefix)
         self._wf_vpc_lookup(lines, input_data)
         self._wf_ssm_parameters(lines, ssm_params)
         self._wf_dead_letter_queue(lines, stack_prefix)
-        self._wf_lambda_functions(lines, input_data)
+        self._wf_lambda_layers(lines, layers)
+        self._wf_lambda_functions(lines, input_data, layers)
         self._wf_state_machine(lines, iam_policy, stack_prefix)
         self._wf_alarms(lines)
         self._wf_triggers(lines, input_data)
@@ -262,7 +269,11 @@ class CDKWriter:
         (stacks_dir / "workflow_stack.py").write_text("\n".join(lines) + "\n")
 
     @staticmethod
-    def _wf_imports(lines: list[str], input_data: PackagerInput) -> None:
+    def _wf_imports(
+        lines: list[str],
+        input_data: PackagerInput,
+        layers: list[LayerSpec] | None = None,
+    ) -> None:
         """Append import statements."""
         has_webhook_fns = any(
             s.function_type
@@ -302,9 +313,17 @@ class CDKWriter:
         has_python_lambda = any(
             s.runtime == LambdaRuntime.PYTHON for s in input_data.lambda_functions
         )
+        has_python_layer = any(
+            layer.runtime == LambdaRuntime.PYTHON for layer in (layers or [])
+        )
+        python_alpha_imports: list[str] = []
         if has_python_lambda or input_data.oauth_credentials:
+            python_alpha_imports.append("PythonFunction")
+        if has_python_layer:
+            python_alpha_imports.append("PythonLayerVersion")
+        if python_alpha_imports:
             lines.append(
-                "from aws_cdk.aws_lambda_python_alpha import PythonFunction",
+                f"from aws_cdk.aws_lambda_python_alpha import {', '.join(python_alpha_imports)}",
             )
 
         lines.append("from constructs import Construct")
@@ -385,7 +404,67 @@ class CDKWriter:
         lines.append("")
 
     @staticmethod
-    def _wf_lambda_functions(lines: list[str], input_data: PackagerInput) -> None:
+    def _wf_lambda_layers(
+        lines: list[str],
+        layers: list[LayerSpec],
+    ) -> None:
+        """Append Lambda Layer constructs for shared dependencies."""
+        if not layers:
+            return
+
+        lines.append("        # --- Lambda Layers (shared dependencies) ---")
+        for layer in layers:
+            var_name = layer.layer_name.replace("-", "_") + "_layer"
+            construct_id = (
+                layer.layer_name.replace("-", " ").title().replace(" ", "")
+                + "Layer"
+            )
+            dep_summary = ", ".join(
+                d.split("==")[0].split("@")[0] for d in layer.dependencies
+            )
+
+            if layer.runtime == LambdaRuntime.PYTHON:
+                lines.append(
+                    f"        # Shared Python deps: {dep_summary}",
+                )
+                lines.append(f"        {var_name} = PythonLayerVersion(")
+                lines.append("            self,")
+                lines.append(f'            "{construct_id}",')
+                lines.append(
+                    f'            entry=str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}"),',
+                )
+                lines.append(
+                    "            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],"
+                )
+                lines.append(
+                    '            description="Shared Python dependencies for workflow",',
+                )
+                lines.append("        )")
+            else:
+                lines.append(
+                    f"        # Shared Node.js deps: {dep_summary}",
+                )
+                lines.append(f"        {var_name} = lambda_.LayerVersion(")
+                lines.append("            self,")
+                lines.append(f'            "{construct_id}",')
+                lines.append(
+                    f'            code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}")),',
+                )
+                lines.append(
+                    "            compatible_runtimes=[lambda_.Runtime.NODEJS_20_X],"
+                )
+                lines.append(
+                    '            description="Shared Node.js dependencies for workflow",',
+                )
+                lines.append("        )")
+            lines.append("")
+
+    @staticmethod
+    def _wf_lambda_functions(
+        lines: list[str],
+        input_data: PackagerInput,
+        layers: list[LayerSpec] | None = None,
+    ) -> None:
         """Append Lambda function constructs."""
         if not input_data.lambda_functions:
             return
@@ -407,6 +486,17 @@ class CDKWriter:
                 vpc_lines.append("            vpc_subnets=vpc_subnets,")
                 vpc_lines.append("            security_groups=[lambda_sg],")
 
+            # Determine which layers this function uses
+            layer_var_names = [
+                layer.layer_name.replace("-", "_") + "_layer"
+                for layer in (layers or [])
+                if spec.function_name in layer.function_names
+            ]
+            layer_lines: list[str] = []
+            if layer_var_names:
+                layer_list = ", ".join(layer_var_names)
+                layer_lines.append(f"            layers=[{layer_list}],")
+
             if spec.runtime == LambdaRuntime.PYTHON:
                 lines.append(
                     f"        # {spec.description or spec.function_name}{comment}",
@@ -422,6 +512,7 @@ class CDKWriter:
                 lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
                 lines.append('            index="handler.py",')
                 lines.append('            handler="handler",')
+                lines.extend(layer_lines)
                 lines.extend(vpc_lines)
                 lines.append("            tracing=lambda_.Tracing.ACTIVE,")
                 lines.append("            dead_letter_queue=dlq,")
@@ -444,6 +535,7 @@ class CDKWriter:
                 lines.append(
                     f'            code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}")),',
                 )
+                lines.extend(layer_lines)
                 lines.extend(vpc_lines)
                 lines.append("            tracing=lambda_.Tracing.ACTIVE,")
                 lines.append("            dead_letter_queue=dlq,")

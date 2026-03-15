@@ -1147,3 +1147,217 @@ class TestCustomDomainWebhooks:
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "FunctionUrlAuthType.NONE" in code
         assert "if custom_domain:" in code
+
+
+def _shared_deps_input() -> PackagerInput:
+    """Input with multiple functions sharing dependencies."""
+    return PackagerInput(
+        metadata=WorkflowMetadata(
+            workflow_name="shared-deps-wf",
+            source_n8n_version="1.42.0",
+            converter_version="0.1.0",
+            timestamp="2025-06-15T10:30:00Z",
+            confidence_score=0.9,
+        ),
+        state_machine=StateMachineDefinition(
+            asl={"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}},
+        ),
+        lambda_functions=[
+            LambdaFunctionSpec(
+                function_name="code_transform_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async (e) => e;",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                source_node_name="CodeA",
+                dependencies=["luxon@3.4.4", "lodash@4.17.21"],
+            ),
+            LambdaFunctionSpec(
+                function_name="code_transform_b",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async (e) => e;",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                source_node_name="CodeB",
+                dependencies=["luxon@3.4.4", "axios@1.6.0"],
+            ),
+        ],
+        conversion_report=ConversionReport(
+            total_nodes=3,
+            confidence_score=0.9,
+        ),
+    )
+
+
+def _mixed_runtime_shared_deps_input() -> PackagerInput:
+    """Input with shared deps across both Node.js and Python runtimes."""
+    return PackagerInput(
+        metadata=WorkflowMetadata(
+            workflow_name="mixed-layers-wf",
+            source_n8n_version="1.42.0",
+            converter_version="0.1.0",
+            timestamp="2025-06-15T10:30:00Z",
+            confidence_score=0.9,
+        ),
+        state_machine=StateMachineDefinition(
+            asl={"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}},
+        ),
+        lambda_functions=[
+            LambdaFunctionSpec(
+                function_name="js_fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async (e) => e;",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                source_node_name="CodeA",
+                dependencies=["luxon@3.4.4"],
+            ),
+            LambdaFunctionSpec(
+                function_name="js_fn_b",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async (e) => e;",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                source_node_name="CodeB",
+                dependencies=["luxon@3.4.4"],
+            ),
+            LambdaFunctionSpec(
+                function_name="py_fn_a",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="def handler(event, context): pass",
+                function_type=LambdaFunctionType.CODE_NODE_PYTHON,
+                source_node_name="PyA",
+                dependencies=["httpx==0.27.0"],
+            ),
+            LambdaFunctionSpec(
+                function_name="py_fn_b",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="def handler(event, context): pass",
+                function_type=LambdaFunctionType.CODE_NODE_PYTHON,
+                source_node_name="PyB",
+                dependencies=["httpx==0.27.0"],
+            ),
+        ],
+        conversion_report=ConversionReport(
+            total_nodes=5,
+            confidence_score=0.9,
+        ),
+    )
+
+
+class TestLambdaLayers:
+    """Tests for Lambda Layer CDK generation."""
+
+    def test_shared_deps_create_layer_construct(self, tmp_path: Path) -> None:
+        """Test that shared deps generate a LayerVersion construct."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "nodejs_shared_layer = lambda_.LayerVersion(" in code
+        assert "NodejsSharedLayer" in code
+        assert "compatible_runtimes=[lambda_.Runtime.NODEJS_20_X]" in code
+
+    def test_shared_deps_functions_reference_layer(self, tmp_path: Path) -> None:
+        """Test that functions referencing shared deps have layers= parameter."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "layers=[nodejs_shared_layer]" in code
+
+    def test_no_shared_deps_no_layer(self, tmp_path: Path) -> None:
+        """Test that no layers are generated when there are no shared deps."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "LayerVersion(" not in code
+        assert "layers=[" not in code
+
+    def test_mixed_runtimes_both_layers(self, tmp_path: Path) -> None:
+        """Test that both Node.js and Python layers are generated."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _mixed_runtime_shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "nodejs_shared_layer = lambda_.LayerVersion(" in code
+        assert "python_shared_layer = PythonLayerVersion(" in code
+        assert "PythonSharedLayer" in code
+
+    def test_python_layer_imports_python_layer_version(self, tmp_path: Path) -> None:
+        """Test that PythonLayerVersion is imported when Python layers exist."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _mixed_runtime_shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "PythonLayerVersion" in code
+
+    def test_layer_description_includes_dep_names(self, tmp_path: Path) -> None:
+        """Test that layer comments include dependency names."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "Shared Node.js deps: luxon" in code
+
+    def test_layer_asset_path(self, tmp_path: Path) -> None:
+        """Test that the layer construct points to the correct asset path."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert '"layers" / "nodejs-shared"' in code
+
+    def test_workflow_stack_syntactically_valid_with_layers(
+        self, tmp_path: Path
+    ) -> None:
+        """Test that workflow stack with layers is syntactically valid Python."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _shared_deps_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        compile(code, "workflow_stack.py", "exec")
+
+    def test_existing_tests_still_pass_complex_input(self, tmp_path: Path) -> None:
+        """Test that complex input (no shared deps) still generates correctly."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        # No layers because no deps are shared across functions of same runtime
+        assert "LayerVersion(" not in code
+        assert "PythonFunction(" in code
+        assert "lambda_.Function(" in code

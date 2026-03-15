@@ -14,7 +14,11 @@ from n8n_to_sfn_packager.models.inputs import (
     WebhookAuthConfig,
     WebhookAuthType,
 )
-from n8n_to_sfn_packager.writers.lambda_writer import LambdaWriter
+from n8n_to_sfn_packager.writers.lambda_writer import (
+    LambdaWriter,
+    LayerSpec,
+    analyze_shared_dependencies,
+)
 
 
 @pytest.fixture
@@ -328,3 +332,325 @@ class TestWebhookAuthCodeInjection:
         result = writer.write(spec, tmp_path)
         content = (result / "handler.py").read_text()
         assert "_authenticate" in content
+
+
+class TestAnalyzeSharedDependencies:
+    """Tests for the shared dependency analysis function."""
+
+    def test_no_shared_deps_single_function(self) -> None:
+        """Test that a single function produces no layers."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4"],
+            ),
+        ]
+        layers, excluded = analyze_shared_dependencies(specs)
+        assert layers == []
+        assert excluded == {}
+
+    def test_shared_deps_same_runtime(self) -> None:
+        """Test that deps shared by 2+ functions of the same runtime are layered."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4", "lodash@4.17.21"],
+            ),
+            LambdaFunctionSpec(
+                function_name="fn_b",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4", "axios@1.6.0"],
+            ),
+        ]
+        layers, excluded = analyze_shared_dependencies(specs)
+        assert len(layers) == 1
+        assert layers[0].layer_name == "nodejs-shared"
+        assert layers[0].runtime == LambdaRuntime.NODEJS
+        assert layers[0].dependencies == ["luxon@3.4.4"]
+        assert sorted(layers[0].function_names) == ["fn_a", "fn_b"]
+        assert excluded == {
+            "fn_a": {"luxon@3.4.4"},
+            "fn_b": {"luxon@3.4.4"},
+        }
+
+    def test_no_shared_deps_different_runtimes(self) -> None:
+        """Test that deps are not shared across different runtimes."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4"],
+            ),
+            LambdaFunctionSpec(
+                function_name="fn_b",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="def handler(event, context): pass",
+                function_type=LambdaFunctionType.CODE_NODE_PYTHON,
+                dependencies=["luxon==3.4.4"],
+            ),
+        ]
+        layers, excluded = analyze_shared_dependencies(specs)
+        assert layers == []
+        assert excluded == {}
+
+    def test_no_shared_deps_disjoint(self) -> None:
+        """Test that functions with completely different deps produce no layer."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4"],
+            ),
+            LambdaFunctionSpec(
+                function_name="fn_b",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["axios@1.6.0"],
+            ),
+        ]
+        layers, excluded = analyze_shared_dependencies(specs)
+        assert layers == []
+        assert excluded == {}
+
+    def test_mixed_runtimes_both_have_shared(self) -> None:
+        """Test layers are created per-runtime when both have shared deps."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="js_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4"],
+            ),
+            LambdaFunctionSpec(
+                function_name="js_b",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4"],
+            ),
+            LambdaFunctionSpec(
+                function_name="py_a",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="def handler(event, context): pass",
+                function_type=LambdaFunctionType.CODE_NODE_PYTHON,
+                dependencies=["httpx==0.27.0"],
+            ),
+            LambdaFunctionSpec(
+                function_name="py_b",
+                runtime=LambdaRuntime.PYTHON,
+                handler_code="def handler(event, context): pass",
+                function_type=LambdaFunctionType.CODE_NODE_PYTHON,
+                dependencies=["httpx==0.27.0"],
+            ),
+        ]
+        layers, _excluded = analyze_shared_dependencies(specs)
+        assert len(layers) == 2
+        layer_names = {layer.layer_name for layer in layers}
+        assert layer_names == {"nodejs-shared", "python-shared"}
+
+    def test_empty_specs(self) -> None:
+        """Test that empty specs produce no layers."""
+        layers, excluded = analyze_shared_dependencies([])
+        assert layers == []
+        assert excluded == {}
+
+    def test_no_dependencies(self) -> None:
+        """Test that functions with no deps produce no layers."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=[],
+            ),
+            LambdaFunctionSpec(
+                function_name="fn_b",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=[],
+            ),
+        ]
+        layers, excluded = analyze_shared_dependencies(specs)
+        assert layers == []
+        assert excluded == {}
+
+
+class TestWriteLayer:
+    """Tests for Lambda Layer directory writing."""
+
+    def test_nodejs_layer_directory_structure(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that Node.js layer creates nodejs/package.json."""
+        layer = LayerSpec(
+            layer_name="nodejs-shared",
+            runtime=LambdaRuntime.NODEJS,
+            dependencies=["luxon@3.4.4", "lodash@4.17.21"],
+            function_names=["fn_a", "fn_b"],
+        )
+        result = writer.write_layer(layer, tmp_path)
+        assert result == tmp_path / "layers" / "nodejs-shared"
+        pkg_path = result / "nodejs" / "package.json"
+        assert pkg_path.exists()
+        pkg = json.loads(pkg_path.read_text())
+        assert pkg["dependencies"]["luxon"] == "3.4.4"
+        assert pkg["dependencies"]["lodash"] == "4.17.21"
+
+    def test_python_layer_directory_structure(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that Python layer creates pyproject.toml."""
+        layer = LayerSpec(
+            layer_name="python-shared",
+            runtime=LambdaRuntime.PYTHON,
+            dependencies=["httpx==0.27.0", "aws-lambda-powertools==2.40.0"],
+            function_names=["fn_a", "fn_b"],
+        )
+        result = writer.write_layer(layer, tmp_path)
+        assert result == tmp_path / "layers" / "python-shared"
+        pyproject_path = result / "pyproject.toml"
+        assert pyproject_path.exists()
+        content = pyproject_path.read_text()
+        assert "httpx==0.27.0" in content
+        assert "aws-lambda-powertools==2.40.0" in content
+
+    def test_nodejs_layer_version_parsing(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that Node.js layer handles == version separator."""
+        layer = LayerSpec(
+            layer_name="nodejs-shared",
+            runtime=LambdaRuntime.NODEJS,
+            dependencies=["luxon==3.4.4"],
+            function_names=["fn_a"],
+        )
+        result = writer.write_layer(layer, tmp_path)
+        pkg = json.loads((result / "nodejs" / "package.json").read_text())
+        assert pkg["dependencies"]["luxon"] == "3.4.4"
+
+
+class TestExcludedDependencies:
+    """Tests for dependency exclusion from individual function packages."""
+
+    def test_nodejs_excludes_layered_deps(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that Node.js function excludes layered deps from package.json."""
+        spec = LambdaFunctionSpec(
+            function_name="fn_a",
+            runtime=LambdaRuntime.NODEJS,
+            handler_code="exports.handler = async () => {};",
+            function_type=LambdaFunctionType.CODE_NODE_JS,
+            dependencies=["luxon@3.4.4", "axios@1.6.0"],
+        )
+        result = writer.write(spec, tmp_path, excluded_dependencies={"luxon@3.4.4"})
+        pkg = json.loads((result / "package.json").read_text())
+        assert "luxon" not in pkg["dependencies"]
+        assert "axios" in pkg["dependencies"]
+
+    def test_python_excludes_layered_deps(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that Python function excludes layered deps from pyproject.toml."""
+        spec = LambdaFunctionSpec(
+            function_name="fn_a",
+            runtime=LambdaRuntime.PYTHON,
+            handler_code="def handler(event, context): pass",
+            function_type=LambdaFunctionType.CODE_NODE_PYTHON,
+            dependencies=["httpx==0.27.0", "boto3==1.34.0"],
+        )
+        result = writer.write(spec, tmp_path, excluded_dependencies={"httpx==0.27.0"})
+        content = (result / "pyproject.toml").read_text()
+        assert "httpx==0.27.0" not in content
+        assert "boto3==1.34.0" in content
+
+    def test_no_exclusion_keeps_all_deps(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that no exclusion keeps all deps in the package."""
+        spec = LambdaFunctionSpec(
+            function_name="fn_a",
+            runtime=LambdaRuntime.NODEJS,
+            handler_code="exports.handler = async () => {};",
+            function_type=LambdaFunctionType.CODE_NODE_JS,
+            dependencies=["luxon@3.4.4", "axios@1.6.0"],
+        )
+        result = writer.write(spec, tmp_path)
+        pkg = json.loads((result / "package.json").read_text())
+        assert "luxon" in pkg["dependencies"]
+        assert "axios" in pkg["dependencies"]
+
+
+class TestWriteAllWithLayers:
+    """Tests for write_all with automatic layer generation."""
+
+    def test_write_all_creates_layers(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that write_all creates layer directories for shared deps."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4", "lodash@4.17.21"],
+            ),
+            LambdaFunctionSpec(
+                function_name="fn_b",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4", "axios@1.6.0"],
+            ),
+        ]
+        paths = writer.write_all(specs, tmp_path)
+        assert len(paths) == 2
+
+        # Layer directory should exist
+        layer_dir = tmp_path / "layers" / "nodejs-shared"
+        assert layer_dir.exists()
+        pkg = json.loads((layer_dir / "nodejs" / "package.json").read_text())
+        assert "luxon" in pkg["dependencies"]
+
+        # Function packages should exclude shared deps
+        pkg_a = json.loads((paths[0] / "package.json").read_text())
+        assert "luxon" not in pkg_a["dependencies"]
+        assert "lodash" in pkg_a["dependencies"]
+
+        pkg_b = json.loads((paths[1] / "package.json").read_text())
+        assert "luxon" not in pkg_b["dependencies"]
+        assert "axios" in pkg_b["dependencies"]
+
+    def test_write_all_no_shared_deps(
+        self, writer: LambdaWriter, tmp_path: Path
+    ) -> None:
+        """Test that write_all with no shared deps creates no layers."""
+        specs = [
+            LambdaFunctionSpec(
+                function_name="fn_a",
+                runtime=LambdaRuntime.NODEJS,
+                handler_code="exports.handler = async () => {};",
+                function_type=LambdaFunctionType.CODE_NODE_JS,
+                dependencies=["luxon@3.4.4"],
+            ),
+        ]
+        paths = writer.write_all(specs, tmp_path)
+        assert len(paths) == 1
+        assert not (tmp_path / "layers").exists()
