@@ -124,9 +124,9 @@ class TestCreateDefaultEngine:
     """Tests for the create_default_engine factory."""
 
     def test_creates_engine_with_all_translators(self) -> None:
-        """Factory creates an engine with five translators."""
+        """Factory creates an engine with six translators."""
         engine = create_default_engine()
-        assert len(engine._translators) == 5
+        assert len(engine._translators) == 6
 
     def test_engine_can_translate_basic_workflow(self) -> None:
         """Engine from factory can translate a minimal workflow."""

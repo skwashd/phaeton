@@ -17,6 +17,7 @@ from n8n_to_sfn.errors import TranslationError
 from n8n_to_sfn.translators.aws_service import AWSServiceTranslator
 from n8n_to_sfn.translators.code_node import CodeNodeTranslator
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator
+from n8n_to_sfn.translators.http_request import HttpRequestTranslator
 from n8n_to_sfn.translators.picofun import PicoFunTranslator
 from n8n_to_sfn.translators.triggers import TriggerTranslator
 
@@ -35,6 +36,7 @@ def create_default_engine() -> TranslationEngine:
             AWSServiceTranslator(),
             TriggerTranslator(),
             CodeNodeTranslator(),
+            HttpRequestTranslator(),
             PicoFunTranslator(),
         ],
         ai_agent=ai_agent,
