@@ -40,6 +40,7 @@ unfixable = []
 testpaths = ["tests"]
 markers = [
     "integration: end-to-end tests that deploy to a real AWS account (require AWS credentials)",
+    "performance: performance and load tests for large workflows (run with -m performance)",
 ]
 
 [tool.coverage.run]
