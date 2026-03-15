@@ -13,6 +13,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from n8n_release_parser.cache import NodeCache, content_hash
 from n8n_release_parser.models import (
     CredentialType,
     NodeParameter,
@@ -200,41 +201,119 @@ def parse_node_description(description: dict[str, Any]) -> list[NodeTypeEntry]:
     return entries
 
 
-def extract_descriptions_from_package(package_dir: Path) -> list[NodeTypeEntry]:
+def _collect_node_files(
+    base_dir: Path,
+    package_dir: Path,
+    cache: NodeCache | None,
+    entries: list[NodeTypeEntry],
+    seen_paths: set[str],
+) -> None:
+    """Scan *base_dir* for ``.node.json`` files and parse or cache-load them."""
+    for json_file in sorted(base_dir.rglob("*.node.json")):
+        rel = str(json_file.relative_to(package_dir))
+        seen_paths.add(rel)
+        try:
+            raw = json_file.read_bytes()
+            h = content_hash(raw)
+            if cache is not None:
+                cached = cache.get(rel, h)
+                if cached is not None:
+                    logger.debug("Cache hit for %s", rel)
+                    entries.extend(cached)
+                    continue
+            desc = json.loads(raw.decode("utf-8"))
+            parsed = parse_node_description(desc)
+            entries.extend(parsed)
+            if cache is not None:
+                cache.put(rel, h, parsed)
+        except (json.JSONDecodeError, KeyError):
+            logger.warning("Skipping invalid node file: %s", json_file)
+
+
+def _try_known_index(
+    package_dir: Path,
+    cache: NodeCache | None,
+) -> list[NodeTypeEntry] | None:
+    """Attempt to load entries from ``known/nodes.json``, returning ``None`` on miss."""
+    known_index = package_dir / "known" / "nodes.json"
+    if not known_index.is_file():
+        return None
+
+    logger.info("Loading node index from %s", known_index)
+    raw_bytes = known_index.read_bytes()
+    file_key = str(known_index.relative_to(package_dir))
+    h = content_hash(raw_bytes)
+
+    if cache is not None:
+        cached = cache.get(file_key, h)
+        if cached is not None:
+            logger.debug("Cache hit for %s", file_key)
+            cache.save()
+            return cached
+
+    data = json.loads(raw_bytes.decode("utf-8"))
+    if not isinstance(data, list):
+        return None
+
+    entries: list[NodeTypeEntry] = []
+    for desc in data:
+        entries.extend(parse_node_description(desc))
+
+    if cache is not None:
+        cache.put(file_key, h, entries)
+        cache.save()
+    return entries
+
+
+def extract_descriptions_from_package(
+    package_dir: Path,
+    *,
+    cache_dir: Path | None = None,
+    no_cache: bool = False,
+) -> list[NodeTypeEntry]:
     """
     Extract all node descriptions from an n8n-nodes-base package directory.
 
     Looks for a ``known/nodes.json`` or similar JSON index of node descriptions.
     Falls back to scanning for individual node description ``.json`` files in
     the ``nodes`` subdirectory.
-    """
-    entries: list[NodeTypeEntry] = []
 
-    known_index = package_dir / "known" / "nodes.json"
-    if known_index.is_file():
-        logger.info("Loading node index from %s", known_index)
-        data = json.loads(known_index.read_text(encoding="utf-8"))
-        if isinstance(data, list):
-            for desc in data:
-                entries.extend(parse_node_description(desc))
-            return entries
+    When caching is enabled (the default), parsed results are stored keyed by
+    SHA-256 content hash so that unchanged files are not re-parsed on
+    subsequent runs.
+
+    Args:
+        package_dir: Root of the n8n-nodes-base package.
+        cache_dir: Directory for the cache file.  ``None`` uses the default
+            ``~/.cache/phaeton/release-parser/``.
+        no_cache: If ``True``, skip the cache entirely and re-parse every file.
+
+    """
+    cache: NodeCache | None = None
+    if not no_cache:
+        cache = NodeCache(cache_dir) if cache_dir else NodeCache()
+        cache.load()
+
+    # Fast path: single index file.
+    from_index = _try_known_index(package_dir, cache)
+    if from_index is not None:
+        return from_index
+
+    entries: list[NodeTypeEntry] = []
+    seen_paths: set[str] = set()
 
     nodes_dir = package_dir / "nodes"
     if nodes_dir.is_dir():
-        for json_file in sorted(nodes_dir.rglob("*.node.json")):
-            try:
-                desc = json.loads(json_file.read_text(encoding="utf-8"))
-                entries.extend(parse_node_description(desc))
-            except (json.JSONDecodeError, KeyError):
-                logger.warning("Skipping invalid node file: %s", json_file)
+        _collect_node_files(nodes_dir, package_dir, cache, entries, seen_paths)
 
     dist_dir = package_dir / "dist"
     if not entries and dist_dir.is_dir():
-        for json_file in sorted(dist_dir.rglob("*.node.json")):
-            try:
-                desc = json.loads(json_file.read_text(encoding="utf-8"))
-                entries.extend(parse_node_description(desc))
-            except (json.JSONDecodeError, KeyError):
-                logger.warning("Skipping invalid node file: %s", json_file)
+        _collect_node_files(dist_dir, package_dir, cache, entries, seen_paths)
+
+    # Evict cache entries for files that no longer exist.
+    if cache is not None:
+        for stale in cache.known_paths() - seen_paths:
+            cache.remove(stale)
+        cache.save()
 
     return entries
