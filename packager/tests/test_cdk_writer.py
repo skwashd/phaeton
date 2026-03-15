@@ -1401,3 +1401,71 @@ class TestLambdaLayers:
         # No layers because no deps are shared across functions of same runtime
         assert "LayerVersion(" not in code
         assert "lambda_.Function(" in code
+
+
+class TestWorkflowStackCompile:
+    """Compile-check workflow_stack.py from all major fixtures."""
+
+    def test_complex_input_syntactically_valid(self, tmp_path: Path) -> None:
+        """Test that workflow stack from complex input is valid Python."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        compile(code, "workflow_stack.py", "exec")
+
+    def test_vpc_input_syntactically_valid(self, tmp_path: Path) -> None:
+        """Test that workflow stack from VPC input is valid Python."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        compile(code, "workflow_stack.py", "exec")
+
+    def test_minimal_input_syntactically_valid(self, tmp_path: Path) -> None:
+        """Test that workflow stack from minimal input is valid Python."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        compile(code, "workflow_stack.py", "exec")
+
+
+class TestSharedStackCompile:
+    """Compile-check shared_stack.py from all major fixtures."""
+
+    def test_minimal_input_syntactically_valid(self, tmp_path: Path) -> None:
+        """Test that shared stack from minimal input is valid Python."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        compile(code, "shared_stack.py", "exec")
+
+    def test_vpc_input_syntactically_valid(self, tmp_path: Path) -> None:
+        """Test that shared stack from VPC input is valid Python."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _vpc_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "shared_stack.py").read_text()
+        compile(code, "shared_stack.py", "exec")

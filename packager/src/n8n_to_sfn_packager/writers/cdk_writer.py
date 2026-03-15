@@ -26,6 +26,14 @@ from n8n_to_sfn_packager.writers.lambda_writer import (
 )
 from n8n_to_sfn_packager.writers.ssm_writer import SSMWriter
 
+# 8 spaces: indentation level inside __init__ body
+_BODY = "        "
+
+
+def _body(template: str) -> str:
+    """Dedent *template* and re-indent to the ``__init__`` body level."""
+    return textwrap.indent(textwrap.dedent(template), _BODY)
+
 
 class CDKWriter:
     """Generate CDK application source files."""
@@ -156,7 +164,7 @@ class CDKWriter:
         vpc_config: VpcConfig | None = None,
     ) -> None:
         """Write the shared stack with KMS key, log group, and X-Ray group."""
-        imports = [
+        import_lines = [
             '"""Shared infrastructure: KMS key, CloudWatch log group, X-Ray group."""',
             "",
             "import aws_cdk as cdk",
@@ -164,71 +172,82 @@ class CDKWriter:
             "from aws_cdk import aws_logs as logs",
         ]
         if vpc_config:
-            imports.append("from aws_cdk import aws_ec2 as ec2")
-        imports.append("from constructs import Construct")
-        imports.append("")
-        imports.append("")
+            import_lines.append("from aws_cdk import aws_ec2 as ec2")
+        import_lines.extend(["from constructs import Construct", "", ""])
 
-        body = [
-            "class SharedStack(cdk.Stack):",
-            '    """Shared resources used by the workflow stack."""',
-            "",
-            "    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:",
-            "        super().__init__(scope, construct_id, **kwargs)",
-            "",
-            "        # KMS key for encrypting state machine data, SSM parameters, and logs",
-            "        self.kms_key = kms.Key(",
-            "            self,",
-            '            "WorkflowKey",',
-            f'            alias="{stack_prefix}-key",',
-            f'            description="Encryption key for {stack_prefix} workflow",',
-            "            enable_key_rotation=True,",
-            "        )",
-            "",
-            "        # CloudWatch log group for Step Functions execution logs",
-            "        self.log_group = logs.LogGroup(",
-            "            self,",
-            '            "ExecutionLogs",',
-            f'            log_group_name="/aws/stepfunctions/{stack_prefix}",',
-            "            retention=logs.RetentionDays.ONE_MONTH,",
-            "            encryption_key=self.kms_key,",
-            "        )",
-        ]
+        base = textwrap.dedent(f"""\
+            class SharedStack(cdk.Stack):
+                \"\"\"Shared resources used by the workflow stack.\"\"\"
+
+                def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+                    super().__init__(scope, construct_id, **kwargs)
+
+                    # KMS key for encrypting state machine data, SSM parameters, and logs
+                    self.kms_key = kms.Key(
+                        self,
+                        "WorkflowKey",
+                        alias="{stack_prefix}-key",
+                        description="Encryption key for {stack_prefix} workflow",
+                        enable_key_rotation=True,
+                    )
+
+                    # CloudWatch log group for Step Functions execution logs
+                    self.log_group = logs.LogGroup(
+                        self,
+                        "ExecutionLogs",
+                        log_group_name="/aws/stepfunctions/{stack_prefix}",
+                        retention=logs.RetentionDays.ONE_MONTH,
+                        encryption_key=self.kms_key,
+                    )
+        """)
+
+        sections: list[str] = ["\n".join(import_lines) + "\n", base]
 
         if vpc_config:
-            body.append("")
-            body.append("        # --- VPC Configuration ---")
-            body.append("        vpc_id = self.node.try_get_context(\"vpc_id\")")
-            body.append("        if vpc_id:")
-            body.append("            self.vpc = ec2.Vpc.from_lookup(self, \"VPC\", vpc_id=vpc_id)")
-            body.append("        else:")
-            body.append('            self.vpc = ec2.Vpc(self, "PhaethonVPC", max_azs=2, nat_gateways=1)')
-            body.append("")
-            body.append("        # Security group for Lambda functions")
-            body.append("        self.lambda_security_group = ec2.SecurityGroup(")
-            body.append("            self,")
-            body.append('            "LambdaSG",')
-            body.append("            vpc=self.vpc,")
-            body.append(f'            description="Security group for {stack_prefix} Lambda functions",')
-            body.append("            allow_all_outbound=False,")
-            body.append("        )")
+            sections.append(
+                "\n"
+                + _body(f"""\
+                # --- VPC Configuration ---
+                vpc_id = self.node.try_get_context("vpc_id")
+                if vpc_id:
+                    self.vpc = ec2.Vpc.from_lookup(self, "VPC", vpc_id=vpc_id)
+                else:
+                    self.vpc = ec2.Vpc(self, "PhaethonVPC", max_azs=2, nat_gateways=1)
+
+                # Security group for Lambda functions
+                self.lambda_security_group = ec2.SecurityGroup(
+                    self,
+                    "LambdaSG",
+                    vpc=self.vpc,
+                    description="Security group for {stack_prefix} Lambda functions",
+                    allow_all_outbound=False,
+                )
+            """)
+            )
 
             for rule in vpc_config.security_group_rules:
-                body.append("        self.lambda_security_group.add_egress_rule(")
-                body.append("            ec2.Peer.any_ipv4(),")
-                body.append(f"            ec2.Port.tcp({rule['port']}),")
-                body.append(f'            "{rule["description"]} access",')
-                body.append("        )")
+                sections.append(
+                    _body(f"""\
+                    self.lambda_security_group.add_egress_rule(
+                        ec2.Peer.any_ipv4(),
+                        ec2.Port.tcp({rule["port"]}),
+                        "{rule["description"]} access",
+                    )
+                """)
+                )
 
-            # HTTPS egress for NAT Gateway path (outbound internet for non-VPC services)
-            body.append("        self.lambda_security_group.add_egress_rule(")
-            body.append("            ec2.Peer.any_ipv4(),")
-            body.append("            ec2.Port.tcp(443),")
-            body.append('            "HTTPS outbound for AWS APIs and internet access",')
-            body.append("        )")
+            # HTTPS egress for NAT Gateway path
+            sections.append(
+                _body("""\
+                self.lambda_security_group.add_egress_rule(
+                    ec2.Peer.any_ipv4(),
+                    ec2.Port.tcp(443),
+                    "HTTPS outbound for AWS APIs and internet access",
+                )
+            """)
+            )
 
-        body.append("")
-        code = "\n".join(imports + body)
+        code = "".join(sections)
         (stacks_dir / "shared_stack.py").write_text(code)
 
     @staticmethod
@@ -247,32 +266,29 @@ class CDKWriter:
         stack_prefix: str,
     ) -> None:
         """Write the main workflow stack."""
-        lines: list[str] = []
-
         layers, _ = analyze_shared_dependencies(input_data.lambda_functions)
 
-        self._wf_imports(lines, input_data)
-        self._wf_class_header(lines, stack_prefix)
-        self._wf_vpc_lookup(lines, input_data)
-        self._wf_ssm_parameters(lines, ssm_params)
-        self._wf_dead_letter_queue(lines, stack_prefix)
-        self._wf_lambda_layers(lines, layers)
-        self._wf_lambda_functions(lines, input_data, layers)
-        self._wf_state_machine(lines, iam_policy, stack_prefix)
-        self._wf_alarms(lines)
-        self._wf_triggers(lines, input_data)
-        self._wf_custom_domain(lines, input_data)
-        self._wf_oauth_rotation(lines, input_data)
-        self._wf_sub_workflow_params(lines, input_data)
+        sections = [
+            self._wf_imports(input_data),
+            self._wf_class_header(stack_prefix),
+            self._wf_vpc_lookup(input_data),
+            self._wf_ssm_parameters(ssm_params),
+            self._wf_dead_letter_queue(stack_prefix),
+            self._wf_lambda_layers(layers),
+            self._wf_lambda_functions(input_data, layers),
+            self._wf_state_machine(iam_policy, stack_prefix),
+            self._wf_alarms(),
+            self._wf_triggers(input_data),
+            self._wf_custom_domain(input_data),
+            self._wf_oauth_rotation(input_data),
+            self._wf_sub_workflow_params(input_data),
+        ]
 
-        (stacks_dir / "workflow_stack.py").write_text("\n".join(lines) + "\n")
+        (stacks_dir / "workflow_stack.py").write_text("".join(s for s in sections if s))
 
     @staticmethod
-    def _wf_imports(
-        lines: list[str],
-        input_data: PackagerInput,
-    ) -> None:
-        """Append import statements."""
+    def _wf_imports(input_data: PackagerInput) -> str:
+        """Return import statements."""
         has_webhook_fns = any(
             s.function_type
             in (
@@ -282,14 +298,14 @@ class CDKWriter:
             for s in input_data.lambda_functions
         )
 
-        lines.append(
-            '"""Workflow stack: state machine, Lambdas, triggers, credentials."""'
-        )
-        lines.append("")
-        lines.append("import json")
-        lines.append("from pathlib import Path")
-        lines.append("")
-        lines.append("import aws_cdk as cdk")
+        lines = [
+            '"""Workflow stack: state machine, Lambdas, triggers, credentials."""',
+            "",
+            "import json",
+            "from pathlib import Path",
+            "",
+            "import aws_cdk as cdk",
+        ]
         if has_webhook_fns:
             lines.append("from aws_cdk import aws_certificatemanager as acm")
             lines.append("from aws_cdk import aws_cloudfront as cloudfront")
@@ -297,180 +313,169 @@ class CDKWriter:
         lines.append("from aws_cdk import aws_cloudwatch as cloudwatch")
         if input_data.vpc_config:
             lines.append("from aws_cdk import aws_ec2 as ec2")
-        lines.append("from aws_cdk import aws_events as events")
-        lines.append("from aws_cdk import aws_events_targets as targets")
-        lines.append("from aws_cdk import aws_iam as iam")
-        lines.append("from aws_cdk import aws_lambda as lambda_")
+        lines.extend(
+            [
+                "from aws_cdk import aws_events as events",
+                "from aws_cdk import aws_events_targets as targets",
+                "from aws_cdk import aws_iam as iam",
+                "from aws_cdk import aws_lambda as lambda_",
+            ]
+        )
         if has_webhook_fns:
             lines.append("from aws_cdk import aws_route53 as route53")
             lines.append("from aws_cdk import aws_route53_targets as route53_targets")
-        lines.append("from aws_cdk import aws_sqs as sqs")
-        lines.append("from aws_cdk import aws_ssm as ssm")
-        lines.append("from aws_cdk import aws_stepfunctions as sfn")
-
-        lines.append("from constructs import Construct")
-        lines.append("")
-        lines.append("from stacks.shared_stack import SharedStack")
-        lines.append("")
-        lines.append("")
-
-    @staticmethod
-    def _wf_class_header(lines: list[str], stack_prefix: str) -> None:
-        """Append class definition and constructor header."""
-        lines.append("class WorkflowStack(cdk.Stack):")
-        lines.append(f'    """Main workflow stack for {stack_prefix}."""')
-        lines.append("")
-        lines.append(
-            "    def __init__(",
+        lines.extend(
+            [
+                "from aws_cdk import aws_sqs as sqs",
+                "from aws_cdk import aws_ssm as ssm",
+                "from aws_cdk import aws_stepfunctions as sfn",
+                "from constructs import Construct",
+                "",
+                "from stacks.shared_stack import SharedStack",
+                "",
+                "",
+            ]
         )
-        lines.append("        self,")
-        lines.append("        scope: Construct,")
-        lines.append("        construct_id: str,")
-        lines.append("        shared_stack: SharedStack,")
-        lines.append("        **kwargs,")
-        lines.append("    ) -> None:")
-        lines.append("        super().__init__(scope, construct_id, **kwargs)")
-        lines.append("")
+        return "\n".join(lines) + "\n"
 
     @staticmethod
-    def _wf_vpc_lookup(lines: list[str], input_data: PackagerInput) -> None:
-        """Append VPC resource references from the shared stack."""
+    def _wf_class_header(stack_prefix: str) -> str:
+        """Return class definition and constructor header."""
+        return textwrap.dedent(f"""\
+            class WorkflowStack(cdk.Stack):
+                \"\"\"Main workflow stack for {stack_prefix}.\"\"\"
+
+                def __init__(
+                    self,
+                    scope: Construct,
+                    construct_id: str,
+                    shared_stack: SharedStack,
+                    **kwargs,
+                ) -> None:
+                    super().__init__(scope, construct_id, **kwargs)
+
+        """)
+
+    @staticmethod
+    def _wf_vpc_lookup(input_data: PackagerInput) -> str:
+        """Return VPC resource references from the shared stack."""
         if not input_data.vpc_config:
-            return
-        lines.append("        # --- VPC Configuration ---")
-        lines.append("        vpc = shared_stack.vpc")
-        lines.append("        lambda_sg = shared_stack.lambda_security_group")
-        lines.append(
-            "        vpc_subnets = ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS)"
+            return ""
+        return (
+            _body("""\
+            # --- VPC Configuration ---
+            vpc = shared_stack.vpc
+            lambda_sg = shared_stack.lambda_security_group
+            vpc_subnets = ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS)
+        """)
+            + "\n"
         )
-        lines.append("")
 
     @staticmethod
-    def _wf_ssm_parameters(
-        lines: list[str],
-        ssm_params: list[SSMParameterDefinition],
-    ) -> None:
-        """Append SSM parameter constructs."""
+    def _wf_ssm_parameters(ssm_params: list[SSMParameterDefinition]) -> str:
+        """Return SSM parameter constructs."""
         if not ssm_params:
-            return
-        lines.append("        # --- SSM Parameters (credentials) ---")
+            return ""
+        parts = [_BODY + "# --- SSM Parameters (credentials) ---\n"]
         for param in ssm_params:
             safe_id = (
                 param.parameter_path.strip("/").replace("/", "-").replace("_", "-")
             )
-            lines.append("        ssm.StringParameter(")
-            lines.append("            self,")
-            lines.append(f'            "Param-{safe_id}",')
-            lines.append(
-                f'            parameter_name="{param.parameter_path}",',
+            parts.append(
+                _body(f"""\
+                ssm.StringParameter(
+                    self,
+                    "Param-{safe_id}",
+                    parameter_name="{param.parameter_path}",
+                    string_value="{param.placeholder_value}",
+                    description="{param.description}",
+                )
+            """)
+                + "\n"
             )
-            lines.append(
-                f'            string_value="{param.placeholder_value}",',
-            )
-            lines.append(f'            description="{param.description}",')
-            lines.append("        )")
-            lines.append("")
+        return "".join(parts)
 
     @staticmethod
-    def _wf_dead_letter_queue(lines: list[str], stack_prefix: str) -> None:
-        """Append SQS dead-letter queue construct."""
-        lines.append("        # --- Dead Letter Queue ---")
-        lines.append("        dlq = sqs.Queue(")
-        lines.append("            self,")
-        lines.append('            "DeadLetterQueue",')
-        lines.append(
-            f'            queue_name="{stack_prefix}-dlq",'
+    def _wf_dead_letter_queue(stack_prefix: str) -> str:
+        """Return SQS dead-letter queue construct."""
+        return (
+            _body(f"""\
+            # --- Dead Letter Queue ---
+            dlq = sqs.Queue(
+                self,
+                "DeadLetterQueue",
+                queue_name="{stack_prefix}-dlq",
+                retention_period=cdk.Duration.days(14),
+            )
+        """)
+            + "\n"
         )
-        lines.append("            retention_period=cdk.Duration.days(14),")
-        lines.append("        )")
-        lines.append("")
 
     @staticmethod
-    def _wf_lambda_layers(
-        lines: list[str],
-        layers: list[LayerSpec],
-    ) -> None:
-        """Append Lambda Layer constructs for shared dependencies."""
+    def _wf_lambda_layers(layers: list[LayerSpec]) -> str:
+        """Return Lambda Layer constructs for shared dependencies."""
         if not layers:
-            return
+            return ""
 
-        lines.append("        # --- Lambda Layers (shared dependencies) ---")
+        parts = [_BODY + "# --- Lambda Layers (shared dependencies) ---\n"]
         for layer in layers:
             var_name = layer.layer_name.replace("-", "_") + "_layer"
             construct_id = (
-                layer.layer_name.replace("-", " ").title().replace(" ", "")
-                + "Layer"
+                layer.layer_name.replace("-", " ").title().replace(" ", "") + "Layer"
             )
             dep_summary = ", ".join(
                 d.split("==")[0].split("@")[0] for d in layer.dependencies
             )
 
             if layer.runtime == LambdaRuntime.PYTHON:
-                lines.append(
-                    f"        # Shared Python deps: {dep_summary}",
+                parts.append(
+                    _body(f"""\
+                    # Shared Python deps: {dep_summary}
+                    {var_name} = lambda_.LayerVersion(
+                        self,
+                        "{construct_id}",
+                        code=lambda_.Code.from_asset(
+                            str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}"),
+                            bundling=cdk.BundlingOptions(
+                                image=lambda_.Runtime.PYTHON_3_12.bundling_image,
+                                command=["bash", "-c", "pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output/python"],
+                            ),
+                        ),
+                        compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+                        description="Shared Python dependencies for workflow",
+                    )
+                """)
+                    + "\n"
                 )
-                lines.append(f"        {var_name} = lambda_.LayerVersion(")
-                lines.append("            self,")
-                lines.append(f'            "{construct_id}",')
-                lines.append(
-                    "            code=lambda_.Code.from_asset(",
-                )
-                lines.append(
-                    f'                str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}"),',
-                )
-                lines.append(
-                    "                bundling=cdk.BundlingOptions(",
-                )
-                lines.append(
-                    '                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,',
-                )
-                lines.append(
-                    '                    command=["bash", "-c", "pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output/python"],',
-                )
-                lines.append(
-                    "                ),",
-                )
-                lines.append(
-                    "            ),",
-                )
-                lines.append(
-                    "            compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],"
-                )
-                lines.append(
-                    '            description="Shared Python dependencies for workflow",',
-                )
-                lines.append("        )")
             else:
-                lines.append(
-                    f"        # Shared Node.js deps: {dep_summary}",
+                parts.append(
+                    _body(f"""\
+                    # Shared Node.js deps: {dep_summary}
+                    {var_name} = lambda_.LayerVersion(
+                        self,
+                        "{construct_id}",
+                        code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}")),
+                        compatible_runtimes=[lambda_.Runtime.NODEJS_20_X],
+                        description="Shared Node.js dependencies for workflow",
+                    )
+                """)
+                    + "\n"
                 )
-                lines.append(f"        {var_name} = lambda_.LayerVersion(")
-                lines.append("            self,")
-                lines.append(f'            "{construct_id}",')
-                lines.append(
-                    f'            code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "layers" / "{layer.layer_name}")),',
-                )
-                lines.append(
-                    "            compatible_runtimes=[lambda_.Runtime.NODEJS_20_X],"
-                )
-                lines.append(
-                    '            description="Shared Node.js dependencies for workflow",',
-                )
-                lines.append("        )")
-            lines.append("")
+        return "".join(parts)
 
     @staticmethod
     def _wf_lambda_functions(
-        lines: list[str],
         input_data: PackagerInput,
         layers: list[LayerSpec] | None = None,
-    ) -> None:
-        """Append Lambda function constructs."""
+    ) -> str:
+        """Return Lambda function constructs."""
         if not input_data.lambda_functions:
-            return
-        lines.append("        # --- Lambda Functions ---")
-        lines.append("        lambda_functions = {}")
-        lines.append("")
+            return ""
+        parts: list[str] = [
+            _BODY + "# --- Lambda Functions ---\n",
+            _BODY + "lambda_functions = {}\n",
+            "\n",
+        ]
 
         for spec in input_data.lambda_functions:
             construct_id = spec.function_name.replace("_", "-").title().replace("-", "")
@@ -480,268 +485,236 @@ class CDKWriter:
                 else ""
             )
 
-            vpc_lines: list[str] = []
+            # Build optional VPC and layer parameter lines
+            extras: list[str] = []
+            if layers:
+                layer_var_names = [
+                    layer.layer_name.replace("-", "_") + "_layer"
+                    for layer in layers
+                    if spec.function_name in layer.function_names
+                ]
+                if layer_var_names:
+                    layer_list = ", ".join(layer_var_names)
+                    extras.append(f"            layers=[{layer_list}],\n")
             if input_data.vpc_config:
-                vpc_lines.append("            vpc=vpc,")
-                vpc_lines.append("            vpc_subnets=vpc_subnets,")
-                vpc_lines.append("            security_groups=[lambda_sg],")
-
-            # Determine which layers this function uses
-            layer_var_names = [
-                layer.layer_name.replace("-", "_") + "_layer"
-                for layer in (layers or [])
-                if spec.function_name in layer.function_names
-            ]
-            layer_lines: list[str] = []
-            if layer_var_names:
-                layer_list = ", ".join(layer_var_names)
-                layer_lines.append(f"            layers=[{layer_list}],")
+                extras.extend(
+                    [
+                        "            vpc=vpc,\n",
+                        "            vpc_subnets=vpc_subnets,\n",
+                        "            security_groups=[lambda_sg],\n",
+                    ]
+                )
+            extras_str = "".join(extras)
 
             if spec.runtime == LambdaRuntime.PYTHON:
-                lines.append(
-                    f"        # {spec.description or spec.function_name}{comment}",
+                parts.append(
+                    _body(f"""\
+                    # {spec.description or spec.function_name}{comment}
+                    lambda_functions["{spec.function_name}"] = lambda_.Function(
+                        self,
+                        "{construct_id}Fn",
+                        runtime=lambda_.Runtime.PYTHON_3_12,
+                        handler="handler.handler",
+                        code=lambda_.Code.from_asset(
+                            str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}"),
+                            bundling=cdk.BundlingOptions(
+                                image=lambda_.Runtime.PYTHON_3_12.bundling_image,
+                                command=["bash", "-c", "pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output && cp /asset-input/*.py /asset-output/"],
+                            ),
+                        ),
+                """)
+                    + extras_str
+                    + _body("""\
+                    tracing=lambda_.Tracing.ACTIVE,
+                    dead_letter_queue=dlq,
                 )
-                lines.append(
-                    f'        lambda_functions["{spec.function_name}"] = lambda_.Function('
+                """)
+                    + "\n"
                 )
-                lines.append("            self,")
-                lines.append(f'            "{construct_id}Fn",')
-                lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
-                lines.append('            handler="handler.handler",')
-                lines.append(
-                    "            code=lambda_.Code.from_asset(",
-                )
-                lines.append(
-                    f'                str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}"),',
-                )
-                lines.append(
-                    "                bundling=cdk.BundlingOptions(",
-                )
-                lines.append(
-                    '                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,',
-                )
-                lines.append(
-                    "                    command=[\"bash\", \"-c\", \"pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output && cp /asset-input/*.py /asset-output/\"],",
-                )
-                lines.append(
-                    "                ),",
-                )
-                lines.append(
-                    "            ),",
-                )
-                lines.extend(layer_lines)
-                lines.extend(vpc_lines)
-                lines.append("            tracing=lambda_.Tracing.ACTIVE,")
-                lines.append("            dead_letter_queue=dlq,")
-                lines.append("        )")
             else:
-                lines.append(
-                    f"        # {spec.description or spec.function_name}{comment}",
+                parts.append(
+                    _body(f"""\
+                    # {spec.description or spec.function_name}{comment}
+                    lambda_functions["{spec.function_name}"] = lambda_.Function(
+                        self,
+                        "{construct_id}Fn",
+                        runtime=lambda_.Runtime.NODEJS_20_X,
+                        handler="handler.handler",
+                        code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}")),
+                """)
+                    + extras_str
+                    + _body("""\
+                    tracing=lambda_.Tracing.ACTIVE,
+                    dead_letter_queue=dlq,
                 )
-                lines.append(
-                    f'        lambda_functions["{spec.function_name}"] = lambda_.Function('
+                """)
+                    + "\n"
                 )
-                lines.append("            self,")
-                lines.append(f'            "{construct_id}Fn",')
-                lines.append(
-                    "            runtime=lambda_.Runtime.NODEJS_20_X,",
-                )
-                lines.append(
-                    '            handler="handler.handler",',
-                )
-                lines.append(
-                    f'            code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}")),',
-                )
-                lines.extend(layer_lines)
-                lines.extend(vpc_lines)
-                lines.append("            tracing=lambda_.Tracing.ACTIVE,")
-                lines.append("            dead_letter_queue=dlq,")
-                lines.append("        )")
-            lines.append("")
 
             # Function URL for webhook / callback handlers
             if spec.function_type in (
                 LambdaFunctionType.WEBHOOK_HANDLER,
                 LambdaFunctionType.CALLBACK_HANDLER,
             ):
-                lines.append(
-                    f'        fn_url_{spec.function_name} = lambda_functions["{spec.function_name}"].add_function_url(',
+                parts.append(
+                    _body(f"""\
+                    fn_url_{spec.function_name} = lambda_functions["{spec.function_name}"].add_function_url(
+                        auth_type=lambda_.FunctionUrlAuthType.NONE,
+                    )
+                """)
+                    + "\n"
                 )
-                lines.append(
-                    "            auth_type=lambda_.FunctionUrlAuthType.NONE,",
-                )
-                lines.append("        )")
-                lines.append("")
 
                 # Webhook authentication: SSM env var + IAM permission
                 if spec.webhook_auth:
                     param_path = spec.webhook_auth.credential_parameter_path
                     param_path_stripped = param_path.strip("/")
-                    lines.append(
-                        f'        lambda_functions["{spec.function_name}"].add_environment(',
+                    parts.append(
+                        _body(f"""\
+                        lambda_functions["{spec.function_name}"].add_environment(
+                            "WEBHOOK_AUTH_PARAMETER", "{param_path}",
+                        )
+                        lambda_functions["{spec.function_name}"].add_to_role_policy(
+                            iam.PolicyStatement(
+                                actions=["ssm:GetParameter"],
+                                resources=["arn:aws:ssm:*:*:parameter/{param_path_stripped}"],
+                            )
+                        )
+                    """)
+                        + "\n"
                     )
-                    lines.append(
-                        f'            "WEBHOOK_AUTH_PARAMETER", "{param_path}",',
-                    )
-                    lines.append("        )")
-                    lines.append(
-                        f'        lambda_functions["{spec.function_name}"].add_to_role_policy(',
-                    )
-                    lines.append("            iam.PolicyStatement(")
-                    lines.append(
-                        '                actions=["ssm:GetParameter"],'
-                    )
-                    lines.append(
-                        f'                resources=["arn:aws:ssm:*:*:parameter/{param_path_stripped}"],',
-                    )
-                    lines.append("            )")
-                    lines.append("        )")
-                    lines.append("")
+
+        return "".join(parts)
 
     @staticmethod
     def _wf_state_machine(
-        lines: list[str],
         iam_policy: dict[str, Any],
         stack_prefix: str,
-    ) -> None:
-        """Append state machine and IAM role constructs."""
-        lines.append("        # --- IAM Execution Role ---")
-        lines.append("        execution_role = iam.Role(")
-        lines.append("            self,")
-        lines.append('            "ExecutionRole",')
-        lines.append(
-            '            assumed_by=iam.ServicePrincipal("states.amazonaws.com"),',
-        )
-        lines.append(
-            f'            description="Execution role for {stack_prefix} state machine",'
-        )
-        lines.append("        )")
-        lines.append("")
-
+    ) -> str:
+        """Return state machine and IAM role constructs."""
         policy_json = json.dumps(iam_policy, indent=8)
-        lines.append(f"        policy_doc = {policy_json}")
-        lines.append("")
-        lines.append("        execution_role.attach_inline_policy(")
-        lines.append("            iam.Policy(")
-        lines.append("                self,")
-        lines.append('                "ExecutionPolicy",')
-        lines.append(
-            "                document=iam.PolicyDocument.from_json(policy_doc),",
-        )
-        lines.append("            ),")
-        lines.append("        )")
-        lines.append("")
 
-        lines.append("        # --- State Machine ---")
-        lines.append(
-            '        definition_path = str(Path(__file__).parent.parent.parent / "statemachine" / "definition.asl.json")',
+        role_block = _body(f"""\
+            # --- IAM Execution Role ---
+            execution_role = iam.Role(
+                self,
+                "ExecutionRole",
+                assumed_by=iam.ServicePrincipal("states.amazonaws.com"),
+                description="Execution role for {stack_prefix} state machine",
+            )
+
+        """)
+
+        policy_line = f"{_BODY}policy_doc = {policy_json}\n\n"
+
+        rest = (
+            _body(f"""\
+            execution_role.attach_inline_policy(
+                iam.Policy(
+                    self,
+                    "ExecutionPolicy",
+                    document=iam.PolicyDocument.from_json(policy_doc),
+                ),
+            )
+
+            # --- State Machine ---
+            definition_path = str(Path(__file__).parent.parent.parent / "statemachine" / "definition.asl.json")
+            cfn_state_machine = sfn.CfnStateMachine(
+                self,
+                "StateMachine",
+                state_machine_name="{stack_prefix}",
+                definition_string=Path(definition_path).read_text(),
+                role_arn=execution_role.role_arn,
+                logging_configuration=sfn.CfnStateMachine.LoggingConfigurationProperty(
+                    level="ALL",
+                    include_execution_data=True,
+                    destinations=[
+                        sfn.CfnStateMachine.LogDestinationProperty(
+                            cloud_watch_logs_log_group=sfn.CfnStateMachine.CloudWatchLogsLogGroupProperty(
+                                log_group_arn=shared_stack.log_group.log_group_arn,
+                            ),
+                        ),
+                    ],
+                ),
+                tracing_configuration=sfn.CfnStateMachine.TracingConfigurationProperty(
+                    enabled=True,
+                ),
+            )
+            state_machine = sfn.StateMachine.from_state_machine_arn(
+                self, "StateMachineRef", cfn_state_machine.attr_arn,
+            )
+
+            # Route failed/timed-out/aborted executions to the DLQ
+            events.Rule(
+                self,
+                "FailedExecutionDlqRule",
+                event_pattern=events.EventPattern(
+                    source=["aws.states"],
+                    detail_type=["Step Functions Execution Status Change"],
+                    detail={{
+                        "status": ["FAILED", "TIMED_OUT", "ABORTED"],
+                        "stateMachineArn": [cfn_state_machine.attr_arn],
+                    }},
+                ),
+                targets=[targets.SqsQueue(dlq)],
+            )
+        """)
+            + "\n"
         )
-        lines.append("        cfn_state_machine = sfn.CfnStateMachine(")
-        lines.append("            self,")
-        lines.append('            "StateMachine",')
-        lines.append(
-            f'            state_machine_name="{stack_prefix}",',
-        )
-        lines.append(
-            "            definition_string=Path(definition_path).read_text(),",
-        )
-        lines.append("            role_arn=execution_role.role_arn,")
-        lines.append(
-            "            logging_configuration=sfn.CfnStateMachine.LoggingConfigurationProperty("
-        )
-        lines.append('                level="ALL",')
-        lines.append("                include_execution_data=True,")
-        lines.append("                destinations=[")
-        lines.append("                    sfn.CfnStateMachine.LogDestinationProperty(")
-        lines.append(
-            "                        cloud_watch_logs_log_group=sfn.CfnStateMachine.CloudWatchLogsLogGroupProperty("
-        )
-        lines.append(
-            "                            log_group_arn=shared_stack.log_group.log_group_arn,"
-        )
-        lines.append("                        ),")
-        lines.append("                    ),")
-        lines.append("                ],")
-        lines.append("            ),")
-        lines.append(
-            "            tracing_configuration=sfn.CfnStateMachine.TracingConfigurationProperty("
-        )
-        lines.append("                enabled=True,")
-        lines.append("            ),")
-        lines.append("        )")
-        lines.append("        state_machine = sfn.StateMachine.from_state_machine_arn(")
-        lines.append('            self, "StateMachineRef", cfn_state_machine.attr_arn,')
-        lines.append("        )")
-        lines.append("")
-        lines.append(
-            "        # Route failed/timed-out/aborted executions to the DLQ"
-        )
-        lines.append("        events.Rule(")
-        lines.append("            self,")
-        lines.append('            "FailedExecutionDlqRule",')
-        lines.append("            event_pattern=events.EventPattern(")
-        lines.append('                source=["aws.states"],')
-        lines.append(
-            '                detail_type=["Step Functions Execution Status Change"],'
-        )
-        lines.append("                detail={")
-        lines.append(
-            '                    "status": ["FAILED", "TIMED_OUT", "ABORTED"],'
-        )
-        lines.append(
-            '                    "stateMachineArn": [cfn_state_machine.attr_arn],'
-        )
-        lines.append("                },")
-        lines.append("            ),")
-        lines.append("            targets=[targets.SqsQueue(dlq)],")
-        lines.append("        )")
-        lines.append("")
+
+        return role_block + policy_line + rest
 
     @staticmethod
-    def _wf_alarms(lines: list[str]) -> None:
-        """Append CloudWatch alarm constructs for the state machine."""
-        lines.append("        # --- CloudWatch Alarms ---")
+    def _wf_alarms() -> str:
+        """Return CloudWatch alarm constructs for the state machine."""
+        parts = [_BODY + "# --- CloudWatch Alarms ---\n"]
         for metric_method, alarm_id in [
             ("metric_failed", "FailedAlarm"),
             ("metric_timed_out", "TimedOutAlarm"),
             ("metric_throttled", "ThrottledAlarm"),
         ]:
-            lines.append("        cloudwatch.Alarm(")
-            lines.append("            self,")
-            lines.append(f'            "{alarm_id}",')
-            lines.append(
-                f"            metric=state_machine.{metric_method}(),"
+            parts.append(
+                _body(f"""\
+                cloudwatch.Alarm(
+                    self,
+                    "{alarm_id}",
+                    metric=state_machine.{metric_method}(),
+                    threshold=1,
+                    evaluation_periods=1,
+                )
+            """)
+                + "\n"
             )
-            lines.append("            threshold=1,")
-            lines.append("            evaluation_periods=1,")
-            lines.append("        )")
-            lines.append("")
+        return "".join(parts)
 
     @staticmethod
-    def _wf_triggers(lines: list[str], input_data: PackagerInput) -> None:
-        """Append EventBridge schedule trigger constructs."""
+    def _wf_triggers(input_data: PackagerInput) -> str:
+        """Return EventBridge schedule trigger constructs."""
         schedule_triggers = [
             t for t in input_data.triggers if t.trigger_type == TriggerType.SCHEDULE
         ]
         if not schedule_triggers:
-            return
+            return ""
 
-        lines.append("        # --- Schedule Triggers ---")
+        parts = [_BODY + "# --- Schedule Triggers ---\n"]
         for i, trigger in enumerate(schedule_triggers):
             expr = trigger.configuration.get("schedule_expression", "rate(1 hour)")
-            lines.append("        events.Rule(")
-            lines.append("            self,")
-            lines.append(f'            "ScheduleRule{i}",')
-            lines.append(f'            schedule=events.Schedule.expression("{expr}"),')
-            lines.append(
-                "            targets=[targets.SfnStateMachine(state_machine)],",
+            parts.append(
+                _body(f"""\
+                events.Rule(
+                    self,
+                    "ScheduleRule{i}",
+                    schedule=events.Schedule.expression("{expr}"),
+                    targets=[targets.SfnStateMachine(state_machine)],
+                )
+            """)
+                + "\n"
             )
-            lines.append("        )")
-            lines.append("")
+        return "".join(parts)
 
     @staticmethod
-    def _wf_custom_domain(lines: list[str], input_data: PackagerInput) -> None:
-        """Append optional CloudFront + Route 53 constructs for custom domains."""
+    def _wf_custom_domain(input_data: PackagerInput) -> str:
+        """Return optional CloudFront + Route 53 constructs for custom domains."""
         webhook_fns = [
             s
             for s in input_data.lambda_functions
@@ -752,178 +725,136 @@ class CDKWriter:
             )
         ]
         if not webhook_fns:
-            return
+            return ""
 
-        lines.append("        # --- Custom Domain (opt-in via CDK context) ---")
-        lines.append(
-            '        custom_domain = self.node.try_get_context("custom_domain")'
-        )
-        lines.append("        if custom_domain:")
-        lines.append(
-            '            cert_arn = self.node.try_get_context("certificate_arn")'
-        )
-        lines.append(
-            '            hosted_zone_id = self.node.try_get_context("hosted_zone_id")'
-        )
-        lines.append(
-            "            zone = route53.HostedZone.from_hosted_zone_attributes("
-        )
-        lines.append('                self, "HostedZone",')
-        lines.append("                hosted_zone_id=hosted_zone_id,")
-        lines.append(
-            '                zone_name=".".join(custom_domain.split(".")[-2:]),'
-        )
-        lines.append("            )")
+        parts: list[str] = [
+            _body("""\
+            # --- Custom Domain (opt-in via CDK context) ---
+            custom_domain = self.node.try_get_context("custom_domain")
+            if custom_domain:
+                cert_arn = self.node.try_get_context("certificate_arn")
+                hosted_zone_id = self.node.try_get_context("hosted_zone_id")
+                zone = route53.HostedZone.from_hosted_zone_attributes(
+                    self, "HostedZone",
+                    hosted_zone_id=hosted_zone_id,
+                    zone_name=".".join(custom_domain.split(".")[-2:]),
+                )
+        """)
+        ]
 
+        _if_body = "            "  # 12 spaces: inside 'if custom_domain:'
         for spec in webhook_fns:
             construct_suffix = (
                 spec.function_name.replace("_", " ").title().replace(" ", "")
             )
-            lines.append("")
-            lines.append(
-                f"            url_domain_{spec.function_name} = cdk.Fn.select("
-            )
-            lines.append(
-                f'                2, cdk.Fn.split("/", fn_url_{spec.function_name}.url),'
-            )
-            lines.append("            )")
-            lines.append(
-                f'            distribution_{spec.function_name} = cloudfront.Distribution('
-            )
-            lines.append(
-                f'                self, "WebhookCDN{construct_suffix}",'
-            )
-            lines.append(
-                "                default_behavior=cloudfront.BehaviorOptions("
-            )
-            lines.append(
-                f"                    origin=origins.HttpOrigin(url_domain_{spec.function_name}),"
-            )
-            lines.append("                ),")
-            lines.append("                domain_names=[custom_domain],")
-            lines.append(
-                "                certificate=acm.Certificate.from_certificate_arn("
-            )
-            lines.append(
-                f'                    self, "Cert{construct_suffix}", cert_arn,'
-            )
-            lines.append("                ),")
-            lines.append("            )")
-            lines.append("            route53.ARecord(")
-            lines.append(
-                f'                self, "WebhookAlias{construct_suffix}",'
-            )
-            lines.append("                zone=zone,")
-            lines.append(
-                "                target=route53.RecordTarget.from_alias("
-            )
-            lines.append(
-                f"                    route53_targets.CloudFrontTarget(distribution_{spec.function_name}),"
-            )
-            lines.append("                ),")
-            lines.append("            )")
+            parts.append(
+                textwrap.indent(
+                    textwrap.dedent(f"""\
 
-        lines.append("")
+                url_domain_{spec.function_name} = cdk.Fn.select(
+                    2, cdk.Fn.split("/", fn_url_{spec.function_name}.url),
+                )
+                distribution_{spec.function_name} = cloudfront.Distribution(
+                    self, "WebhookCDN{construct_suffix}",
+                    default_behavior=cloudfront.BehaviorOptions(
+                        origin=origins.HttpOrigin(url_domain_{spec.function_name}),
+                    ),
+                    domain_names=[custom_domain],
+                    certificate=acm.Certificate.from_certificate_arn(
+                        self, "Cert{construct_suffix}", cert_arn,
+                    ),
+                )
+                route53.ARecord(
+                    self, "WebhookAlias{construct_suffix}",
+                    zone=zone,
+                    target=route53.RecordTarget.from_alias(
+                        route53_targets.CloudFrontTarget(distribution_{spec.function_name}),
+                    ),
+                )
+            """),
+                    _if_body,
+                )
+            )
+
+        parts.append("\n")
+        return "".join(parts)
 
     @staticmethod
-    def _wf_oauth_rotation(lines: list[str], input_data: PackagerInput) -> None:
-        """Append OAuth token rotation constructs."""
+    def _wf_oauth_rotation(input_data: PackagerInput) -> str:
+        """Return OAuth token rotation constructs."""
         if not input_data.oauth_credentials:
-            return
+            return ""
 
-        lines.append("        # --- OAuth Token Rotation ---")
+        parts = [_BODY + "# --- OAuth Token Rotation ---\n"]
         for i, oauth in enumerate(input_data.oauth_credentials):
             cred_name = oauth.credential_spec.parameter_path.strip("/").split("/")[-1]
             schedule_expr = oauth.refresh_schedule_expression
             param_path = oauth.credential_spec.parameter_path
             token_url = oauth.token_endpoint_url
             var_name = f"oauth_refresh_{cred_name.replace('-', '_')}"
-            construct_id = (
-                "OAuthRefresh"
-                + cred_name.replace("_", " ").replace("-", " ").title().replace(" ", "")
-            )
-
-            # Lambda function for OAuth token refresh
-            lines.append(f"        # OAuth rotation for {cred_name}")
-            lines.append(f"        {var_name} = lambda_.Function(")
-            lines.append("            self,")
-            lines.append(f'            "{construct_id}Fn",')
-            lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
-            lines.append('            handler="handler.handler",')
-            lines.append(
-                "            code=lambda_.Code.from_asset(",
-            )
-            lines.append(
-                f'                str(Path(__file__).parent.parent.parent / "lambdas" / "{var_name}"),',
-            )
-            lines.append(
-                "                bundling=cdk.BundlingOptions(",
-            )
-            lines.append(
-                '                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,',
-            )
-            lines.append(
-                "                    command=[\"bash\", \"-c\", \"pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output && cp /asset-input/*.py /asset-output/\"],",
-            )
-            lines.append(
-                "                ),",
-            )
-            lines.append(
-                "            ),",
-            )
-            lines.append("            environment={")
-            lines.append(f'                "SSM_PARAMETER_PATH": "{param_path}",')
-            lines.append(f'                "TOKEN_ENDPOINT_URL": "{token_url}",')
-            lines.append("            },")
-            lines.append("            tracing=lambda_.Tracing.ACTIVE,")
-            lines.append("            dead_letter_queue=dlq,")
-            lines.append("        )")
-
-            # IAM permissions to read/write SSM parameters for this credential
+            construct_id = "OAuthRefresh" + cred_name.replace("_", " ").replace(
+                "-", " "
+            ).title().replace(" ", "")
             param_path_stripped = param_path.strip("/")
-            lines.append(f"        {var_name}.add_to_role_policy(")
-            lines.append("            iam.PolicyStatement(")
-            lines.append(
-                '                actions=["ssm:GetParameter", "ssm:PutParameter"],'
-            )
-            lines.append(
-                f'                resources=["arn:aws:ssm:*:*:parameter/{param_path_stripped}/*"],',
-            )
-            lines.append("            )")
-            lines.append("        )")
-            lines.append("")
 
-            # EventBridge rule targeting the refresh Lambda
-            lines.append("        events.Rule(")
-            lines.append("            self,")
-            lines.append(f'            "OAuthRotation{i}",')
-            lines.append(
-                f'            schedule=events.Schedule.expression("{schedule_expr}"),',
+            parts.append(
+                _body(f"""\
+                # OAuth rotation for {cred_name}
+                {var_name} = lambda_.Function(
+                    self,
+                    "{construct_id}Fn",
+                    runtime=lambda_.Runtime.PYTHON_3_12,
+                    handler="handler.handler",
+                    code=lambda_.Code.from_asset(
+                        str(Path(__file__).parent.parent.parent / "lambdas" / "{var_name}"),
+                        bundling=cdk.BundlingOptions(
+                            image=lambda_.Runtime.PYTHON_3_12.bundling_image,
+                            command=["bash", "-c", "pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output && cp /asset-input/*.py /asset-output/"],
+                        ),
+                    ),
+                    environment={{
+                        "SSM_PARAMETER_PATH": "{param_path}",
+                        "TOKEN_ENDPOINT_URL": "{token_url}",
+                    }},
+                    tracing=lambda_.Tracing.ACTIVE,
+                    dead_letter_queue=dlq,
+                )
+                {var_name}.add_to_role_policy(
+                    iam.PolicyStatement(
+                        actions=["ssm:GetParameter", "ssm:PutParameter"],
+                        resources=["arn:aws:ssm:*:*:parameter/{param_path_stripped}/*"],
+                    )
+                )
+
+                events.Rule(
+                    self,
+                    "OAuthRotation{i}",
+                    schedule=events.Schedule.expression("{schedule_expr}"),
+                    targets=[targets.LambdaFunction({var_name})],
+                )
+            """)
+                + "\n"
             )
-            lines.append(
-                f"            targets=[targets.LambdaFunction({var_name})],",
-            )
-            lines.append("        )")
-            lines.append("")
+        return "".join(parts)
 
     @staticmethod
-    def _wf_sub_workflow_params(
-        lines: list[str],
-        input_data: PackagerInput,
-    ) -> None:
-        """Append CfnParameter constructs for sub-workflow ARNs."""
+    def _wf_sub_workflow_params(input_data: PackagerInput) -> str:
+        """Return CfnParameter constructs for sub-workflow ARNs."""
         if not input_data.sub_workflows:
-            return
+            return ""
 
-        lines.append("        # --- Sub-workflow ARN Parameters ---")
+        parts = [_BODY + "# --- Sub-workflow ARN Parameters ---\n"]
         for sw in input_data.sub_workflows:
             param_id = sw.name.replace("-", "_").replace(" ", "_")
-            lines.append("        cdk.CfnParameter(")
-            lines.append("            self,")
-            lines.append(f'            "SubWorkflowArn{param_id}",')
-            lines.append(
-                f'            description="ARN of the {sw.name} sub-workflow",'
+            parts.append(
+                _body(f"""\
+                cdk.CfnParameter(
+                    self,
+                    "SubWorkflowArn{param_id}",
+                    description="ARN of the {sw.name} sub-workflow",
+                    default="<{sw.name}-arn>",
+                )
+            """)
+                + "\n"
             )
-            lines.append(f'            default="<{sw.name}-arn>",')
-            lines.append("        )")
-            lines.append("")
+        return "".join(parts)

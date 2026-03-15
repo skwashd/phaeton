@@ -6,6 +6,8 @@ from credential and OAuth credential specs.
 
 from __future__ import annotations
 
+import textwrap
+
 from n8n_to_sfn_packager.models.inputs import CredentialSpec, OAuthCredentialSpec
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
 
@@ -119,68 +121,53 @@ class SSMWriter:
             Markdown string for CREDENTIALS.md.
 
         """
-        lines: list[str] = []
-        lines.append("# Credential Setup Guide")
-        lines.append("")
-        lines.append(
-            "> **WARNING:** This workflow uses SSM SecureString parameters "
-            "with placeholder values. The workflow **will fail** at runtime "
-            "if any placeholder values remain unreplaced. You must provision "
-            "real credentials for every parameter listed below before "
-            "deploying.",
-        )
-        lines.append("")
+        header = textwrap.dedent("""\
+            # Credential Setup Guide
+
+            > **WARNING:** This workflow uses SSM SecureString parameters with placeholder values. The workflow **will fail** at runtime if any placeholder values remain unreplaced. You must provision real credentials for every parameter listed below before deploying.
+        """)
 
         if not credentials and not oauth_credentials:
-            lines.append(
-                "This workflow does not require any credentials.",
-            )
-            lines.append("")
-            return "\n".join(lines)
+            return header + "\nThis workflow does not require any credentials.\n"
 
-        lines.append("## General Instructions")
-        lines.append("")
-        lines.append(
-            "Each credential is stored as an SSM SecureString parameter. "
-            "Use the AWS CLI or the AWS Console to populate each parameter "
-            "with a real value.",
-        )
-        lines.append("")
-        lines.append("**AWS CLI example:**")
-        lines.append("")
-        lines.append("```bash")
-        lines.append("aws ssm put-parameter \\")
-        lines.append('  --name "/your/parameter/path" \\')
-        lines.append("  --type SecureString \\")
-        lines.append('  --value "your-actual-secret-value"')
-        lines.append("```")
-        lines.append("")
-        lines.append(
-            "To update an existing parameter, add the `--overwrite` flag.",
-        )
-        lines.append("")
+        general = textwrap.dedent("""\
+
+            ## General Instructions
+
+            Each credential is stored as an SSM SecureString parameter. Use the AWS CLI or the AWS Console to populate each parameter with a real value.
+
+            **AWS CLI example:**
+
+            ```bash
+            aws ssm put-parameter \\
+              --name "/your/parameter/path" \\
+              --type SecureString \\
+              --value "your-actual-secret-value"
+            ```
+
+            To update an existing parameter, add the `--overwrite` flag.
+        """)
+
+        parts = [header, general]
 
         if credentials:
-            lines.append("## Standard Credentials")
-            lines.append("")
+            parts.append("\n## Standard Credentials\n\n")
             for cred in credentials:
-                self._write_standard_credential_section(lines, cred)
+                parts.append(self._render_standard_credential(cred))
 
         if oauth_credentials:
-            lines.append("## OAuth Credentials")
-            lines.append("")
-            lines.append(
-                "OAuth credentials require additional setup for token "
-                "endpoint configuration and automatic refresh. Each OAuth "
-                "credential produces two SSM parameters (access token and "
-                "refresh token) and an EventBridge-scheduled Lambda for "
-                "automatic token rotation.",
-            )
-            lines.append("")
-            for oauth in oauth_credentials:
-                self._write_oauth_credential_section(lines, oauth)
+            parts.append(
+                textwrap.dedent("""\
+                ## OAuth Credentials
 
-        return "\n".join(lines)
+                OAuth credentials require additional setup for token endpoint configuration and automatic refresh. Each OAuth credential produces two SSM parameters (access token and refresh token) and an EventBridge-scheduled Lambda for automatic token rotation.
+            """)
+                + "\n"
+            )
+            for oauth in oauth_credentials:
+                parts.append(self._render_oauth_credential(oauth))
+
+        return "".join(parts)
 
     @staticmethod
     def _credential_docs_url(credential_type: str) -> str | None:
@@ -193,50 +180,54 @@ class SSMWriter:
                 return _CREDENTIAL_DOCS[stripped]
         return _CREDENTIAL_DOCS.get(key)
 
-    def _write_standard_credential_section(
-        self,
-        lines: list[str],
-        cred: CredentialSpec,
-    ) -> None:
-        """Append a markdown section for a standard credential."""
+    def _render_standard_credential(self, cred: CredentialSpec) -> str:
+        """Return a markdown section for a standard credential."""
         description = cred.description or cred.credential_type
-        lines.append(f"### {description}")
-        lines.append("")
-        lines.append(f"- **SSM Parameter Path:** `{cred.parameter_path}`")
-        lines.append(f"- **Credential Type:** `{cred.credential_type}`")
         placeholder = (
             cred.placeholder_value or f"<your-{cred.credential_type}-credential>"
         )
-        lines.append(f"- **Placeholder Value:** `{placeholder}`")
+
+        lines = [
+            f"### {description}",
+            "",
+            f"- **SSM Parameter Path:** `{cred.parameter_path}`",
+            f"- **Credential Type:** `{cred.credential_type}`",
+            f"- **Placeholder Value:** `{placeholder}`",
+        ]
         if cred.associated_node_names:
             nodes = ", ".join(cred.associated_node_names)
             lines.append(f"- **Used by nodes:** {nodes}")
         docs_url = self._credential_docs_url(cred.credential_type)
         if docs_url:
             lines.append(f"- **Create credential:** <{docs_url}>")
-        lines.append("")
-        lines.append("```bash")
-        lines.append("aws ssm put-parameter \\")
-        lines.append(f'  --name "{cred.parameter_path}" \\')
-        lines.append("  --type SecureString \\")
-        lines.append(f'  --value "<replace with your {cred.credential_type} value>"')
-        lines.append("```")
-        lines.append("")
 
-    def _write_oauth_credential_section(
-        self,
-        lines: list[str],
-        oauth: OAuthCredentialSpec,
-    ) -> None:
-        """Append a markdown section for an OAuth credential."""
+        lines.append(
+            textwrap.dedent(f"""\
+
+            ```bash
+            aws ssm put-parameter \\
+              --name "{cred.parameter_path}" \\
+              --type SecureString \\
+              --value "<replace with your {cred.credential_type} value>"
+            ```
+        """)
+            + "\n"
+        )
+        return "\n".join(lines)
+
+    def _render_oauth_credential(self, oauth: OAuthCredentialSpec) -> str:
+        """Return a markdown section for an OAuth credential."""
         cred = oauth.credential_spec
         description = cred.description or cred.credential_type
-        lines.append(f"### {description}")
-        lines.append("")
         base_path = cred.parameter_path.rstrip("/")
-        lines.append(f"- **SSM Parameter Path (access token):** `{base_path}/access_token`")
-        lines.append(f"- **SSM Parameter Path (refresh token):** `{base_path}/refresh_token`")
-        lines.append(f"- **Credential Type:** `{cred.credential_type}`")
+
+        lines = [
+            f"### {description}",
+            "",
+            f"- **SSM Parameter Path (access token):** `{base_path}/access_token`",
+            f"- **SSM Parameter Path (refresh token):** `{base_path}/refresh_token`",
+            f"- **Credential Type:** `{cred.credential_type}`",
+        ]
         if cred.associated_node_names:
             nodes = ", ".join(cred.associated_node_names)
             lines.append(f"- **Used by nodes:** {nodes}")
@@ -248,35 +239,29 @@ class SSMWriter:
         if oauth.scopes:
             scopes = ", ".join(f"`{s}`" for s in oauth.scopes)
             lines.append(f"- **Scopes:** {scopes}")
-        lines.append("")
-        lines.append("**Setup steps:**")
-        lines.append("")
+
         lines.append(
-            "1. Register your application with the service provider and "
-            "obtain a client ID and client secret.",
+            textwrap.dedent(f"""\
+
+            **Setup steps:**
+
+            1. Register your application with the service provider and obtain a client ID and client secret.
+            2. Complete the OAuth authorization flow to obtain an initial access token and refresh token.
+            3. Store the tokens in SSM:
+
+            ```bash
+            aws ssm put-parameter \\
+              --name "{base_path}/access_token" \\
+              --type SecureString \\
+              --value "<your-oauth2-access-token>"
+
+            aws ssm put-parameter \\
+              --name "{base_path}/refresh_token" \\
+              --type SecureString \\
+              --value "<your-oauth2-refresh-token>"
+            ```
+
+            4. The deployed stack includes an automatic token rotation Lambda that refreshes the access token on the schedule `{oauth.refresh_schedule_expression}` using the token endpoint `{oauth.token_endpoint_url}`.
+        """)
         )
-        lines.append(
-            "2. Complete the OAuth authorization flow to obtain an initial "
-            "access token and refresh token.",
-        )
-        lines.append("3. Store the tokens in SSM:")
-        lines.append("")
-        lines.append("```bash")
-        lines.append("aws ssm put-parameter \\")
-        lines.append(f'  --name "{base_path}/access_token" \\')
-        lines.append("  --type SecureString \\")
-        lines.append('  --value "<your-oauth2-access-token>"')
-        lines.append("")
-        lines.append("aws ssm put-parameter \\")
-        lines.append(f'  --name "{base_path}/refresh_token" \\')
-        lines.append("  --type SecureString \\")
-        lines.append('  --value "<your-oauth2-refresh-token>"')
-        lines.append("```")
-        lines.append("")
-        lines.append(
-            f"4. The deployed stack includes an automatic token rotation "
-            f"Lambda that refreshes the access token on the schedule "
-            f"`{oauth.refresh_schedule_expression}` using the token endpoint "
-            f"`{oauth.token_endpoint_url}`.",
-        )
-        lines.append("")
+        return "\n".join(lines)
