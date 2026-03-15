@@ -19,6 +19,7 @@ from n8n_to_sfn.translators.code_node import CodeNodeTranslator
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 from n8n_to_sfn.translators.http_request import HttpRequestTranslator
 from n8n_to_sfn.translators.picofun import PicoFunTranslator
+from n8n_to_sfn.translators.set_node import SetNodeTranslator
 from n8n_to_sfn.translators.triggers import TriggerTranslator
 
 logger = Logger(service="n8n-to-sfn")
@@ -37,6 +38,7 @@ def create_default_engine() -> TranslationEngine:
             TriggerTranslator(),
             CodeNodeTranslator(),
             HttpRequestTranslator(),
+            SetNodeTranslator(),
             PicoFunTranslator(),
         ],
         ai_agent=ai_agent,

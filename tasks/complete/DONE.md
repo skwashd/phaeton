@@ -18,3 +18,4 @@ TASK-0017-ci-cd-pipeline.md
 TASK-0018-credential-setup-documentation.md
 TASK-0019-release-parser-caching.md
 TASK-0020-http-request-node.md
+TASK-0021-set-edit-fields-node.md
