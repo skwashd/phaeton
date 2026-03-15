@@ -457,3 +457,130 @@ class TestWorkflowStack:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "Source n8n node: Slack" in code
+
+
+class TestObservability:
+    """Tests for X-Ray tracing, DLQ, and CloudWatch alarm constructs."""
+
+    def test_imports_include_sqs_and_cloudwatch(self, tmp_path: Path) -> None:
+        """Test that generated code imports aws_sqs and aws_cloudwatch."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "from aws_cdk import aws_sqs as sqs" in code
+        assert "from aws_cdk import aws_cloudwatch as cloudwatch" in code
+
+    def test_dlq_construct_created(self, tmp_path: Path) -> None:
+        """Test that an SQS dead-letter queue construct is generated."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "dlq = sqs.Queue(" in code
+        assert '"DeadLetterQueue"' in code
+        assert "retention_period=cdk.Duration.days(14)" in code
+
+    def test_lambda_xray_tracing_active(self, tmp_path: Path) -> None:
+        """Test that Lambda functions include active X-Ray tracing."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "tracing=lambda_.Tracing.ACTIVE" in code
+
+    def test_lambda_dead_letter_queue(self, tmp_path: Path) -> None:
+        """Test that Lambda functions reference the DLQ."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "dead_letter_queue=dlq" in code
+
+    def test_nodejs_lambda_tracing_and_dlq(self, tmp_path: Path) -> None:
+        """Test that Node.js Lambda functions also get tracing and DLQ."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        # Node.js lambda_.Function should also have tracing and DLQ
+        assert code.count("tracing=lambda_.Tracing.ACTIVE") >= 3
+
+    def test_oauth_lambda_tracing_and_dlq(self, tmp_path: Path) -> None:
+        """Test that OAuth refresh Lambda functions get tracing and DLQ."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        # 3 workflow Lambdas + 1 OAuth refresh Lambda = 4 total tracing entries
+        assert code.count("tracing=lambda_.Tracing.ACTIVE") == 4
+        assert code.count("dead_letter_queue=dlq") == 4
+
+    def test_state_machine_xray_tracing(self, tmp_path: Path) -> None:
+        """Test that state machine includes X-Ray tracing configuration."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "TracingConfigurationProperty(" in code
+        assert "enabled=True" in code
+
+    def test_state_machine_failed_execution_dlq_rule(self, tmp_path: Path) -> None:
+        """Test that an EventBridge rule routes failed executions to the DLQ."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert '"FailedExecutionDlqRule"' in code
+        assert 'source=["aws.states"]' in code
+        assert "targets=[targets.SqsQueue(dlq)]" in code
+
+    def test_cloudwatch_alarms_created(self, tmp_path: Path) -> None:
+        """Test that CloudWatch alarms are created for state machine metrics."""
+        writer = CDKWriter()
+        cdk_dir = writer.write(
+            _minimal_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        assert "cloudwatch.Alarm(" in code
+        assert '"FailedAlarm"' in code
+        assert '"TimedOutAlarm"' in code
+        assert '"ThrottledAlarm"' in code
+        assert "state_machine.metric_failed()" in code
+        assert "state_machine.metric_timed_out()" in code
+        assert "state_machine.metric_throttled()" in code

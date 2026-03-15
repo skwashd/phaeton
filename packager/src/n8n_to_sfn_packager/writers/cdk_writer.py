@@ -183,8 +183,10 @@ class CDKWriter:
         self._wf_imports(lines, input_data)
         self._wf_class_header(lines, stack_prefix)
         self._wf_ssm_parameters(lines, ssm_params)
+        self._wf_dead_letter_queue(lines, stack_prefix)
         self._wf_lambda_functions(lines, input_data)
         self._wf_state_machine(lines, iam_policy, stack_prefix)
+        self._wf_alarms(lines)
         self._wf_triggers(lines, input_data)
         self._wf_oauth_rotation(lines, input_data)
         self._wf_sub_workflow_params(lines, input_data)
@@ -202,10 +204,12 @@ class CDKWriter:
         lines.append("from pathlib import Path")
         lines.append("")
         lines.append("import aws_cdk as cdk")
+        lines.append("from aws_cdk import aws_cloudwatch as cloudwatch")
         lines.append("from aws_cdk import aws_events as events")
         lines.append("from aws_cdk import aws_events_targets as targets")
         lines.append("from aws_cdk import aws_iam as iam")
         lines.append("from aws_cdk import aws_lambda as lambda_")
+        lines.append("from aws_cdk import aws_sqs as sqs")
         lines.append("from aws_cdk import aws_ssm as ssm")
         lines.append("from aws_cdk import aws_stepfunctions as sfn")
 
@@ -268,6 +272,20 @@ class CDKWriter:
             lines.append("")
 
     @staticmethod
+    def _wf_dead_letter_queue(lines: list[str], stack_prefix: str) -> None:
+        """Append SQS dead-letter queue construct."""
+        lines.append("        # --- Dead Letter Queue ---")
+        lines.append("        dlq = sqs.Queue(")
+        lines.append("            self,")
+        lines.append('            "DeadLetterQueue",')
+        lines.append(
+            f'            queue_name="{stack_prefix}-dlq",'
+        )
+        lines.append("            retention_period=cdk.Duration.days(14),")
+        lines.append("        )")
+        lines.append("")
+
+    @staticmethod
     def _wf_lambda_functions(lines: list[str], input_data: PackagerInput) -> None:
         """Append Lambda function constructs."""
         if not input_data.lambda_functions:
@@ -299,6 +317,8 @@ class CDKWriter:
                 lines.append("            runtime=lambda_.Runtime.PYTHON_3_12,")
                 lines.append('            index="handler.py",')
                 lines.append('            handler="handler",')
+                lines.append("            tracing=lambda_.Tracing.ACTIVE,")
+                lines.append("            dead_letter_queue=dlq,")
                 lines.append("        )")
             else:
                 lines.append(
@@ -318,6 +338,8 @@ class CDKWriter:
                 lines.append(
                     f'            code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "lambdas" / "{spec.function_name}")),',
                 )
+                lines.append("            tracing=lambda_.Tracing.ACTIVE,")
+                lines.append("            dead_letter_queue=dlq,")
                 lines.append("        )")
             lines.append("")
 
@@ -410,6 +432,49 @@ class CDKWriter:
         lines.append('            self, "StateMachineRef", cfn_state_machine.attr_arn,')
         lines.append("        )")
         lines.append("")
+        lines.append(
+            "        # Route failed/timed-out/aborted executions to the DLQ"
+        )
+        lines.append("        events.Rule(")
+        lines.append("            self,")
+        lines.append('            "FailedExecutionDlqRule",')
+        lines.append("            event_pattern=events.EventPattern(")
+        lines.append('                source=["aws.states"],')
+        lines.append(
+            '                detail_type=["Step Functions Execution Status Change"],'
+        )
+        lines.append("                detail={")
+        lines.append(
+            '                    "status": ["FAILED", "TIMED_OUT", "ABORTED"],'
+        )
+        lines.append(
+            '                    "stateMachineArn": [cfn_state_machine.attr_arn],'
+        )
+        lines.append("                },")
+        lines.append("            ),")
+        lines.append("            targets=[targets.SqsQueue(dlq)],")
+        lines.append("        )")
+        lines.append("")
+
+    @staticmethod
+    def _wf_alarms(lines: list[str]) -> None:
+        """Append CloudWatch alarm constructs for the state machine."""
+        lines.append("        # --- CloudWatch Alarms ---")
+        for metric_method, alarm_id in [
+            ("metric_failed", "FailedAlarm"),
+            ("metric_timed_out", "TimedOutAlarm"),
+            ("metric_throttled", "ThrottledAlarm"),
+        ]:
+            lines.append("        cloudwatch.Alarm(")
+            lines.append("            self,")
+            lines.append(f'            "{alarm_id}",')
+            lines.append(
+                f"            metric=state_machine.{metric_method}(),"
+            )
+            lines.append("            threshold=1,")
+            lines.append("            evaluation_periods=1,")
+            lines.append("        )")
+            lines.append("")
 
     @staticmethod
     def _wf_triggers(lines: list[str], input_data: PackagerInput) -> None:
@@ -466,6 +531,8 @@ class CDKWriter:
             lines.append(f'                "SSM_PARAMETER_PATH": "{param_path}",')
             lines.append(f'                "TOKEN_ENDPOINT_URL": "{token_url}",')
             lines.append("            },")
+            lines.append("            tracing=lambda_.Tracing.ACTIVE,")
+            lines.append("            dead_letter_queue=dlq,")
             lines.append("        )")
 
             # IAM permissions to read/write SSM parameters for this credential
