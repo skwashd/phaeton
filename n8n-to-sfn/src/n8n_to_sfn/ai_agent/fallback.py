@@ -11,7 +11,7 @@ from enum import StrEnum
 from typing import Protocol
 
 from phaeton_models.translator import ClassifiedNode
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from n8n_to_sfn.translators.base import TranslationContext, TranslationResult
 
@@ -26,6 +26,8 @@ class Confidence(StrEnum):
 
 class AITranslationResult(BaseModel):
     """Result from an AI agent translation attempt."""
+
+    model_config = ConfigDict(frozen=True)
 
     result: TranslationResult
     confidence: Confidence

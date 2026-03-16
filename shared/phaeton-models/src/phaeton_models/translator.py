@@ -11,7 +11,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from phaeton_models.n8n_workflow import N8nNode
 
@@ -63,6 +63,8 @@ class ClassifiedExpression(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     original: str
     category: ExpressionCategory
     node_references: list[str] = []
@@ -81,6 +83,8 @@ class ClassifiedNode(BaseModel):
             expressions=[],
         )
     """
+
+    model_config = ConfigDict(frozen=True)
 
     node: N8nNode
     classification: NodeClassification
@@ -101,6 +105,8 @@ class DependencyEdge(BaseModel):
             edge_type="CONNECTION",
         )
     """
+
+    model_config = ConfigDict(frozen=True)
 
     from_node: str
     to_node: str
@@ -124,6 +130,8 @@ class WorkflowAnalysis(BaseModel):
             confidence_score=0.85,
         )
     """
+
+    model_config = ConfigDict(frozen=True)
 
     classified_nodes: list[ClassifiedNode]
     dependency_edges: list[DependencyEdge]

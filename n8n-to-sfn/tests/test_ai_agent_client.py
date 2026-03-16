@@ -214,15 +214,15 @@ class TestFormatContext:
 
     def test_with_workflow_name(self) -> None:
         """Workflow name is included in context string."""
-        ctx = _make_context()
-        ctx.workflow_name = "My Workflow"
+        ctx = _make_context().model_copy(update={"workflow_name": "My Workflow"})
         result = _format_context(ctx)
         assert "My Workflow" in result
 
     def test_with_variables(self) -> None:
         """Resolved variable names are included in context string."""
-        ctx = _make_context()
-        ctx.resolved_variables = {"var1": "value1"}
+        ctx = _make_context().model_copy(
+            update={"resolved_variables": {"var1": "value1"}},
+        )
         result = _format_context(ctx)
         assert "var1" in result
 

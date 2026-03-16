@@ -13,7 +13,7 @@ import re
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class LambdaFunctionType(StrEnum):
@@ -105,6 +105,8 @@ class WorkflowMetadata(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     workflow_name: str = Field(..., min_length=1)
     source_n8n_version: str
     converter_version: str
@@ -123,6 +125,8 @@ class StateMachineDefinition(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     asl: dict[str, Any]
     query_language: str = "JSONata"
 
@@ -135,6 +139,8 @@ class VpcConfig(BaseModel):
 
         VpcConfig(vpc_bound_services=[VpcBoundService.RDS_MYSQL])
     """
+
+    model_config = ConfigDict(frozen=True)
 
     vpc_bound_services: list[VpcBoundService] = Field(..., min_length=1)
 
@@ -167,6 +173,8 @@ class WebhookAuthConfig(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     auth_type: WebhookAuthType
     credential_parameter_path: str
     header_name: str = "x-api-key"
@@ -194,6 +202,8 @@ class LambdaFunctionSpec(BaseModel):
             function_type=LambdaFunctionType.CODE_NODE_PYTHON,
         )
     """
+
+    model_config = ConfigDict(frozen=True)
 
     function_name: str = Field(..., min_length=1, max_length=64)
     runtime: LambdaRuntime
@@ -229,6 +239,8 @@ class CredentialSpec(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     parameter_path: str
     description: str = ""
     credential_type: str
@@ -260,6 +272,8 @@ class OAuthCredentialSpec(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     credential_spec: CredentialSpec
     token_endpoint_url: str
     refresh_schedule_expression: str = "rate(50 minutes)"
@@ -274,6 +288,8 @@ class TriggerSpec(BaseModel):
 
         TriggerSpec(trigger_type=TriggerType.SCHEDULE)
     """
+
+    model_config = ConfigDict(frozen=True)
 
     trigger_type: TriggerType
     configuration: dict[str, Any] = Field(default_factory=dict)
@@ -292,6 +308,8 @@ class SubWorkflowReference(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     name: str = Field(..., min_length=1)
     source_workflow_file: str
     description: str = ""
@@ -305,6 +323,8 @@ class ConversionReport(BaseModel):
 
         ConversionReport(total_nodes=5, confidence_score=0.85)
     """
+
+    model_config = ConfigDict(frozen=True)
 
     total_nodes: int = Field(..., ge=0)
     classification_breakdown: dict[str, int] = Field(default_factory=dict)
@@ -330,6 +350,8 @@ class PackagerInput(BaseModel):
             conversion_report=ConversionReport(total_nodes=0, confidence_score=0.0),
         )
     """
+
+    model_config = ConfigDict(frozen=True)
 
     metadata: WorkflowMetadata
     state_machine: StateMachineDefinition

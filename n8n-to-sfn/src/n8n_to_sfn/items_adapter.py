@@ -17,7 +17,7 @@ from enum import StrEnum
 from phaeton_models.translator import (
     WorkflowAnalysis,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ItemsPattern(StrEnum):
@@ -31,6 +31,8 @@ class ItemsPattern(StrEnum):
 
 class SegmentInfo(BaseModel):
     """Information about a detected workflow segment and its pattern."""
+
+    model_config = ConfigDict(frozen=True)
 
     pattern: ItemsPattern
     node_names: list[str]

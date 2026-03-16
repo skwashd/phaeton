@@ -7,7 +7,7 @@ from enum import StrEnum
 from typing import Any
 
 from phaeton_models.translator import ClassifiedNode, WorkflowAnalysis
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from n8n_to_sfn.models.asl import (
     CatchConfig,
@@ -27,6 +27,8 @@ class LambdaRuntime(StrEnum):
 class LambdaArtifact(BaseModel):
     """A generated Lambda function artifact."""
 
+    model_config = ConfigDict(frozen=True)
+
     function_name: str
     runtime: LambdaRuntime
     handler_code: str
@@ -45,6 +47,8 @@ class TriggerType(StrEnum):
 class TriggerArtifact(BaseModel):
     """Infrastructure artifact for a workflow trigger."""
 
+    model_config = ConfigDict(frozen=True)
+
     trigger_type: TriggerType
     config: dict[str, Any] = {}
     lambda_artifact: LambdaArtifact | None = None
@@ -54,6 +58,8 @@ class TriggerArtifact(BaseModel):
 class CredentialArtifact(BaseModel):
     """A credential placeholder for SSM Parameter Store."""
 
+    model_config = ConfigDict(frozen=True)
+
     parameter_path: str
     credential_type: str
     auth_type: str = "api_key"
@@ -62,6 +68,8 @@ class CredentialArtifact(BaseModel):
 
 class TranslationContext(BaseModel):
     """Context available during translation of each node."""
+
+    model_config = ConfigDict(frozen=True)
 
     analysis: WorkflowAnalysis
     state_machine: StateMachine | None = None
@@ -73,6 +81,8 @@ class TranslationContext(BaseModel):
 
 class TranslationResult(BaseModel):
     """Result of translating a single node."""
+
+    model_config = ConfigDict(frozen=True)
 
     states: dict[str, Any] = {}
     lambda_artifacts: list[LambdaArtifact] = []
@@ -150,8 +160,11 @@ def apply_error_handling(
 ) -> TaskState:
     """Apply error handling to a TaskState based on n8n node settings."""
     retries, catches = build_error_handling(node, next_state_name, default_retry)
+    updates: dict[str, Any] = {}
     if retries:
-        state.retry = retries
+        updates["retry"] = retries
     if catches:
-        state.catch = catches
+        updates["catch"] = catches
+    if updates:
+        return state.model_copy(update=updates)
     return state

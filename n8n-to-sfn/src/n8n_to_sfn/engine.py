@@ -132,7 +132,7 @@ class TranslationEngine:
         )
         sm = StateMachine(start_at=start_at, states=all_states)
 
-        context.state_machine = sm
+        context = context.model_copy(update={"state_machine": sm})
 
         validation_errors = validate_asl(sm)
         if validation_errors:
@@ -215,13 +215,15 @@ class TranslationEngine:
 
         for idx in range(len(eval_names) - 1):
             es = all_states[eval_names[idx]]
-            es.next = eval_names[idx + 1]
-            es.end = None
+            all_states[eval_names[idx]] = es.model_copy(
+                update={"next": eval_names[idx + 1], "end": None},
+            )
 
         if first_node_state and eval_names:
             last_es = all_states[eval_names[-1]]
-            last_es.next = first_node_state
-            last_es.end = None
+            all_states[eval_names[-1]] = last_es.model_copy(
+                update={"next": first_node_state, "end": None},
+            )
 
         if eval_names:
             entry_state_overrides[cn.node.name] = eval_names[0]
@@ -371,8 +373,9 @@ class TranslationEngine:
             last_state_name = node_state_names.get(chain[-1], chain[-1])
             last_state = branch_states.get(last_state_name)
             if last_state is not None and hasattr(last_state, "next"):
-                last_state.next = None
-                last_state.end = True
+                branch_states[last_state_name] = last_state.model_copy(
+                    update={"next": None, "end": True},
+                )
 
             branches.append(
                 StateMachine(
@@ -574,10 +577,14 @@ class TranslationEngine:
         sib_state_name = node_state_names.get(sib_name, sib_name)
         map_state = all_states.get(sib_state_name)
         if isinstance(map_state, MapState):
-            map_state.item_processor = ItemProcessor(
-                processor_config=ProcessorConfig(mode="INLINE"),
-                start_at=first_state_name,
-                states=inner_states,
+            all_states[sib_state_name] = map_state.model_copy(
+                update={
+                    "item_processor": ItemProcessor(
+                        processor_config=ProcessorConfig(mode="INLINE"),
+                        start_at=first_state_name,
+                        states=inner_states,
+                    ),
+                },
             )
 
         # Remove loop-body states from the top-level state machine
@@ -625,17 +632,21 @@ class TranslationEngine:
             next_name = node_state_names.get(loop_body[i + 1], loop_body[i + 1])
             inner_state = inner_states.get(state_name)
             if inner_state is not None and hasattr(inner_state, "next"):
-                inner_state.next = next_name
+                updates: dict[str, Any] = {"next": next_name}
                 if hasattr(inner_state, "end"):
-                    inner_state.end = None
+                    updates["end"] = None
+                inner_states[state_name] = inner_state.model_copy(update=updates)
 
         last_name = node_state_names.get(loop_body[-1], loop_body[-1])
         last_state = inner_states.get(last_name)
         if last_state is not None:
+            updates = {}
             if hasattr(last_state, "next"):
-                last_state.next = None
+                updates["next"] = None
             if hasattr(last_state, "end"):
-                last_state.end = True
+                updates["end"] = True
+            if updates:
+                inner_states[last_name] = last_state.model_copy(update=updates)
 
     @staticmethod
     def _collect_loop_body(
@@ -714,12 +725,14 @@ class TranslationEngine:
                 and not hasattr(state, "choices")
             )
             if can_set_next:
-                state.next = next_state_names[0]
+                all_states[state_name] = state.model_copy(
+                    update={"next": next_state_names[0]},
+                )
 
     @staticmethod
     def _apply_end_to_terminal_states(all_states: dict[str, Any]) -> None:
         """Set End=True on states that have no Next and no End yet."""
-        for state in all_states.values():
+        for state_name, state in list(all_states.items()):
             has_next = hasattr(state, "next") and state.next is not None
             has_end = hasattr(state, "end") and state.end
             has_choices = hasattr(state, "choices")
@@ -729,7 +742,7 @@ class TranslationEngine:
                 and not has_choices
                 and hasattr(state, "end")
             ):
-                state.end = True
+                all_states[state_name] = state.model_copy(update={"end": True})
 
     def _determine_start_at(
         self,

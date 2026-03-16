@@ -13,11 +13,13 @@ from phaeton_models.translator import (
     ExpressionCategory,
     WorkflowAnalysis,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class VariableResolution(BaseModel):
     """Result of resolving all cross-node references in a workflow."""
+
+    model_config = ConfigDict(frozen=True)
 
     assignments: dict[str, dict[str, str]] = {}
     expression_replacements: dict[str, str] = {}

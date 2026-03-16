@@ -31,7 +31,7 @@ class RetryConfig(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     error_equals: list[str] = Field(alias="ErrorEquals")
     interval_seconds: int | None = Field(default=None, alias="IntervalSeconds")
@@ -70,7 +70,7 @@ class CatchConfig(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     error_equals: list[str] = Field(alias="ErrorEquals")
     next: str = Field(alias="Next")
@@ -106,7 +106,7 @@ class ChoiceRule(BaseModel):
         ChoiceRule(condition="$states.input.age > 18", next="Adult")
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     # JSONata mode
     condition: str | None = Field(default=None, alias="Condition")
@@ -181,7 +181,7 @@ class ProcessorConfig(BaseModel):
         ProcessorConfig(mode="INLINE")
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     mode: Literal["INLINE", "DISTRIBUTED"] = Field(alias="Mode")
     execution_type: Literal["STANDARD", "EXPRESS"] | None = Field(
@@ -209,7 +209,7 @@ class ItemProcessor(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     processor_config: ProcessorConfig | None = Field(
         default=None, alias="ProcessorConfig"
@@ -282,7 +282,7 @@ class TaskState(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Task"] = Field(default="Task", alias="Type")
     resource: str = Field(alias="Resource")
@@ -343,7 +343,7 @@ class PassState(BaseModel):
         PassState(type="Pass", end=True, output='{% $states.input %}')
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Pass"] = Field(default="Pass", alias="Type")
     next: str | None = Field(default=None, alias="Next")
@@ -394,7 +394,7 @@ class ChoiceState(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Choice"] = Field(default="Choice", alias="Type")
     choices: list[ChoiceRule] = Field(alias="Choices")
@@ -436,7 +436,7 @@ class WaitState(BaseModel):
         WaitState(type="Wait", seconds=10, next="Continue")
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Wait"] = Field(default="Wait", alias="Type")
     next: str | None = Field(default=None, alias="Next")
@@ -485,7 +485,7 @@ class SucceedState(BaseModel):
         SucceedState(type="Succeed")
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Succeed"] = Field(default="Succeed", alias="Type")
     comment: str | None = Field(default=None, alias="Comment")
@@ -515,7 +515,7 @@ class FailState(BaseModel):
         FailState(type="Fail", error="CustomError", cause="Something went wrong")
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Fail"] = Field(default="Fail", alias="Type")
     comment: str | None = Field(default=None, alias="Comment")
@@ -553,7 +553,7 @@ class ParallelState(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Parallel"] = Field(default="Parallel", alias="Type")
     branches: list[StateMachine] = Field(alias="Branches")
@@ -612,7 +612,7 @@ class MapState(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     type: Literal["Map"] = Field(default="Map", alias="Type")
     next: str | None = Field(default=None, alias="Next")
@@ -707,7 +707,7 @@ class StateMachine(BaseModel):
         )
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     comment: str | None = Field(default=None, alias="Comment")
     start_at: str = Field(alias="StartAt")

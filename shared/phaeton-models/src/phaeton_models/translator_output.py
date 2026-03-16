@@ -11,7 +11,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class LambdaRuntime(StrEnum):
@@ -54,6 +54,8 @@ class LambdaArtifact(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     function_name: str
     runtime: LambdaRuntime
     handler_code: str
@@ -73,6 +75,8 @@ class TriggerArtifact(BaseModel):
         )
     """
 
+    model_config = ConfigDict(frozen=True)
+
     trigger_type: TriggerType
     config: dict[str, Any] = {}
     lambda_artifact: LambdaArtifact | None = None
@@ -90,6 +94,8 @@ class CredentialArtifact(BaseModel):
             credential_type="oauth2",
         )
     """
+
+    model_config = ConfigDict(frozen=True)
 
     parameter_path: str
     credential_type: str
@@ -112,6 +118,8 @@ class TranslationOutput(BaseModel):
             lambda_artifacts=[...],
         )
     """
+
+    model_config = ConfigDict(frozen=True)
 
     state_machine: dict[str, Any]
     lambda_artifacts: list[LambdaArtifact] = []

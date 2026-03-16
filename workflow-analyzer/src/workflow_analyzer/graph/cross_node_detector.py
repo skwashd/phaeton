@@ -2,7 +2,7 @@
 
 import re
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from workflow_analyzer.models.n8n_workflow import N8nNode
 
@@ -17,6 +17,8 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 class CrossNodeReference(BaseModel):
     """A detected cross-node data reference in an expression."""
+
+    model_config = ConfigDict(frozen=True)
 
     source_node_name: str
     target_node_name: str

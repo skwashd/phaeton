@@ -3,11 +3,13 @@
 from collections import defaultdict
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class DependencyEdge(BaseModel):
     """A directed edge in the workflow dependency graph."""
+
+    model_config = ConfigDict(frozen=True)
 
     source_node: str
     target_node: str
@@ -18,6 +20,8 @@ class DependencyEdge(BaseModel):
 
 class WorkflowGraph(BaseModel):
     """Directed graph representing workflow dependencies."""
+
+    model_config = ConfigDict(frozen=True)
 
     nodes: list[str]
     edges: list[DependencyEdge]

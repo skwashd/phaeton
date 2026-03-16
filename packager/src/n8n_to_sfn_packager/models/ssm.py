@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class SSMParameterDefinition(BaseModel):
     """Definition for an SSM parameter to be created in the CDK stack."""
+
+    model_config = ConfigDict(frozen=True)
 
     parameter_path: str = Field(
         ...,

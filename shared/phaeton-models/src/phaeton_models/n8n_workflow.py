@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class ConnectionTarget(BaseModel):
     """A single connection target pointing to a downstream node."""
 
+    model_config = ConfigDict(frozen=True)
+
     node: str
     type: str
     index: int
@@ -16,7 +18,7 @@ class ConnectionTarget(BaseModel):
 class N8nNode(BaseModel):
     """A single node definition within an n8n workflow."""
 
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow", populate_by_name=True, frozen=True)
 
     id: str
     name: str
@@ -38,7 +40,7 @@ class N8nNode(BaseModel):
 class WorkflowSettings(BaseModel):
     """Execution settings for a workflow."""
 
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow", populate_by_name=True, frozen=True)
 
     execution_order: str | None = Field(default=None, alias="executionOrder")
     timezone: str | None = None
@@ -51,7 +53,7 @@ class WorkflowSettings(BaseModel):
 class N8nWorkflow(BaseModel):
     """Top-level model for an n8n workflow JSON export."""
 
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
+    model_config = ConfigDict(extra="allow", populate_by_name=True, frozen=True)
 
     name: str | None = None
     nodes: list[N8nNode]
