@@ -51,26 +51,37 @@ class NodeCache:
             return
         try:
             raw = json.loads(self._cache_file.read_text(encoding="utf-8"))
-            if not isinstance(raw, dict):
-                raise TypeError  # noqa: TRY301
-            stored_version = raw.get("parser_version", "")
-            if stored_version != self._parser_version:
-                logger.info(
-                    "Cache parser version changed (%s -> %s); invalidating",
-                    stored_version,
-                    self._parser_version,
-                )
-                self._data = {}
-                self._dirty = True
-                return
-            entries = raw.get("entries", {})
-            if not isinstance(entries, dict):
-                raise TypeError  # noqa: TRY301
-            self._data = entries
-        except (json.JSONDecodeError, TypeError, KeyError):
+        except json.JSONDecodeError:
             logger.warning("Cache file corrupt; starting fresh")
             self._data = {}
             self._dirty = True
+            return
+
+        if not isinstance(raw, dict):
+            logger.warning("Cache file corrupt; starting fresh")
+            self._data = {}
+            self._dirty = True
+            return
+
+        stored_version = raw.get("parser_version", "")
+        if stored_version != self._parser_version:
+            logger.info(
+                "Cache parser version changed (%s -> %s); invalidating",
+                stored_version,
+                self._parser_version,
+            )
+            self._data = {}
+            self._dirty = True
+            return
+
+        entries = raw.get("entries", {})
+        if not isinstance(entries, dict):
+            logger.warning("Cache file corrupt; starting fresh")
+            self._data = {}
+            self._dirty = True
+            return
+
+        self._data = entries
 
     def save(self) -> None:
         """Persist the cache to disk if it has been modified."""

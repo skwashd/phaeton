@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import aws_cdk as cdk
 from aws_cdk import aws_lambda as lambda_
 from constructs import Construct
@@ -10,7 +12,7 @@ from constructs import Construct
 class WorkflowAnalyzerStack(cdk.Stack):
     """Deploy the Workflow Analyzer Lambda."""
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, scope: Construct, construct_id: str, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(scope, construct_id, **kwargs)
 
         self.function = lambda_.Function(

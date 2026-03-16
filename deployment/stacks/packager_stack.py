@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import aws_cdk as cdk
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_s3 as s3
@@ -11,7 +13,7 @@ from constructs import Construct
 class PackagerStack(cdk.Stack):
     """Deploy the Packager Lambda with S3 output bucket."""
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, scope: Construct, construct_id: str, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(scope, construct_id, **kwargs)
 
         output_bucket = s3.Bucket(

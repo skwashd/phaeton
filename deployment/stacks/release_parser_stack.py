@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import aws_cdk as cdk
 from aws_cdk import aws_events as events
 from aws_cdk import aws_events_targets as targets
@@ -13,7 +15,7 @@ from constructs import Construct
 class ReleaseParserStack(cdk.Stack):
     """Deploy the Release Parser Lambda with S3 catalog bucket and daily schedule."""
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, scope: Construct, construct_id: str, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(scope, construct_id, **kwargs)
 
         catalog_bucket = s3.Bucket(

@@ -8,6 +8,7 @@ expressions (wrapped in ``{% %}``) for use in ASL state machines.
 from __future__ import annotations
 
 import re
+from typing import cast
 
 from n8n_to_sfn.errors import ExpressionTranslationError
 
@@ -227,7 +228,7 @@ def translate_all_expressions(
     Expression strings are those wrapped in ``{{ }}``. Non-expression values
     are passed through unchanged.
     """
-    return _walk_and_translate(parameters)  # type: ignore[return-value]
+    return cast(dict[str, JsonValue], _walk_and_translate(parameters))
 
 
 def _walk_and_translate(value: JsonValue) -> JsonValue:

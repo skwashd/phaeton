@@ -212,7 +212,7 @@ def _wait_for_execution(
     """
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        resp = sfn_client.describe_execution(executionArn=execution_arn)  # type: ignore[attr-defined]
+        resp = sfn_client.describe_execution(executionArn=execution_arn)
         status = resp["status"]
         if status in {"SUCCEEDED", "FAILED", "TIMED_OUT", "ABORTED"}:
             return resp

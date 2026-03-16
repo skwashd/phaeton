@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import aws_cdk as cdk
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
@@ -11,7 +13,7 @@ from constructs import Construct
 class AiAgentStack(cdk.Stack):
     """Deploy the AI Agent Lambda."""
 
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:  # noqa: ANN003
+    def __init__(self, scope: Construct, construct_id: str, **kwargs: Any) -> None:  # noqa: ANN401
         super().__init__(scope, construct_id, **kwargs)
 
         self.function = lambda_.Function(

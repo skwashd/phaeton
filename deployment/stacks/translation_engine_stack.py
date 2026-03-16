@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import aws_cdk as cdk
 from aws_cdk import aws_lambda as lambda_
 from constructs import Construct
@@ -16,7 +18,7 @@ class TranslationEngineStack(cdk.Stack):
         construct_id: str,
         *,
         ai_agent_function: lambda_.IFunction | None = None,
-        **kwargs,  # noqa: ANN003
+        **kwargs: Any,  # noqa: ANN401
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 

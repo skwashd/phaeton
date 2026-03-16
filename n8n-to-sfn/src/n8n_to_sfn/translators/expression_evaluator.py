@@ -9,6 +9,7 @@ and conditional expressions.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from typing import Any, Protocol
@@ -302,7 +303,7 @@ def _try_ai_agent(
                 upstream_bindings=upstream_bindings,
                 expression_code=f"  const expressionResult = {translated};",
             )
-    except Exception:  # noqa: BLE001
+    except (ConnectionError, TimeoutError, json.JSONDecodeError, ValueError):
         logger.debug("AI agent failed for expression: %s", expr.original)
 
     return None
@@ -323,7 +324,7 @@ def _build_eval_lambda(
 
     try:
         expression_code = _build_expression_code(expr.original)
-    except Exception:  # noqa: BLE001
+    except (ValueError, IndexError, KeyError):
         return _FALLBACK_EXPR_TEMPLATE.format(
             node_name=node.node.name,
             original_expr=expr.original.replace("*/", "* /"),

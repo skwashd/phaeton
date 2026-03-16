@@ -126,7 +126,7 @@ class TestDeployAndExecute:
         test_input = json.dumps(
             {"pk": "test-item-001", "message": "hello from phaeton", "status": "ok"},
         )
-        exec_resp = sfn_client.start_execution(  # type: ignore[attr-defined]
+        exec_resp = sfn_client.start_execution(
             stateMachineArn=sm_arn,
             input=test_input,
         )
@@ -153,7 +153,7 @@ class TestDeployAndExecute:
             pytest.skip("No state machine ARN found in stack outputs")
 
         test_input = json.dumps({"pk": "lambda-test-001", "status": "ok"})
-        exec_resp = sfn_client.start_execution(  # type: ignore[attr-defined]
+        exec_resp = sfn_client.start_execution(
             stateMachineArn=sm_arn,
             input=test_input,
         )
@@ -161,7 +161,7 @@ class TestDeployAndExecute:
         _wait_for_execution(sfn_client, exec_resp["executionArn"])
 
         # Check execution history for Lambda errors
-        history = sfn_client.get_execution_history(  # type: ignore[attr-defined]
+        history = sfn_client.get_execution_history(
             executionArn=exec_resp["executionArn"],
             maxResults=100,
         )
@@ -192,7 +192,7 @@ def _find_state_machine_arn(
             return value
 
     # Fallback: list state machines and find the phaeton-test one
-    paginator = sfn_client.get_paginator("list_state_machines")  # type: ignore[attr-defined]
+    paginator = sfn_client.get_paginator("list_state_machines")
     for page in paginator.paginate():
         for sm in page["stateMachines"]:
             if "phaeton-inttest" in sm["name"]:

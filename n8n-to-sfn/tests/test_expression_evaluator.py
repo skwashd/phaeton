@@ -269,7 +269,7 @@ class TestAIAgentIntegration:
     def test_ai_agent_fallback_on_exception(self) -> None:
         """Test fallback when AI agent raises an exception."""
         ai_agent = MagicMock()
-        ai_agent.translate_expression.side_effect = RuntimeError("Agent down")
+        ai_agent.translate_expression.side_effect = ConnectionError("Agent down")
 
         expr = _lambda_expr('={{ $json.name.toUpperCase() }}')
         node = _node("ErrorNode", [expr])

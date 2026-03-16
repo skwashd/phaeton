@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import aws_cdk as cdk
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_stepfunctions as sfn
@@ -25,7 +27,7 @@ class OrchestrationStack(cdk.Stack):
         analyzer_function: lambda_.IFunction,
         translator_function: lambda_.IFunction,
         packager_function: lambda_.IFunction,
-        **kwargs,  # noqa: ANN003
+        **kwargs: Any,  # noqa: ANN401
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 

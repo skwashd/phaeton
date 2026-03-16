@@ -7,3 +7,4 @@ TASK-0009-remove-stub-ai-agent-dead-code.md
 TASK-0011-ai-agent-model-id-configurable.md
 TASK-0002-shared-packager-input-parity.md
 TASK-0006-webhook-auth-config-unreachable.md
+TASK-0010-lint-type-suppression-cleanup.md
