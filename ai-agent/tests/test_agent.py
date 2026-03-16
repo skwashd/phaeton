@@ -357,6 +357,40 @@ class TestValidateAslStates:
         assert len(errors) == 2
 
 
+class TestBedrockRegionConfiguration:
+    """Tests for AWS region configuration of the Bedrock model."""
+
+    @patch("phaeton_ai_agent.agent.BedrockModel")
+    def test_uses_aws_region_env_var(
+        self, mock_bedrock_model: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Bedrock model uses AWS_REGION environment variable when set."""
+        monkeypatch.setenv("AWS_REGION", "eu-west-1")
+        from phaeton_ai_agent.agent import _get_agent
+
+        _get_agent()
+
+        mock_bedrock_model.assert_called_once_with(
+            model_id="us.anthropic.claude-sonnet-4-20250514",
+            region_name="eu-west-1",
+        )
+
+    @patch("phaeton_ai_agent.agent.BedrockModel")
+    def test_falls_back_to_us_east_1(
+        self, mock_bedrock_model: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Bedrock model defaults to us-east-1 when AWS_REGION is not set."""
+        monkeypatch.delenv("AWS_REGION", raising=False)
+        from phaeton_ai_agent.agent import _get_agent
+
+        _get_agent()
+
+        mock_bedrock_model.assert_called_once_with(
+            model_id="us.anthropic.claude-sonnet-4-20250514",
+            region_name="us-east-1",
+        )
+
+
 class TestBoundaryMarkers:
     """Tests that prompt templates include boundary markers around user content."""
 

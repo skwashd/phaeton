@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Any
 
 from strands import Agent
@@ -121,7 +122,7 @@ def _get_agent() -> Agent:
     if _agent is None:
         model = BedrockModel(
             model_id="us.anthropic.claude-sonnet-4-20250514",
-            region_name="us-east-1",
+            region_name=os.environ.get("AWS_REGION", "us-east-1"),
         )
         _agent = Agent(
             model=model,
