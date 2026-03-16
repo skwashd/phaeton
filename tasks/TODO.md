@@ -1,4 +1,3 @@
-TASK-0008-ai-agent-frozen-models.md
 TASK-0009-remove-stub-ai-agent-dead-code.md
 TASK-0011-ai-agent-model-id-configurable.md
 TASK-0002-shared-packager-input-parity.md
