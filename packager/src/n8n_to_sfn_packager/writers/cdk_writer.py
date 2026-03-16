@@ -45,7 +45,7 @@ class CDKWriter:
         iam_policy: dict[str, Any],
         ssm_params: list[SSMParameterDefinition],
         output_dir: Path,
-    ) -> Path:
+    ) -> tuple[Path, list[str]]:
         """
         Write the complete ``cdk/`` directory.
 
@@ -56,7 +56,8 @@ class CDKWriter:
             output_dir: Root output directory.
 
         Returns:
-            Path to the created ``cdk/`` directory.
+            Tuple of the created ``cdk/`` directory path and a list of
+            warnings about unauthenticated webhook handlers.
 
         """
         cdk_dir = output_dir / "cdk"
@@ -71,7 +72,7 @@ class CDKWriter:
         self._write_pyproject_toml(cdk_dir)
         self._write_shared_stack(stacks_dir, stack_prefix, input_data.vpc_config)
         self._write_stacks_init(stacks_dir)
-        self._write_workflow_stack(
+        warnings = self._write_workflow_stack(
             stacks_dir,
             input_data,
             iam_policy,
@@ -81,7 +82,7 @@ class CDKWriter:
 
         self._write_credentials_doc(output_dir, input_data)
 
-        return cdk_dir
+        return cdk_dir, warnings
 
     @staticmethod
     def _write_credentials_doc(
@@ -266,9 +267,16 @@ class CDKWriter:
         iam_policy: dict[str, Any],
         ssm_params: list[SSMParameterDefinition],
         stack_prefix: str,
-    ) -> None:
-        """Write the main workflow stack."""
+    ) -> list[str]:
+        """
+        Write the main workflow stack.
+
+        Returns:
+            Warnings about unauthenticated webhook handlers.
+
+        """
         layers, _ = analyze_shared_dependencies(input_data.lambda_functions)
+        lambda_code, warnings = self._wf_lambda_functions(input_data, layers)
 
         sections = [
             self._wf_imports(input_data),
@@ -277,7 +285,7 @@ class CDKWriter:
             self._wf_ssm_parameters(ssm_params),
             self._wf_dead_letter_queue(stack_prefix),
             self._wf_lambda_layers(layers),
-            self._wf_lambda_functions(input_data, layers),
+            lambda_code,
             self._wf_state_machine(iam_policy, stack_prefix),
             self._wf_alarms(),
             self._wf_triggers(input_data),
@@ -287,6 +295,7 @@ class CDKWriter:
         ]
 
         (stacks_dir / "workflow_stack.py").write_text("".join(s for s in sections if s))
+        return warnings
 
     @staticmethod
     def _wf_imports(input_data: PackagerInput) -> str:
@@ -469,10 +478,11 @@ class CDKWriter:
     def _wf_lambda_functions(
         input_data: PackagerInput,
         layers: list[LayerSpec] | None = None,
-    ) -> str:
-        """Return Lambda function constructs."""
+    ) -> tuple[str, list[str]]:
+        """Return Lambda function constructs and unauthenticated-webhook warnings."""
+        warnings: list[str] = []
         if not input_data.lambda_functions:
-            return ""
+            return "", warnings
         parts: list[str] = [
             _BODY + "# --- Lambda Functions ---\n",
             _BODY + "lambda_functions = {}\n",
@@ -585,8 +595,14 @@ class CDKWriter:
                     """)
                         + "\n"
                     )
+                else:
+                    warnings.append(
+                        f"Webhook handler '{spec.function_name}' has no "
+                        f"authentication configured. The Function URL will be "
+                        f"publicly accessible."
+                    )
 
-        return "".join(parts)
+        return "".join(parts), warnings
 
     @staticmethod
     def _wf_state_machine(

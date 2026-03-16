@@ -65,7 +65,21 @@ class Packager:
         self._step_write_lambdas(input_data, output_dir)
         ssm_params = self._step_generate_ssm(input_data)
         iam_policy = self._step_generate_iam(input_data, ssm_params)
-        self._step_write_cdk(input_data, iam_policy, ssm_params, output_dir)
+        webhook_warnings = self._step_write_cdk(
+            input_data, iam_policy, ssm_params, output_dir,
+        )
+        if webhook_warnings:
+            updated_report = input_data.conversion_report.model_copy(
+                update={
+                    "payload_warnings": [
+                        *input_data.conversion_report.payload_warnings,
+                        *webhook_warnings,
+                    ],
+                },
+            )
+            input_data = input_data.model_copy(
+                update={"conversion_report": updated_report},
+            )
         self._step_write_reports(input_data, ssm_params, output_dir)
 
         logger.info("Packaging complete: %s", output_dir)
@@ -128,10 +142,21 @@ class Packager:
         iam_policy: dict,
         ssm_params: list,
         output_dir: Path,
-    ) -> None:
-        """Write the CDK application."""
-        self._cdk_writer.write(input_data, iam_policy, ssm_params, output_dir)
+    ) -> list[str]:
+        """
+        Write the CDK application.
+
+        Returns:
+            Warnings about unauthenticated webhook handlers.
+
+        """
+        _, warnings = self._cdk_writer.write(
+            input_data, iam_policy, ssm_params, output_dir,
+        )
+        for w in warnings:
+            logger.warning(w)
         logger.info("Wrote CDK application")
+        return warnings
 
     def _step_write_reports(
         self,

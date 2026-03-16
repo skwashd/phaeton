@@ -213,7 +213,7 @@ class TestFileCreation:
     def test_all_files_created(self, tmp_path: Path) -> None:
         """Test that all expected CDK files are created."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -230,7 +230,7 @@ class TestFileCreation:
     def test_cdk_dir_path(self, tmp_path: Path) -> None:
         """Test that the CDK directory is at the expected path."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -245,7 +245,7 @@ class TestAppPy:
     def test_syntactically_valid(self, tmp_path: Path) -> None:
         """Test that app.py is syntactically valid Python."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -257,7 +257,7 @@ class TestAppPy:
     def test_contains_stack_references(self, tmp_path: Path) -> None:
         """Test that app.py references both stacks."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -274,7 +274,7 @@ class TestCdkJson:
     def test_valid_json(self, tmp_path: Path) -> None:
         """Test that cdk.json is valid JSON."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -286,7 +286,7 @@ class TestCdkJson:
     def test_app_uses_uv(self, tmp_path: Path) -> None:
         """Test that cdk.json uses uv to run the app."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -298,7 +298,7 @@ class TestCdkJson:
     def test_sub_workflow_context(self, tmp_path: Path) -> None:
         """Test that sub-workflow context is included in cdk.json."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -316,7 +316,7 @@ class TestPyprojectToml:
         import tomllib
 
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -329,7 +329,7 @@ class TestPyprojectToml:
     def test_no_lambda_python_alpha_dependency(self, tmp_path: Path) -> None:
         """Test that pyproject.toml does not include the lambda python alpha dependency."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -345,7 +345,7 @@ class TestWorkflowStack:
     def test_python_function_uses_stable_construct(self, tmp_path: Path) -> None:
         """Test that Python Lambdas use lambda_.Function, not PythonFunction."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -358,7 +358,7 @@ class TestWorkflowStack:
     def test_correct_number_of_functions_minimal(self, tmp_path: Path) -> None:
         """Test that minimal input produces the correct number of functions."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -371,7 +371,7 @@ class TestWorkflowStack:
     def test_correct_number_of_functions_complex(self, tmp_path: Path) -> None:
         """Test that complex input produces the correct number of functions."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -384,7 +384,7 @@ class TestWorkflowStack:
     def test_webhook_function_url(self, tmp_path: Path) -> None:
         """Test that webhook function URL is configured."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -396,7 +396,7 @@ class TestWorkflowStack:
     def test_ssm_parameters_present(self, tmp_path: Path) -> None:
         """Test that SSM parameters are present in the workflow stack."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -408,7 +408,7 @@ class TestWorkflowStack:
     def test_oauth_rotation(self, tmp_path: Path) -> None:
         """Test that OAuth rotation construct targets a Lambda function."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -441,7 +441,7 @@ class TestWorkflowStack:
             ),
         )
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             inp,
             _make_iam_policy(),
             _make_ssm_params(),
@@ -462,7 +462,7 @@ class TestWorkflowStack:
     def test_schedule_trigger(self, tmp_path: Path) -> None:
         """Test that schedule trigger is present with state machine target."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -475,7 +475,7 @@ class TestWorkflowStack:
     def test_state_machine_variable_defined(self, tmp_path: Path) -> None:
         """Test that cfn_state_machine and state_machine variables are defined."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -488,7 +488,7 @@ class TestWorkflowStack:
     def test_sub_workflow_params(self, tmp_path: Path) -> None:
         """Test that sub-workflow parameters are present."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -501,7 +501,7 @@ class TestWorkflowStack:
     def test_source_node_comments(self, tmp_path: Path) -> None:
         """Test that source node comments are present."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -513,7 +513,7 @@ class TestWorkflowStack:
     def test_python_function_has_bundling_options(self, tmp_path: Path) -> None:
         """Test that Python Lambda functions use BundlingOptions with pip install."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -527,7 +527,7 @@ class TestWorkflowStack:
     def test_no_alpha_import(self, tmp_path: Path) -> None:
         """Test that generated code does not import from aws_lambda_python_alpha."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -544,7 +544,7 @@ class TestObservability:
     def test_imports_include_sqs_and_cloudwatch(self, tmp_path: Path) -> None:
         """Test that generated code imports aws_sqs and aws_cloudwatch."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -557,7 +557,7 @@ class TestObservability:
     def test_dlq_construct_created(self, tmp_path: Path) -> None:
         """Test that an SQS dead-letter queue construct is generated."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -571,7 +571,7 @@ class TestObservability:
     def test_lambda_xray_tracing_active(self, tmp_path: Path) -> None:
         """Test that Lambda functions include active X-Ray tracing."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -583,7 +583,7 @@ class TestObservability:
     def test_lambda_dead_letter_queue(self, tmp_path: Path) -> None:
         """Test that Lambda functions reference the DLQ."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -595,7 +595,7 @@ class TestObservability:
     def test_nodejs_lambda_tracing_and_dlq(self, tmp_path: Path) -> None:
         """Test that Node.js Lambda functions also get tracing and DLQ."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -608,7 +608,7 @@ class TestObservability:
     def test_oauth_lambda_tracing_and_dlq(self, tmp_path: Path) -> None:
         """Test that OAuth refresh Lambda functions get tracing and DLQ."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -622,7 +622,7 @@ class TestObservability:
     def test_state_machine_xray_tracing(self, tmp_path: Path) -> None:
         """Test that state machine includes X-Ray tracing configuration."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -635,7 +635,7 @@ class TestObservability:
     def test_state_machine_failed_execution_dlq_rule(self, tmp_path: Path) -> None:
         """Test that an EventBridge rule routes failed executions to the DLQ."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -649,7 +649,7 @@ class TestObservability:
     def test_cloudwatch_alarms_created(self, tmp_path: Path) -> None:
         """Test that CloudWatch alarms are created for state machine metrics."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -707,7 +707,7 @@ class TestWebhookAuthentication:
     def test_webhook_auth_env_var(self, tmp_path: Path) -> None:
         """Test that webhook auth adds WEBHOOK_AUTH_PARAMETER env var."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _webhook_auth_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -720,7 +720,7 @@ class TestWebhookAuthentication:
     def test_webhook_auth_ssm_permission(self, tmp_path: Path) -> None:
         """Test that webhook auth adds ssm:GetParameter IAM permission."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _webhook_auth_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -733,7 +733,7 @@ class TestWebhookAuthentication:
     def test_no_auth_no_env_var(self, tmp_path: Path) -> None:
         """Test that webhook without auth does not add env var or IAM permission."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -747,7 +747,7 @@ class TestWebhookAuthentication:
     def test_webhook_auth_function_url_still_none(self, tmp_path: Path) -> None:
         """Test that Function URL auth type remains NONE even with webhook auth."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _webhook_auth_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -755,6 +755,31 @@ class TestWebhookAuthentication:
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
         assert "FunctionUrlAuthType.NONE" in code
+
+    def test_no_auth_warning_emitted(self, tmp_path: Path) -> None:
+        """Test that a webhook handler without auth generates a warning."""
+        writer = CDKWriter()
+        _, warnings = writer.write(
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        assert len(warnings) == 1
+        assert "webhook_handler" in warnings[0]
+        assert "no authentication configured" in warnings[0]
+        assert "publicly accessible" in warnings[0]
+
+    def test_auth_configured_no_warning(self, tmp_path: Path) -> None:
+        """Test that a webhook handler with auth does not generate a warning."""
+        writer = CDKWriter()
+        _, warnings = writer.write(
+            _webhook_auth_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
+        )
+        assert warnings == []
 
 
 def _vpc_input() -> PackagerInput:
@@ -837,7 +862,7 @@ class TestVpcConfiguration:
     def test_shared_stack_vpc_constructs(self, tmp_path: Path) -> None:
         """Test that shared stack includes VPC constructs when VPC config is present."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -852,7 +877,7 @@ class TestVpcConfiguration:
     def test_shared_stack_no_vpc_without_config(self, tmp_path: Path) -> None:
         """Test that shared stack omits VPC constructs when no VPC config."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -865,7 +890,7 @@ class TestVpcConfiguration:
     def test_vpc_security_group_rules_postgresql(self, tmp_path: Path) -> None:
         """Test that PostgreSQL security group rules are generated."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -878,7 +903,7 @@ class TestVpcConfiguration:
     def test_vpc_security_group_rules_multiple_services(self, tmp_path: Path) -> None:
         """Test that security group rules are generated for each VPC-bound service."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_multi_service_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -893,7 +918,7 @@ class TestVpcConfiguration:
     def test_vpc_https_egress_for_nat(self, tmp_path: Path) -> None:
         """Test that HTTPS egress rule is added for NAT Gateway path."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -906,7 +931,7 @@ class TestVpcConfiguration:
     def test_lambda_vpc_params_python(self, tmp_path: Path) -> None:
         """Test that Python Lambda functions include VPC parameters."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -920,7 +945,7 @@ class TestVpcConfiguration:
     def test_lambda_vpc_params_nodejs(self, tmp_path: Path) -> None:
         """Test that Node.js Lambda functions include VPC parameters."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_multi_service_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -934,7 +959,7 @@ class TestVpcConfiguration:
     def test_no_vpc_params_without_config(self, tmp_path: Path) -> None:
         """Test that Lambda functions do not include VPC params without VPC config."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -948,7 +973,7 @@ class TestVpcConfiguration:
     def test_workflow_stack_ec2_import(self, tmp_path: Path) -> None:
         """Test that workflow stack imports ec2 when VPC is configured."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -960,7 +985,7 @@ class TestVpcConfiguration:
     def test_workflow_stack_no_ec2_import_without_vpc(self, tmp_path: Path) -> None:
         """Test that workflow stack does not import ec2 without VPC config."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -972,7 +997,7 @@ class TestVpcConfiguration:
     def test_vpc_subnet_selection(self, tmp_path: Path) -> None:
         """Test that VPC subnet selection uses PRIVATE_WITH_EGRESS."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -984,7 +1009,7 @@ class TestVpcConfiguration:
     def test_cdk_json_vpc_context_variables(self, tmp_path: Path) -> None:
         """Test that cdk.json includes VPC context variables."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -998,7 +1023,7 @@ class TestVpcConfiguration:
     def test_cdk_json_no_vpc_context_without_config(self, tmp_path: Path) -> None:
         """Test that cdk.json does not include VPC context without VPC config."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1010,7 +1035,7 @@ class TestVpcConfiguration:
     def test_vpc_lookup_from_context(self, tmp_path: Path) -> None:
         """Test that VPC lookup uses context variables."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1023,7 +1048,7 @@ class TestVpcConfiguration:
     def test_shared_stack_allow_all_outbound_false(self, tmp_path: Path) -> None:
         """Test that the security group does not allow all outbound by default."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1039,7 +1064,7 @@ class TestCustomDomainWebhooks:
     def test_custom_domain_imports_with_webhooks(self, tmp_path: Path) -> None:
         """Test that CloudFront, Route 53, and ACM imports are included with webhooks."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1055,7 +1080,7 @@ class TestCustomDomainWebhooks:
     def test_no_custom_domain_imports_without_webhooks(self, tmp_path: Path) -> None:
         """Test that custom domain imports are omitted when no webhook handlers exist."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1071,7 +1096,7 @@ class TestCustomDomainWebhooks:
     def test_custom_domain_context_check(self, tmp_path: Path) -> None:
         """Test that generated code checks for custom_domain context variable."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1085,7 +1110,7 @@ class TestCustomDomainWebhooks:
     def test_cloudfront_distribution_generated(self, tmp_path: Path) -> None:
         """Test that CloudFront distribution is generated for webhook functions."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1099,7 +1124,7 @@ class TestCustomDomainWebhooks:
     def test_route53_alias_record_generated(self, tmp_path: Path) -> None:
         """Test that Route 53 alias record is generated for webhook functions."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1113,7 +1138,7 @@ class TestCustomDomainWebhooks:
     def test_acm_certificate_reference(self, tmp_path: Path) -> None:
         """Test that ACM certificate reference is generated."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1125,7 +1150,7 @@ class TestCustomDomainWebhooks:
     def test_hosted_zone_lookup(self, tmp_path: Path) -> None:
         """Test that Route 53 hosted zone is looked up from context."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1138,7 +1163,7 @@ class TestCustomDomainWebhooks:
     def test_no_custom_domain_without_webhooks(self, tmp_path: Path) -> None:
         """Test that custom domain code is not generated without webhook handlers."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1152,7 +1177,7 @@ class TestCustomDomainWebhooks:
     def test_function_url_stored_in_variable(self, tmp_path: Path) -> None:
         """Test that function URL result is stored for use by custom domain."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1165,7 +1190,7 @@ class TestCustomDomainWebhooks:
     def test_default_behavior_unchanged(self, tmp_path: Path) -> None:
         """Test that Function URLs are used directly when custom domain is disabled."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1274,7 +1299,7 @@ class TestLambdaLayers:
     def test_shared_deps_create_layer_construct(self, tmp_path: Path) -> None:
         """Test that shared deps generate a LayerVersion construct."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1288,7 +1313,7 @@ class TestLambdaLayers:
     def test_shared_deps_functions_reference_layer(self, tmp_path: Path) -> None:
         """Test that functions referencing shared deps have layers= parameter."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1300,7 +1325,7 @@ class TestLambdaLayers:
     def test_no_shared_deps_no_layer(self, tmp_path: Path) -> None:
         """Test that no layers are generated when there are no shared deps."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1313,7 +1338,7 @@ class TestLambdaLayers:
     def test_mixed_runtimes_both_layers(self, tmp_path: Path) -> None:
         """Test that both Node.js and Python layers are generated."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _mixed_runtime_shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1327,7 +1352,7 @@ class TestLambdaLayers:
     def test_python_layer_uses_stable_layer_version(self, tmp_path: Path) -> None:
         """Test that Python layers use lambda_.LayerVersion, not PythonLayerVersion."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _mixed_runtime_shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1340,7 +1365,7 @@ class TestLambdaLayers:
     def test_python_layer_has_bundling_options(self, tmp_path: Path) -> None:
         """Test that Python layers use BundlingOptions targeting python/ subdir."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _mixed_runtime_shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1353,7 +1378,7 @@ class TestLambdaLayers:
     def test_layer_description_includes_dep_names(self, tmp_path: Path) -> None:
         """Test that layer comments include dependency names."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1365,7 +1390,7 @@ class TestLambdaLayers:
     def test_layer_asset_path(self, tmp_path: Path) -> None:
         """Test that the layer construct points to the correct asset path."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1379,7 +1404,7 @@ class TestLambdaLayers:
     ) -> None:
         """Test that workflow stack with layers is syntactically valid Python."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _shared_deps_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1391,7 +1416,7 @@ class TestLambdaLayers:
     def test_existing_tests_still_pass_complex_input(self, tmp_path: Path) -> None:
         """Test that complex input (no shared deps) still generates correctly."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1409,7 +1434,7 @@ class TestWorkflowStackCompile:
     def test_complex_input_syntactically_valid(self, tmp_path: Path) -> None:
         """Test that workflow stack from complex input is valid Python."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1421,7 +1446,7 @@ class TestWorkflowStackCompile:
     def test_vpc_input_syntactically_valid(self, tmp_path: Path) -> None:
         """Test that workflow stack from VPC input is valid Python."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1433,7 +1458,7 @@ class TestWorkflowStackCompile:
     def test_minimal_input_syntactically_valid(self, tmp_path: Path) -> None:
         """Test that workflow stack from minimal input is valid Python."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1449,7 +1474,7 @@ class TestSharedStackCompile:
     def test_minimal_input_syntactically_valid(self, tmp_path: Path) -> None:
         """Test that shared stack from minimal input is valid Python."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _minimal_input(),
             _make_iam_policy(),
             _make_ssm_params(),
@@ -1461,7 +1486,7 @@ class TestSharedStackCompile:
     def test_vpc_input_syntactically_valid(self, tmp_path: Path) -> None:
         """Test that shared stack from VPC input is valid Python."""
         writer = CDKWriter()
-        cdk_dir = writer.write(
+        cdk_dir, _ = writer.write(
             _vpc_input(),
             _make_iam_policy(),
             _make_ssm_params(),
