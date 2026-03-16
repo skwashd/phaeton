@@ -310,7 +310,7 @@ class TestValidationErrors:
     def test_missing_required_fields(self) -> None:
         """Test that missing required fields cause validation errors."""
         with pytest.raises(ValidationError):
-            PackagerInput()
+            PackagerInput()  # type: ignore[missing-argument]
 
     def test_empty_workflow_name(self) -> None:
         """Test that empty workflow names are rejected."""

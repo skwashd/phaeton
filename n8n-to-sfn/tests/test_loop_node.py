@@ -19,11 +19,11 @@ def _loop_node(
 ) -> ClassifiedNode:
     """Create a Loop classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(
+        node=N8nNode(  # type: ignore[missing-argument]
             id=name,
             name=name,
             type="n8n-nodes-base.loop",
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
             parameters=params or {},
         ),

@@ -16,11 +16,11 @@ from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 def _wait_node(name: str, params: dict | None = None) -> ClassifiedNode:
     """Create a Wait classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(
+        node=N8nNode(  # type: ignore[missing-argument]
             id=name,
             name=name,
             type="n8n-nodes-base.wait",
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
             parameters=params or {},
         ),

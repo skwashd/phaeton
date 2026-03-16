@@ -138,7 +138,7 @@ def match(
     index_file: Annotated[
         str, typer.Option(help="Path or s3:// URI to the spec index JSON.")
     ] = "spec_index.json",
-    version: Annotated[
+    version: Annotated[  # type: ignore[invalid-parameter-default]
         str, typer.Option(help="n8n version to match.")
     ] = ...,
 ) -> None:

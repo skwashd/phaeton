@@ -255,8 +255,8 @@ def evaluate_lambda_expressions(
             directory_name=func_name,
         )
 
-        state = TaskState(
-            resource="arn:aws:states:::lambda:invoke",
+        state = TaskState(  # type: ignore[missing-argument]
+            resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
             end=True,
             comment=f"Evaluate expression: {expr.original[:80]}",
         )

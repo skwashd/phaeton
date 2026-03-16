@@ -181,13 +181,13 @@ class TestASLModels:
         dumped = state.model_dump(by_alias=True)
         assert dumped["Type"] == "Pass"
         assert dumped["End"] is True
-        sm = StateMachine(start_at="S", states={"S": state})
+        sm = StateMachine(start_at="S", states={"S": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def test_task_state_serialize(self, asl_schema: dict) -> None:
         """Test Task state serialization."""
-        state = TaskState(
-            resource="arn:aws:states:::aws-sdk:s3:getObject",
+        state = TaskState(  # type: ignore[missing-argument]
+            resource="arn:aws:states:::aws-sdk:s3:getObject",  # type: ignore[unknown-argument]
             arguments={"Bucket": "b", "Key": "k"},
             end=True,
         )
@@ -195,22 +195,22 @@ class TestASLModels:
         assert dumped["Type"] == "Task"
         assert dumped["Resource"] == "arn:aws:states:::aws-sdk:s3:getObject"
         assert dumped["Arguments"] == {"Bucket": "b", "Key": "k"}
-        sm = StateMachine(start_at="S", states={"S": state})
+        sm = StateMachine(start_at="S", states={"S": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def test_choice_state_jsonata(self, asl_schema: dict) -> None:
         """Test Choice state with JSONata condition."""
         rule = ChoiceRule(condition="$states.input.x > 0", next="Pos")
-        state = ChoiceState(
-            choices=[rule],
+        state = ChoiceState(  # type: ignore[missing-argument]
+            choices=[rule],  # type: ignore[unknown-argument]
             default="Neg",
         )
         dumped = state.model_dump(by_alias=True)
         assert dumped["Choices"][0]["Condition"] == "$states.input.x > 0"
         assert dumped["Default"] == "Neg"
-        sm = StateMachine(
-            start_at="C",
-            states={
+        sm = StateMachine(  # type: ignore[missing-argument]
+            start_at="C",  # type: ignore[unknown-argument]
+            states={  # type: ignore[unknown-argument]
                 "C": state,
                 "Pos": PassState(end=True),
                 "Neg": PassState(end=True),
@@ -224,9 +224,9 @@ class TestASLModels:
         dumped = state.model_dump(by_alias=True)
         assert dumped["Seconds"] == 30
         assert dumped["Next"] == "Done"
-        sm = StateMachine(
-            start_at="W",
-            states={"W": state, "Done": PassState(end=True)},
+        sm = StateMachine(  # type: ignore[missing-argument]
+            start_at="W",  # type: ignore[unknown-argument]
+            states={"W": state, "Done": PassState(end=True)},  # type: ignore[unknown-argument]
         )
         self._validate(sm, asl_schema)
 
@@ -241,7 +241,7 @@ class TestASLModels:
         state = SucceedState()
         dumped = state.model_dump(by_alias=True)
         assert dumped["Type"] == "Succeed"
-        sm = StateMachine(start_at="S", states={"S": state})
+        sm = StateMachine(start_at="S", states={"S": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def test_fail_state(self, asl_schema: dict) -> None:
@@ -250,31 +250,31 @@ class TestASLModels:
         dumped = state.model_dump(by_alias=True)
         assert dumped["Error"] == "CustomError"
         assert dumped["Cause"] == "Something went wrong"
-        sm = StateMachine(start_at="F", states={"F": state})
+        sm = StateMachine(start_at="F", states={"F": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def test_parallel_state(self, asl_schema: dict) -> None:
         """Test Parallel state serialization."""
-        branch1 = StateMachine(
-            start_at="A",
-            states={"A": PassState(end=True)},
+        branch1 = StateMachine(  # type: ignore[missing-argument]
+            start_at="A",  # type: ignore[unknown-argument]
+            states={"A": PassState(end=True)},  # type: ignore[unknown-argument]
             query_language=None,
         )
-        branch2 = StateMachine(
-            start_at="B",
-            states={"B": PassState(end=True)},
+        branch2 = StateMachine(  # type: ignore[missing-argument]
+            start_at="B",  # type: ignore[unknown-argument]
+            states={"B": PassState(end=True)},  # type: ignore[unknown-argument]
             query_language=None,
         )
-        state = ParallelState(branches=[branch1, branch2], end=True)
+        state = ParallelState(branches=[branch1, branch2], end=True)  # type: ignore[missing-argument, unknown-argument]
         dumped = state.model_dump(by_alias=True)
         assert len(dumped["Branches"]) == 2
-        sm = StateMachine(start_at="P", states={"P": state})
+        sm = StateMachine(start_at="P", states={"P": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def test_map_state(self, asl_schema: dict) -> None:
         """Test Map state serialization."""
         proc = ItemProcessor(
-            processor_config=ProcessorConfig(mode="INLINE"),
+            processor_config=ProcessorConfig(mode="INLINE"),  # type: ignore[missing-argument, unknown-argument]
             start_at="DoWork",
             states={"DoWork": PassState(end=True).model_dump(by_alias=True)},
         )
@@ -286,13 +286,13 @@ class TestASLModels:
         dumped = state.model_dump(by_alias=True)
         assert dumped["MaxConcurrency"] == 5
         assert dumped["ItemProcessor"]["ProcessorConfig"]["Mode"] == "INLINE"
-        sm = StateMachine(start_at="M", states={"M": state})
+        sm = StateMachine(start_at="M", states={"M": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def test_retry_config(self) -> None:
         """Test RetryConfig serialization."""
-        retry = RetryConfig(
-            error_equals=["States.TaskFailed"],
+        retry = RetryConfig(  # type: ignore[missing-argument]
+            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
             interval_seconds=2,
             max_attempts=3,
             backoff_rate=2.0,
@@ -306,9 +306,9 @@ class TestASLModels:
 
     def test_catch_config(self) -> None:
         """Test CatchConfig serialization."""
-        catch = CatchConfig(
-            error_equals=["States.ALL"],
-            next="HandleError",
+        catch = CatchConfig(  # type: ignore[missing-argument]
+            error_equals=["States.ALL"],  # type: ignore[unknown-argument]
+            next="HandleError",  # type: ignore[unknown-argument]
         )
         dumped = catch.model_dump(by_alias=True)
         assert dumped["ErrorEquals"] == ["States.ALL"]
@@ -316,25 +316,25 @@ class TestASLModels:
 
     def test_task_with_retry_and_catch(self, asl_schema: dict) -> None:
         """Test Task state with retry and catch."""
-        state = TaskState(
-            resource="arn:aws:states:::lambda:invoke",
+        state = TaskState(  # type: ignore[missing-argument]
+            resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
             retry=[
-                RetryConfig(
-                    error_equals=["States.TaskFailed"],
+                RetryConfig(  # type: ignore[missing-argument]
+                    error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
                     max_attempts=3,
                 )
             ],
             catch=[
-                CatchConfig(
-                    error_equals=["States.ALL"],
-                    next="Fallback",
+                CatchConfig(  # type: ignore[missing-argument]
+                    error_equals=["States.ALL"],  # type: ignore[unknown-argument]
+                    next="Fallback",  # type: ignore[unknown-argument]
                 )
             ],
             next="Done",
         )
-        sm = StateMachine(
-            start_at="T",
-            states={
+        sm = StateMachine(  # type: ignore[missing-argument]
+            start_at="T",  # type: ignore[unknown-argument]
+            states={  # type: ignore[unknown-argument]
                 "T": state,
                 "Done": PassState(end=True),
                 "Fallback": FailState(error="Caught"),
@@ -344,20 +344,20 @@ class TestASLModels:
 
     def test_complete_state_machine(self, asl_schema: dict) -> None:
         """Test complete state machine serialization."""
-        sm = StateMachine(
+        sm = StateMachine(  # type: ignore[missing-argument]
             comment="A complete workflow",
-            start_at="Start",
-            states={
+            start_at="Start",  # type: ignore[unknown-argument]
+            states={  # type: ignore[unknown-argument]
                 "Start": PassState(next="Check"),
-                "Check": ChoiceState(
-                    choices=[
+                "Check": ChoiceState(  # type: ignore[missing-argument]
+                    choices=[  # type: ignore[unknown-argument]
                         ChoiceRule(condition="$states.input.ready", next="Process")
                     ],
                     default="Wait",
                 ),
                 "Wait": WaitState(seconds=10, next="Check"),
-                "Process": TaskState(
-                    resource="arn:aws:states:::lambda:invoke",
+                "Process": TaskState(  # type: ignore[missing-argument]
+                    resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
                     next="Done",
                 ),
                 "Done": SucceedState(),
@@ -367,7 +367,7 @@ class TestASLModels:
 
     def test_query_language_jsonata(self, asl_schema: dict) -> None:
         """Test query language is JSONata."""
-        sm = StateMachine(start_at="S", states={"S": PassState(end=True)})
+        sm = StateMachine(start_at="S", states={"S": PassState(end=True)})  # type: ignore[missing-argument, unknown-argument]
         dumped = sm.model_dump(by_alias=True)
         assert dumped["QueryLanguage"] == "JSONata"
         self._validate(sm, asl_schema)
@@ -387,7 +387,7 @@ class TestASLModels:
         )
         dumped = state.model_dump(by_alias=True)
         assert dumped["Assign"] == {"myVar": "hello"}
-        sm = StateMachine(start_at="S", states={"S": state})
+        sm = StateMachine(start_at="S", states={"S": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def test_output_jsonata_on_pass(self, asl_schema: dict) -> None:
@@ -398,7 +398,7 @@ class TestASLModels:
         )
         dumped = state.model_dump(by_alias=True)
         assert dumped["Output"] == "{% $states.input.name %}"
-        sm = StateMachine(start_at="S", states={"S": state})
+        sm = StateMachine(start_at="S", states={"S": state})  # type: ignore[missing-argument, unknown-argument]
         self._validate(sm, asl_schema)
 
     def _validate(self, sm: StateMachine, schema: dict) -> None:
@@ -419,11 +419,11 @@ class TestAnalysisModels:
         self, name: str = "Test", node_type: str = "n8n-nodes-base.set"
     ) -> N8nNode:
         """Create an N8nNode for testing."""
-        return N8nNode(
+        return N8nNode(  # type: ignore[missing-argument]
             id="1",
             name=name,
             type=node_type,
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
         )
 

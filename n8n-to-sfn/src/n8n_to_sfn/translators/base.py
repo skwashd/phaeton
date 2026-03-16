@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any
 
 from phaeton_models.translator import ClassifiedNode, WorkflowAnalysis
+from phaeton_models.translator_output import CredentialArtifact
 from pydantic import BaseModel, ConfigDict
 
 from n8n_to_sfn.models.asl import (
@@ -53,17 +54,6 @@ class TriggerArtifact(BaseModel):
     config: dict[str, Any] = {}
     lambda_artifact: LambdaArtifact | None = None
     eventbridge_rule: dict[str, Any] | None = None
-
-
-class CredentialArtifact(BaseModel):
-    """A credential placeholder for SSM Parameter Store."""
-
-    model_config = ConfigDict(frozen=True)
-
-    parameter_path: str
-    credential_type: str
-    auth_type: str = "api_key"
-    placeholder_value: str = ""
 
 
 class TranslationContext(BaseModel):
@@ -131,8 +121,8 @@ def build_error_handling(
             else 1000
         )
         retries.append(
-            RetryConfig(
-                error_equals=["States.ALL"],
+            RetryConfig(  # type: ignore[missing-argument]
+                error_equals=["States.ALL"],  # type: ignore[unknown-argument]
                 max_attempts=max_attempts,
                 interval_seconds=wait_ms // 1000,
                 backoff_rate=2.0,
@@ -143,9 +133,9 @@ def build_error_handling(
 
     if n8n_node.continue_on_fail and next_state_name:
         catches.append(
-            CatchConfig(
-                error_equals=["States.ALL"],
-                next=next_state_name,
+            CatchConfig(  # type: ignore[missing-argument]
+                error_equals=["States.ALL"],  # type: ignore[unknown-argument]
+                next=next_state_name,  # type: ignore[unknown-argument]
             )
         )
 

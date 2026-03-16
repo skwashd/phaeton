@@ -316,7 +316,7 @@ class TestNodeApiMapping:
         assert result["typeVersion"] == 2
         assert result["apiSpec"] == "slack-web-api-v2.json"
         assert result["specFormat"] == "openapi3"
-        assert result["operationMappings"]["message:send"] == "POST /chat.postMessage"
+        assert result["operationMappings"]["message:send"] == "POST /chat.postMessage"  # type: ignore[not-subscriptable]
         assert result["credentialType"] == "slackApi"
         assert result["authType"] == "oauth2"
         assert result["unmappedOperations"] == ["message:getPermalink"]

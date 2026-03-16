@@ -20,11 +20,11 @@ def _node(
 ) -> ClassifiedNode:
     """Create a classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(
+        node=N8nNode(  # type: ignore[missing-argument]
             id=name,
             name=name,
             type="n8n-nodes-base.awsS3",
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
             parameters=params or {},
         ),

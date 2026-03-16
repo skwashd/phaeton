@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -14,6 +15,8 @@ from n8n_release_parser.catalog import NodeCatalogStore
 from n8n_release_parser.cli import app
 from n8n_release_parser.models import NodeCatalog, NodeTypeEntry
 from n8n_release_parser.storage_s3 import S3StorageBackend
+
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
 
 def _make_entry(
@@ -64,8 +67,9 @@ class TestFetchReleases:
         runner = CliRunner()
         result = runner.invoke(app, ["fetch-releases", "--help"])
         assert result.exit_code == 0
-        assert "--months" in result.output
-        assert "--cache-dir" in result.output
+        plain = _ANSI_RE.sub("", result.output)
+        assert "--months" in plain
+        assert "--cache-dir" in plain
 
 
 class TestDiff:

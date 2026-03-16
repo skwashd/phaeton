@@ -23,11 +23,11 @@ def _node(
 ) -> ClassifiedNode:
     """Create a classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(
+        node=N8nNode(  # type: ignore[missing-argument]
             id=name,
             name=name,
             type=node_type,
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
             parameters=params or {},
         ),
@@ -125,8 +125,8 @@ class TestRetryBackoffConfig:
 
     def test_backoff_rate_on_default_retry(self) -> None:
         """Test backoff rate on default retry."""
-        default = RetryConfig(
-            error_equals=["States.TaskFailed"],
+        default = RetryConfig(  # type: ignore[missing-argument]
+            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
             max_attempts=3,
             interval_seconds=2,
             backoff_rate=2.0,
@@ -139,8 +139,8 @@ class TestRetryBackoffConfig:
 
     def test_retry_with_jitter_strategy(self) -> None:
         """Test retry with jitter strategy."""
-        retry = RetryConfig(
-            error_equals=["States.TaskFailed"],
+        retry = RetryConfig(  # type: ignore[missing-argument]
+            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
             max_attempts=3,
             interval_seconds=1,
             backoff_rate=2.0,
@@ -151,12 +151,19 @@ class TestRetryBackoffConfig:
 
     def test_explicit_retry_from_node_settings(self) -> None:
         """Test explicit retry from node error settings."""
-        node = _node(
-            "API", "n8n-nodes-base.awsS3", classification=NodeClassification.AWS_NATIVE
+        node = ClassifiedNode(
+            node=N8nNode(  # type: ignore[missing-argument]
+                id="API",
+                name="API",
+                type="n8n-nodes-base.awsS3",
+                type_version=1,  # type: ignore[unknown-argument]
+                position=[0, 0],
+                retry_on_fail=True,  # type: ignore[unknown-argument]
+                max_tries=5,  # type: ignore[unknown-argument]
+                wait_between_tries=3000,  # type: ignore[unknown-argument]
+            ),
+            classification=NodeClassification.AWS_NATIVE,
         )
-        node.node.retry_on_fail = True
-        node.node.max_tries = 5
-        node.node.wait_between_tries = 3000
         retries, _ = build_error_handling(node)
         assert len(retries) == 1
         assert retries[0].max_attempts == 5

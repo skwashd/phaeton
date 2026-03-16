@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from phaeton_models.translator import (
     ClassifiedNode,
     DependencyEdge,
@@ -15,7 +17,7 @@ from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 
 
 def _fc_node(
-    name: str, node_type: str, params: dict | None = None, **kwargs: bool
+    name: str, node_type: str, params: dict | None = None, **kwargs: Any  # noqa: ANN401
 ) -> ClassifiedNode:
     """Create a flow control classified node for testing."""
     return ClassifiedNode(
@@ -23,7 +25,7 @@ def _fc_node(
             id=name,
             name=name,
             type=node_type,
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
             parameters=params or {},
             **kwargs,
@@ -57,7 +59,7 @@ class TestFlowControlTranslator:
     def test_cannot_translate_other(self) -> None:
         """Test can_translate returns False for non-flow-control nodes."""
         cn = ClassifiedNode(
-            node=N8nNode(id="x", name="x", type="x", type_version=1, position=[0, 0]),
+            node=N8nNode(id="x", name="x", type="x", type_version=1, position=[0, 0]),  # type: ignore[missing-argument, unknown-argument]
             classification=NodeClassification.AWS_NATIVE,
         )
         assert not self.translator.can_translate(cn)

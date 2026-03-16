@@ -26,8 +26,8 @@ _DATABASE_NODE_TYPE = "n8n-nodes-base.postgres"
 _EXECUTE_RESOURCE = "arn:aws:states:::aws-sdk:rdsdata:executeStatement"
 _BATCH_RESOURCE = "arn:aws:states:::aws-sdk:rdsdata:batchExecuteStatement"
 
-_DEFAULT_RETRY = RetryConfig(
-    error_equals=["States.TaskFailed"],
+_DEFAULT_RETRY = RetryConfig(  # type: ignore[missing-argument]
+    error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
     interval_seconds=2,
     max_attempts=3,
     backoff_rate=2.0,
@@ -164,8 +164,8 @@ class DatabaseTranslator(BaseTranslator):
 
         credential_artifacts = self._build_credentials(context)
 
-        state = TaskState(
-            resource=resource,
+        state = TaskState(  # type: ignore[missing-argument]
+            resource=resource,  # type: ignore[unknown-argument]
             arguments=arguments,
             end=True,
             retry=[_DEFAULT_RETRY],

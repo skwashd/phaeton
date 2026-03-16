@@ -221,13 +221,13 @@ class TestExpressionEdgeCases:
             },
             "items": ["{{ $json.id }}", "static"],
         }
-        result = translate_all_expressions(params)
+        result = translate_all_expressions(params)  # type: ignore[invalid-argument-type]
         assert result["url"] == "https://api.example.com"
         assert result["body"] == "{% $states.input.data %}"
-        assert result["nested"]["value"] == "{% $uppercase($states.input.name) %}"
-        assert result["nested"]["literal"] == "hello"
-        assert result["items"][0] == "{% $states.input.id %}"
-        assert result["items"][1] == "static"
+        assert result["nested"]["value"] == "{% $uppercase($states.input.name) %}"  # type: ignore[invalid-argument-type, not-subscriptable]
+        assert result["nested"]["literal"] == "hello"  # type: ignore[invalid-argument-type, not-subscriptable]
+        assert result["items"][0] == "{% $states.input.id %}"  # type: ignore[invalid-argument-type, not-subscriptable]
+        assert result["items"][1] == "static"  # type: ignore[invalid-argument-type, not-subscriptable]
 
     def test_template_literal_multiple_substitutions(self) -> None:
         """Test template literal with multiple substitutions."""

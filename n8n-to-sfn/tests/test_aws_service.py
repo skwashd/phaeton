@@ -16,11 +16,11 @@ from n8n_to_sfn.translators.base import TranslationContext
 def _aws_node(name: str, node_type: str, params: dict | None = None) -> ClassifiedNode:
     """Create an AWS classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(
+        node=N8nNode(  # type: ignore[missing-argument]
             id=name,
             name=name,
             type=node_type,
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
             parameters=params or {},
         ),

@@ -53,7 +53,7 @@ def handler(event: dict[str, Any], context: LambdaContext | None) -> dict[str, A
             status_code=400,
             error_type="ValidationError",
             message=f"Invalid PackagerInput payload: {exc.error_count()} validation error(s)",
-            details=exc.errors(include_url=False),
+            details=exc.errors(include_url=False),  # type: ignore[invalid-argument-type]
         )
 
     workflow_name = input_data.metadata.workflow_name
@@ -128,7 +128,7 @@ def _error_response(
     status_code: int,
     error_type: str,
     message: str,
-    details: str | list[dict[str, str]] | None = None,
+    details: str | list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build a structured error response."""
     return {

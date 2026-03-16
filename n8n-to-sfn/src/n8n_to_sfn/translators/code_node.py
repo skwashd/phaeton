@@ -289,8 +289,8 @@ class CodeNodeTranslator(BaseTranslator):
             directory_name=func_name,
         )
 
-        state = TaskState(
-            resource="arn:aws:states:::lambda:invoke",
+        state = TaskState(  # type: ignore[missing-argument]
+            resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
             end=True,
         )
         state = apply_error_handling(state, node)
@@ -335,8 +335,8 @@ class CodeNodeTranslator(BaseTranslator):
             directory_name=func_name,
         )
 
-        state = TaskState(
-            resource="arn:aws:states:::lambda:invoke",
+        state = TaskState(  # type: ignore[missing-argument]
+            resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
             end=True,
         )
         state = apply_error_handling(state, node)

@@ -33,11 +33,11 @@ def _node(
 ) -> ClassifiedNode:
     """Create a classified node with the given expressions."""
     return ClassifiedNode(
-        node=N8nNode(
+        node=N8nNode(  # type: ignore[missing-argument]
             id=name,
             name=name,
             type="n8n-nodes-base.set",
-            type_version=1,
+            type_version=1,  # type: ignore[unknown-argument]
             position=[0, 0],
             parameters={},
         ),
@@ -376,7 +376,7 @@ class TestEngineExpressionIntegration:
         output = engine.translate(analysis)
 
         eval_state = StateMachine.model_validate(output.state_machine).states["Calc_ExprEval"]
-        assert eval_state.next == "Calc"
+        assert eval_state.next == "Calc"  # type: ignore[unresolved-attribute]
 
     def test_engine_start_at_points_to_eval_state(self) -> None:
         """Test that StartAt points to the eval state when first node has one."""
@@ -454,7 +454,7 @@ class TestEngineExpressionIntegration:
         output = engine.translate(analysis)
 
         prev_state = StateMachine.model_validate(output.state_machine).states["Prev"]
-        assert prev_state.next == "Target_ExprEval"
+        assert prev_state.next == "Target_ExprEval"  # type: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------

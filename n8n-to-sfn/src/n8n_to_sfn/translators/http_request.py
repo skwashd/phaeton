@@ -22,8 +22,8 @@ from n8n_to_sfn.translators.base import (
 
 _HTTP_REQUEST_TYPE = "n8n-nodes-base.httpRequest"
 
-_DEFAULT_RETRY = RetryConfig(
-    error_equals=["States.TaskFailed"],
+_DEFAULT_RETRY = RetryConfig(  # type: ignore[missing-argument]
+    error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
     interval_seconds=2,
     max_attempts=3,
     backoff_rate=2.0,
@@ -102,8 +102,8 @@ class HttpRequestTranslator(BaseTranslator):
             )
             credential_artifacts.extend(cred_artifacts)
 
-        state = TaskState(
-            resource="arn:aws:states:::http:invoke",
+        state = TaskState(  # type: ignore[missing-argument]
+            resource="arn:aws:states:::http:invoke",  # type: ignore[unknown-argument]
             arguments=arguments,
             end=True,
             retry=[_DEFAULT_RETRY],

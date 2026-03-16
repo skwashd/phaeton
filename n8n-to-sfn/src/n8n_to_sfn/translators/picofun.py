@@ -15,8 +15,8 @@ from n8n_to_sfn.translators.base import (
     apply_error_handling,
 )
 
-_DEFAULT_RETRY = RetryConfig(
-    error_equals=["States.TaskFailed"],
+_DEFAULT_RETRY = RetryConfig(  # type: ignore[missing-argument]
+    error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
     interval_seconds=2,
     max_attempts=3,
     backoff_rate=2.0,
@@ -87,8 +87,8 @@ class PicoFunTranslator(BaseTranslator):
                 )
                 break  # Use first credential
 
-        state = TaskState(
-            resource="arn:aws:states:::lambda:invoke",
+        state = TaskState(  # type: ignore[missing-argument]
+            resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
             arguments=arguments,
             end=True,
             retry=[_DEFAULT_RETRY],
