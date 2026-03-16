@@ -8,8 +8,8 @@ from phaeton_models.translator import (
     NodeClassification,
     WorkflowAnalysis,
 )
+from phaeton_models.translator_output import TranslationOutput
 
-from n8n_to_sfn.engine import TranslationOutput
 from n8n_to_sfn.handler import create_default_engine, handler
 from n8n_to_sfn.models.n8n import N8nNode
 
@@ -56,7 +56,7 @@ class TestHandler:
         assert "error" not in result
         output = TranslationOutput.model_validate(result)
         assert output.state_machine is not None
-        assert len(output.state_machine.states) >= 1
+        assert len(output.state_machine["States"]) >= 1
 
     def test_invalid_payload_returns_validation_error(self) -> None:
         """Handler with an invalid payload returns a structured 400 error."""

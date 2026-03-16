@@ -19,6 +19,7 @@ from phaeton_models.translator import (
 )
 
 from n8n_to_sfn.engine import TranslationEngine
+from n8n_to_sfn.models.asl import StateMachine
 from n8n_to_sfn.models.n8n import N8nNode, N8nWorkflow
 from n8n_to_sfn.translators.aws_service import AWSServiceTranslator
 from n8n_to_sfn.translators.code_node import CodeNodeTranslator
@@ -124,11 +125,11 @@ class TestSimpleS3Pipeline:
     def test_produces_state_machine(self) -> None:
         """Test workflow produces a state machine."""
         assert self.output.state_machine is not None
-        assert self.output.state_machine.start_at is not None
+        assert self.output.state_machine["StartAt"] is not None
 
     def test_contains_s3_states(self) -> None:
         """Test state machine contains S3 states."""
-        states = self.output.state_machine.states
+        states = StateMachine.model_validate(self.output.state_machine).states
         assert "S3Get" in states
         assert "S3Put" in states
 
@@ -138,19 +139,19 @@ class TestSimpleS3Pipeline:
 
     def test_s3get_has_correct_resource(self) -> None:
         """Test S3Get has correct resource."""
-        state = self.output.state_machine.states["S3Get"]
+        state = StateMachine.model_validate(self.output.state_machine).states["S3Get"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "getObject" in dumped["Resource"]
 
     def test_s3put_has_correct_resource(self) -> None:
         """Test S3Put has correct resource."""
-        state = self.output.state_machine.states["S3Put"]
+        state = StateMachine.model_validate(self.output.state_machine).states["S3Put"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "putObject" in dumped["Resource"]
 
     def test_valid_asl_json(self) -> None:
         """Test state machine produces valid ASL JSON."""
-        dumped = self.output.state_machine.model_dump(by_alias=True)
+        dumped = self.output.state_machine
         assert "StartAt" in dumped
         assert "States" in dumped
         assert "QueryLanguage" in dumped
@@ -185,11 +186,11 @@ class TestWebhookToDynamoDB:
 
     def test_dynamodb_state_present(self) -> None:
         """Test DynamoDB state is present."""
-        assert "DDBPut" in self.output.state_machine.states
+        assert "DDBPut" in StateMachine.model_validate(self.output.state_machine).states
 
     def test_dynamodb_uses_put_item(self) -> None:
         """Test DynamoDB uses putItem resource."""
-        state = self.output.state_machine.states["DDBPut"]
+        state = StateMachine.model_validate(self.output.state_machine).states["DDBPut"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "putItem" in dumped["Resource"]
 
@@ -204,25 +205,25 @@ class TestIfBranchWorkflow:
 
     def test_if_becomes_choice_state(self) -> None:
         """Test IF node becomes Choice state."""
-        state = self.output.state_machine.states["IF"]
+        state = StateMachine.model_validate(self.output.state_machine).states["IF"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert dumped["Type"] == "Choice"
 
     def test_both_branches_present(self) -> None:
         """Test both branches are present in state machine."""
-        states = self.output.state_machine.states
+        states = StateMachine.model_validate(self.output.state_machine).states
         assert "SNSPublish" in states
         assert "SQSSend" in states
 
     def test_sns_uses_publish(self) -> None:
         """Test SNS uses publish resource."""
-        state = self.output.state_machine.states["SNSPublish"]
+        state = StateMachine.model_validate(self.output.state_machine).states["SNSPublish"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "publish" in dumped["Resource"]
 
     def test_sqs_uses_send_message(self) -> None:
         """Test SQS uses sendMessage resource."""
-        state = self.output.state_machine.states["SQSSend"]
+        state = StateMachine.model_validate(self.output.state_machine).states["SQSSend"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "sendMessage" in dumped["Resource"]
 
@@ -247,11 +248,11 @@ class TestScheduleLambdaWorkflow:
 
     def test_lambda_state_present(self) -> None:
         """Test Lambda state is present."""
-        assert "Lambda" in self.output.state_machine.states
+        assert "Lambda" in StateMachine.model_validate(self.output.state_machine).states
 
     def test_lambda_uses_invoke(self) -> None:
         """Test Lambda uses invoke resource."""
-        state = self.output.state_machine.states["Lambda"]
+        state = StateMachine.model_validate(self.output.state_machine).states["Lambda"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "lambda:invoke" in dumped["Resource"]
 
@@ -273,7 +274,7 @@ class TestCodeNodeWorkflow:
 
     def test_code_node_state_present(self) -> None:
         """Test code node state is present."""
-        assert "Code" in self.output.state_machine.states
+        assert "Code" in StateMachine.model_validate(self.output.state_machine).states
 
     def test_code_handler_contains_user_code(self) -> None:
         """Test code handler contains user code."""
@@ -284,7 +285,7 @@ class TestCodeNodeWorkflow:
 
     def test_s3_state_wired_after_code(self) -> None:
         """Test S3 state is wired after code node."""
-        assert "S3Put" in self.output.state_machine.states
+        assert "S3Put" in StateMachine.model_validate(self.output.state_machine).states
 
 
 class TestWaitAndNotify:
@@ -297,19 +298,19 @@ class TestWaitAndNotify:
 
     def test_wait_state_present(self) -> None:
         """Test Wait state is present."""
-        state = self.output.state_machine.states["Wait"]
+        state = StateMachine.model_validate(self.output.state_machine).states["Wait"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert dumped["Type"] == "Wait"
 
     def test_wait_30_seconds(self) -> None:
         """Test Wait state has 30 seconds."""
-        state = self.output.state_machine.states["Wait"]
+        state = StateMachine.model_validate(self.output.state_machine).states["Wait"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert dumped["Seconds"] == 30
 
     def test_sns_after_wait(self) -> None:
         """Test SNS state is after wait."""
-        assert "SNSPublish" in self.output.state_machine.states
+        assert "SNSPublish" in StateMachine.model_validate(self.output.state_machine).states
 
 
 class TestErrorHandlingWorkflow:
@@ -322,7 +323,7 @@ class TestErrorHandlingWorkflow:
 
     def test_s3get_has_retry(self) -> None:
         """Test S3Get has retry configuration."""
-        state = self.output.state_machine.states["S3Get"]
+        state = StateMachine.model_validate(self.output.state_machine).states["S3Get"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "Retry" in dumped
         # Should have explicit retry from retryOnFail=true
@@ -334,7 +335,7 @@ class TestErrorHandlingWorkflow:
 
     def test_s3get_retry_max_attempts(self) -> None:
         """Test S3Get retry has correct max attempts."""
-        state = self.output.state_machine.states["S3Get"]
+        state = StateMachine.model_validate(self.output.state_machine).states["S3Get"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         retries = dumped["Retry"]
         # The explicit retry from node settings should have MaxAttempts=5
@@ -343,11 +344,11 @@ class TestErrorHandlingWorkflow:
 
     def test_s3put_present(self) -> None:
         """Test S3Put state is present."""
-        assert "S3Put" in self.output.state_machine.states
+        assert "S3Put" in StateMachine.model_validate(self.output.state_machine).states
 
     def test_both_states_present(self) -> None:
         """Test both S3 states are present."""
-        states = self.output.state_machine.states
+        states = StateMachine.model_validate(self.output.state_machine).states
         assert "S3Get" in states
         assert "S3Put" in states
 
@@ -362,7 +363,7 @@ class TestMultiStepETL:
 
     def test_all_non_trigger_states_present(self) -> None:
         """Test all non-trigger states are present."""
-        states = self.output.state_machine.states
+        states = StateMachine.model_validate(self.output.state_machine).states
         assert "DDBQuery" in states
         assert "PyCode" in states
         assert "SQSSend" in states
@@ -374,7 +375,7 @@ class TestMultiStepETL:
 
     def test_dynamodb_query_resource(self) -> None:
         """Test DynamoDB query resource is correct."""
-        state = self.output.state_machine.states["DDBQuery"]
+        state = StateMachine.model_validate(self.output.state_machine).states["DDBQuery"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "query" in dumped["Resource"]
 
@@ -390,19 +391,19 @@ class TestMultiStepETL:
 
     def test_sqs_send_resource(self) -> None:
         """Test SQS send resource is correct."""
-        state = self.output.state_machine.states["SQSSend"]
+        state = StateMachine.model_validate(self.output.state_machine).states["SQSSend"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "sendMessage" in dumped["Resource"]
 
     def test_sns_publish_resource(self) -> None:
         """Test SNS publish resource is correct."""
-        state = self.output.state_machine.states["SNSNotify"]
+        state = StateMachine.model_validate(self.output.state_machine).states["SNSNotify"]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "publish" in dumped["Resource"]
 
     def test_state_machine_serializes_to_valid_json(self) -> None:
         """Test state machine serializes to valid JSON."""
-        dumped = self.output.state_machine.model_dump(by_alias=True)
+        dumped = self.output.state_machine
         json_str = json.dumps(dumped, indent=2)
         parsed = json.loads(json_str)
         assert "StartAt" in parsed
@@ -440,7 +441,7 @@ class TestAllFixturesRoundTrip:
         engine = _make_engine()
         output = engine.translate(analysis)
         assert output.state_machine is not None
-        dumped = output.state_machine.model_dump(by_alias=True)
+        dumped = output.state_machine
         assert "StartAt" in dumped
         assert "States" in dumped
         # Must be serializable to JSON

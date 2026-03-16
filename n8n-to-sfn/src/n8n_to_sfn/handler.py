@@ -9,10 +9,11 @@ from typing import Any
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from phaeton_models.translator import WorkflowAnalysis
+from phaeton_models.translator_output import TranslationOutput
 from pydantic import ValidationError
 
 from n8n_to_sfn.ai_agent.client import AIAgentClient
-from n8n_to_sfn.engine import TranslationEngine, TranslationOutput
+from n8n_to_sfn.engine import TranslationEngine
 from n8n_to_sfn.errors import TranslationError
 from n8n_to_sfn.translators.aws_service import AWSServiceTranslator
 from n8n_to_sfn.translators.code_node import CodeNodeTranslator

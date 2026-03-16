@@ -10,7 +10,10 @@ from phaeton_models.translator import (
     NodeClassification,
     WorkflowAnalysis,
 )
-from pydantic import BaseModel
+from phaeton_models.translator_output import (
+    CredentialArtifact,
+    TranslationOutput,
+)
 
 from n8n_to_sfn.models.asl import (
     ItemProcessor,
@@ -50,16 +53,6 @@ class AIAgentProtocol(Protocol):
         ...
 
 
-class TranslationOutput(BaseModel):
-    """Final output of the full translation pipeline."""
-
-    state_machine: StateMachine
-    lambda_artifacts: list[LambdaArtifact] = []
-    trigger_artifacts: list[TriggerArtifact] = []
-    conversion_report: dict[str, Any] = {}
-    warnings: list[str] = []
-
-
 class TranslationEngine:
     """Orchestrates the full n8n-to-Step Functions translation pipeline."""
 
@@ -80,6 +73,7 @@ class TranslationEngine:
         all_states: dict[str, Any] = {}
         all_lambdas: list[LambdaArtifact] = []
         all_triggers: list[TriggerArtifact] = []
+        all_credentials: list[CredentialArtifact] = []
         all_warnings: list[str] = []
         node_state_names: dict[str, str] = {}
         entry_state_overrides: dict[str, str] = {}
@@ -104,6 +98,7 @@ class TranslationEngine:
 
             all_lambdas.extend(result.lambda_artifacts)
             all_triggers.extend(result.trigger_artifacts)
+            all_credentials.extend(result.credential_artifacts)
             all_warnings.extend(result.warnings)
 
             if result.metadata.get("merge_node"):
@@ -148,9 +143,10 @@ class TranslationEngine:
         report = self._build_report(analysis, node_state_names, all_warnings)
 
         return TranslationOutput(
-            state_machine=sm,
-            lambda_artifacts=all_lambdas,
-            trigger_artifacts=all_triggers,
+            state_machine=sm.model_dump(by_alias=True),
+            lambda_artifacts=[a.model_dump() for a in all_lambdas],
+            trigger_artifacts=[a.model_dump() for a in all_triggers],
+            credential_artifacts=[a.model_dump() for a in all_credentials],
             conversion_report=report,
             warnings=all_warnings,
         )

@@ -8,16 +8,23 @@ from phaeton_models.translator import (
     NodeClassification,
     WorkflowAnalysis,
 )
+from phaeton_models.translator_output import TranslationOutput
 
 from n8n_to_sfn.engine import TranslationEngine
-from n8n_to_sfn.models.asl import MapState, ParallelState, PassState
+from n8n_to_sfn.models.asl import MapState, ParallelState, PassState, StateMachine
 from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.base import (
     BaseTranslator,
+    CredentialArtifact,
     TranslationContext,
     TranslationResult,
 )
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator
+
+
+def _sm(output: TranslationOutput) -> StateMachine:
+    """Deserialize the output state_machine dict back to a StateMachine model."""
+    return StateMachine.model_validate(output.state_machine)
 
 
 def _node(
@@ -84,9 +91,10 @@ class TestEngine:
         engine = TranslationEngine(translators=[AllPassTranslator()])
         output = engine.translate(analysis)
 
-        assert "A" in output.state_machine.states
-        assert "B" in output.state_machine.states
-        assert output.state_machine.start_at == "A"
+        sm = _sm(output)
+        assert "A" in sm.states
+        assert "B" in sm.states
+        assert sm.start_at == "A"
 
     def test_topological_ordering(self) -> None:
         """Test nodes are topologically ordered."""
@@ -99,7 +107,7 @@ class TestEngine:
         )
         engine = TranslationEngine(translators=[AllPassTranslator()])
         output = engine.translate(analysis)
-        assert output.state_machine.start_at == "A"
+        assert _sm(output).start_at == "A"
 
     def test_unsupported_nodes_produce_warnings(self) -> None:
         """Test unsupported nodes produce warnings."""
@@ -117,7 +125,7 @@ class TestEngine:
         assert any(
             "Unsupported" in w or "unsupported" in w.lower() for w in output.warnings
         )
-        assert "OK" in output.state_machine.states
+        assert "OK" in _sm(output).states
 
     def test_validator_called_on_output(self) -> None:
         """Test validator is called on output."""
@@ -128,9 +136,8 @@ class TestEngine:
         engine = TranslationEngine(translators=[AllPassTranslator()])
         output = engine.translate(analysis)
         assert output.state_machine is not None
-        dumped = output.state_machine.model_dump(by_alias=True)
-        assert "StartAt" in dumped
-        assert "States" in dumped
+        assert "StartAt" in output.state_machine
+        assert "States" in output.state_machine
 
     def test_no_translator_match_produces_warning(self) -> None:
         """Test no translator match produces warning."""
@@ -166,7 +173,7 @@ class TestEngine:
         )
         engine = TranslationEngine(translators=[AllPassTranslator()])
         output = engine.translate(analysis)
-        state = output.state_machine.states["Only"]
+        state = _sm(output).states["Only"]
         assert state.end is True
 
     def test_data_reference_edges_dont_wire_transitions(self) -> None:
@@ -179,7 +186,7 @@ class TestEngine:
         )
         engine = TranslationEngine(translators=[AllPassTranslator()])
         output = engine.translate(analysis)
-        state_a = output.state_machine.states["A"]
+        state_a = _sm(output).states["A"]
         assert state_a.next is None
         assert state_a.end is True
 
@@ -231,8 +238,8 @@ class TestEngineAIAgent:
         )
         engine = TranslationEngine(translators=[], ai_agent=MockAgent())
         output = engine.translate(analysis)
-        assert "AI" in output.state_machine.states
-        state = output.state_machine.states["AI"]
+        assert "AI" in _sm(output).states
+        state = _sm(output).states["AI"]
         assert state.comment == "AI-generated"
 
 
@@ -314,17 +321,17 @@ class TestEngineMergeParallel:
         output = engine.translate(analysis)
 
         # Fork should now be a Parallel state
-        assert "Fork" in output.state_machine.states
-        fork_state = output.state_machine.states["Fork"]
+        assert "Fork" in _sm(output).states
+        fork_state = _sm(output).states["Fork"]
         assert isinstance(fork_state, ParallelState)
         assert len(fork_state.branches) == 2
         # Branch states should not be at top level
-        assert "BranchA" not in output.state_machine.states
-        assert "BranchB" not in output.state_machine.states
-        assert "Merge" not in output.state_machine.states
+        assert "BranchA" not in _sm(output).states
+        assert "BranchB" not in _sm(output).states
+        assert "Merge" not in _sm(output).states
 
         # After should still exist
-        assert "After" in output.state_machine.states
+        assert "After" in _sm(output).states
 
         # Each branch should contain its respective state
         branch_start_ats = {b.start_at for b in fork_state.branches}
@@ -365,7 +372,7 @@ class TestEngineMergeParallel:
         engine = TranslationEngine(translators=[MergePassTranslator()])
         output = engine.translate(analysis)
 
-        fork_state = output.state_machine.states["Fork"]
+        fork_state = _sm(output).states["Fork"]
         assert isinstance(fork_state, ParallelState)
         assert len(fork_state.branches) == 3
     def test_merge_mode_in_comment(self) -> None:
@@ -397,7 +404,7 @@ class TestEngineMergeParallel:
         engine = TranslationEngine(translators=[MergePassTranslator()])
         output = engine.translate(analysis)
 
-        fork_state = output.state_machine.states["Fork"]
+        fork_state = _sm(output).states["Fork"]
         assert isinstance(fork_state, ParallelState)
         assert "combine" in fork_state.comment
 
@@ -438,7 +445,7 @@ class TestEngineMergeParallel:
         engine = TranslationEngine(translators=[MergePassTranslator()])
         output = engine.translate(analysis)
 
-        fork_state = output.state_machine.states["Fork"]
+        fork_state = _sm(output).states["Fork"]
         assert isinstance(fork_state, ParallelState)
         assert len(fork_state.branches) == 2
         # Each branch should have 2 states
@@ -446,7 +453,7 @@ class TestEngineMergeParallel:
             assert len(branch.states) == 2
         # Multi-step states should not be at top level
         for name in ("A1", "A2", "B1", "B2", "Merge"):
-            assert name not in output.state_machine.states
+            assert name not in _sm(output).states
 
     def test_merge_single_incoming_warns(self) -> None:
         """Test merge with single incoming branch produces warning."""
@@ -497,7 +504,7 @@ class TestEngineMergeParallel:
         engine = TranslationEngine(translators=[MergePassTranslator()])
         output = engine.translate(analysis)
 
-        fork_state = output.state_machine.states["Fork"]
+        fork_state = _sm(output).states["Fork"]
         assert isinstance(fork_state, ParallelState)
         assert fork_state.next == "Final"
 
@@ -528,7 +535,7 @@ class TestEngineMergeParallel:
         engine = TranslationEngine(translators=[MergePassTranslator()])
         output = engine.translate(analysis)
 
-        asl = output.state_machine.model_dump(by_alias=True)
+        asl = output.state_machine
         fork_asl = asl["States"]["Fork"]
         assert fork_asl["Type"] == "Parallel"
         assert "Branches" in fork_asl
@@ -614,21 +621,21 @@ class TestEngineSplitInBatches:
         output = engine.translate(analysis)
 
         # SIB should be a Map state
-        sib_state = output.state_machine.states["SIB"]
+        sib_state = _sm(output).states["SIB"]
         assert isinstance(sib_state, MapState)
         assert sib_state.max_concurrency == 1
 
         # LoopStep should be inside the ItemProcessor, not top-level
-        assert "LoopStep" not in output.state_machine.states
+        assert "LoopStep" not in _sm(output).states
         inner_states = sib_state.item_processor.states
         assert "LoopStep" in inner_states
 
         # Inner state should be terminal
         loop_step = inner_states["LoopStep"]
-        assert loop_step.end is True
+        assert loop_step["End"] is True
 
         # After should still be at top level
-        assert "After" in output.state_machine.states
+        assert "After" in _sm(output).states
 
     def test_multi_step_loop_body(self) -> None:
         """
@@ -666,7 +673,7 @@ class TestEngineSplitInBatches:
         engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
         output = engine.translate(analysis)
 
-        sib_state = output.state_machine.states["SIB"]
+        sib_state = _sm(output).states["SIB"]
         assert isinstance(sib_state, MapState)
 
         inner_states = sib_state.item_processor.states
@@ -675,13 +682,13 @@ class TestEngineSplitInBatches:
         assert len(inner_states) == 2
 
         # Step1 should chain to Step2
-        assert inner_states["Step1"].next == "Step2"
+        assert inner_states["Step1"]["Next"] == "Step2"
         # Step2 should be terminal
-        assert inner_states["Step2"].end is True
+        assert inner_states["Step2"]["End"] is True
 
         # Inner states should not be at top level
-        assert "Step1" not in output.state_machine.states
-        assert "Step2" not in output.state_machine.states
+        assert "Step1" not in _sm(output).states
+        assert "Step2" not in _sm(output).states
 
     def test_custom_batch_size(self) -> None:
         """Test SplitInBatches with custom batchSize."""
@@ -707,7 +714,7 @@ class TestEngineSplitInBatches:
         engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
         output = engine.translate(analysis)
 
-        sib_state = output.state_machine.states["SIB"]
+        sib_state = _sm(output).states["SIB"]
         assert isinstance(sib_state, MapState)
         assert "batch_size=50" in sib_state.comment
 
@@ -756,7 +763,7 @@ class TestEngineSplitInBatches:
         engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
         output = engine.translate(analysis)
 
-        sib_state = output.state_machine.states["SIB"]
+        sib_state = _sm(output).states["SIB"]
         assert isinstance(sib_state, MapState)
         assert sib_state.next == "Final"
 
@@ -786,7 +793,7 @@ class TestEngineSplitInBatches:
         engine = TranslationEngine(translators=[SplitInBatchesTranslator()])
         output = engine.translate(analysis)
 
-        asl = output.state_machine.model_dump(by_alias=True)
+        asl = output.state_machine
         sib_asl = asl["States"]["SIB"]
         assert sib_asl["Type"] == "Map"
         assert sib_asl["MaxConcurrency"] == 1
@@ -795,3 +802,109 @@ class TestEngineSplitInBatches:
         assert ip["ProcessorConfig"]["Mode"] == "INLINE"
         assert ip["StartAt"] == "Process"
         assert "Process" in ip["States"]
+
+
+class CredentialTranslator(BaseTranslator):
+    """Translator that emits credential artifacts for testing."""
+
+    def can_translate(self, node: ClassifiedNode) -> bool:
+        """Accept all non-unsupported nodes."""
+        return node.classification != NodeClassification.UNSUPPORTED
+
+    def translate(
+        self, node: ClassifiedNode, context: TranslationContext
+    ) -> TranslationResult:
+        """Translate node to Pass state with a credential artifact if applicable."""
+        creds: list[CredentialArtifact] = []
+        if node.node.type == "n8n-nodes-base.slack":
+            creds.append(
+                CredentialArtifact(
+                    parameter_path=f"/phaeton/creds/{node.node.name}",
+                    credential_type="oauth2",
+                    auth_type="oauth2",
+                )
+            )
+        return TranslationResult(
+            states={node.node.name: PassState()},
+            credential_artifacts=creds,
+        )
+
+
+class TestEngineOutputModel:
+    """Tests for shared TranslationOutput boundary model integration."""
+
+    def test_state_machine_is_dict(self) -> None:
+        """Engine output state_machine is a plain dict, not a Pydantic model."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[_node("A")],
+            dependency_edges=[],
+        )
+        engine = TranslationEngine(translators=[AllPassTranslator()])
+        output = engine.translate(analysis)
+        assert isinstance(output.state_machine, dict)
+        assert "StartAt" in output.state_machine
+        assert "States" in output.state_machine
+
+    def test_credential_artifacts_populated(self) -> None:
+        """Credential artifacts are collected from translator results."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                ClassifiedNode(
+                    node=N8nNode(
+                        id="slack1",
+                        name="slack1",
+                        type="n8n-nodes-base.slack",
+                        type_version=1,
+                        position=[0, 0],
+                    ),
+                    classification=NodeClassification.PICOFUN_API,
+                ),
+            ],
+            dependency_edges=[],
+        )
+        engine = TranslationEngine(translators=[CredentialTranslator()])
+        output = engine.translate(analysis)
+        assert len(output.credential_artifacts) == 1
+        assert output.credential_artifacts[0].credential_type == "oauth2"
+        assert output.credential_artifacts[0].parameter_path == "/phaeton/creds/slack1"
+
+    def test_credential_artifacts_empty_when_no_credentials(self) -> None:
+        """Credential artifacts list is empty when no nodes need credentials."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[_node("A")],
+            dependency_edges=[],
+        )
+        engine = TranslationEngine(translators=[AllPassTranslator()])
+        output = engine.translate(analysis)
+        assert output.credential_artifacts == []
+
+    def test_round_trip_serialization(self) -> None:
+        """TranslationOutput round-trips through model_dump and model_validate."""
+        analysis = WorkflowAnalysis(
+            classified_nodes=[
+                ClassifiedNode(
+                    node=N8nNode(
+                        id="slack1",
+                        name="slack1",
+                        type="n8n-nodes-base.slack",
+                        type_version=1,
+                        position=[0, 0],
+                    ),
+                    classification=NodeClassification.PICOFUN_API,
+                ),
+                _node("B"),
+            ],
+            dependency_edges=[
+                DependencyEdge(
+                    from_node="slack1", to_node="B", edge_type="CONNECTION"
+                ),
+            ],
+        )
+        engine = TranslationEngine(translators=[CredentialTranslator()])
+        output = engine.translate(analysis)
+
+        dumped = output.model_dump(mode="json")
+        restored = TranslationOutput.model_validate(dumped)
+        assert restored.state_machine == output.state_machine
+        assert len(restored.credential_artifacts) == len(output.credential_artifacts)
+        assert restored.warnings == output.warnings

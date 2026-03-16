@@ -12,6 +12,7 @@ from phaeton_models.translator import (
     WorkflowAnalysis,
 )
 
+from n8n_to_sfn.models.asl import StateMachine
 from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.base import LambdaRuntime, TranslationContext
 from n8n_to_sfn.translators.expression_evaluator import (
@@ -335,8 +336,8 @@ class TestEngineExpressionIntegration:
         engine = TranslationEngine(translators=[StubTranslator()])
         output = engine.translate(analysis)
 
-        assert "MyNode_ExprEval" in output.state_machine.states
-        assert "MyNode" in output.state_machine.states
+        assert "MyNode_ExprEval" in StateMachine.model_validate(output.state_machine).states
+        assert "MyNode" in StateMachine.model_validate(output.state_machine).states
         assert len(output.lambda_artifacts) == 1
         assert any("Lambda evaluation" in w for w in output.warnings)
 
@@ -372,7 +373,7 @@ class TestEngineExpressionIntegration:
         engine = TranslationEngine(translators=[StubTranslator()])
         output = engine.translate(analysis)
 
-        eval_state = output.state_machine.states["Calc_ExprEval"]
+        eval_state = StateMachine.model_validate(output.state_machine).states["Calc_ExprEval"]
         assert eval_state.next == "Calc"
 
     def test_engine_start_at_points_to_eval_state(self) -> None:
@@ -407,7 +408,7 @@ class TestEngineExpressionIntegration:
         engine = TranslationEngine(translators=[StubTranslator()])
         output = engine.translate(analysis)
 
-        assert output.state_machine.start_at == "First_ExprEval"
+        assert output.state_machine["StartAt"] == "First_ExprEval"
 
     def test_engine_predecessor_wires_to_eval_state(self) -> None:
         """Test that predecessor Next points to eval state, not main state."""
@@ -450,5 +451,5 @@ class TestEngineExpressionIntegration:
         engine = TranslationEngine(translators=[StubTranslator()])
         output = engine.translate(analysis)
 
-        prev_state = output.state_machine.states["Prev"]
+        prev_state = StateMachine.model_validate(output.state_machine).states["Prev"]
         assert prev_state.next == "Target_ExprEval"
