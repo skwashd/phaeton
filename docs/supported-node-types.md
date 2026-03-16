@@ -6,8 +6,8 @@ This document lists all n8n node types supported by Phaeton, the translation str
 
 | Support Level       | Count |
 |---------------------|-------|
-| Fully Supported     | 24    |
-| Partially Supported | 4     |
+| Fully Supported     | 31    |
+| Partially Supported | 5     |
 | Unsupported         | 7     |
 
 ## Classification Categories
@@ -34,7 +34,7 @@ Phaeton classifies each n8n node into one of the following categories (defined b
 | `n8n-nodes-base.if` | IF | Choice State with JSONata conditions | None |
 | `n8n-nodes-base.switch` | Switch | Choice State with multiple Choice Rules and Default | None |
 | `n8n-nodes-base.noOp` | No Operation | Pass State (identity) | None |
-| `n8n-nodes-base.set` | Set / Edit Fields | Pass State with JSONata Output expression | None |
+| `n8n-nodes-base.set` | Set / Edit Fields | Pass State with JSONata Output expression (dedicated `SetNodeTranslator`) | None |
 | `n8n-nodes-base.executeWorkflow` | Execute Workflow | Task State (`startExecution.sync:2` SDK) | Requires SSM Parameter or CDK reference for sub-workflow ARN |
 
 ### AWS Native Services
@@ -48,6 +48,10 @@ Phaeton classifies each n8n node into one of the following categories (defined b
 | `n8n-nodes-base.awsSes` | AWS SES | Task State (`aws-sdk:ses`) | None |
 | `n8n-nodes-base.awsEventBridge` | AWS EventBridge | Task State (`aws-sdk:eventbridge`) | None |
 | `n8n-nodes-base.awsLambda` | AWS Lambda | Task State (`lambda:invoke`) | None |
+| `n8n-nodes-base.awsTextract` | AWS Textract | Task State (`aws-sdk:textract`) | None |
+| `n8n-nodes-base.awsComprehend` | AWS Comprehend | Task State (`aws-sdk:comprehend`) | None |
+| `n8n-nodes-base.awsRekognition` | AWS Rekognition | Task State (`aws-sdk:rekognition`) | None |
+| `n8n-nodes-base.emailSend` | Email Send | Task State (`aws-sdk:ses`) | Mapped to SES |
 
 ### Database
 
@@ -80,15 +84,18 @@ Phaeton classifies each n8n node into one of the following categories (defined b
 | `n8n-nodes-base.scheduleTrigger` | Schedule Trigger | EventBridge scheduled rule | None |
 | `n8n-nodes-base.webhook` | Webhook | Lambda Function URL | None |
 | `n8n-nodes-base.manualTrigger` | Manual Trigger | No infrastructure (manual execution) | None |
+| `n8n-nodes-base.formTrigger` | Form Trigger | Lambda Function URL | None |
+| `n8n-nodes-base.errorTrigger` | Error Trigger | EventBridge rule for execution failures | None |
+| `n8n-nodes-base.executeWorkflowTrigger` | Execute Workflow Trigger | Direct invocation (sub-workflow entry point) | None |
 
 ## Partially Supported Nodes
 
 | n8n Type | Display Name | Category | Strategy | Limitations |
 |----------|-------------|----------|----------|-------------|
-| `n8n-nodes-base.merge` | Merge | `FLOW_CONTROL` | Parallel State (via engine post-processing) | Placeholder only; requires multi-branch join detection (TASK-0012) |
-| `n8n-nodes-base.splitInBatches` | Split In Batches | `FLOW_CONTROL` | Map State (`MaxConcurrency=1`) | Requires engine post-processing to wire loop body (TASK-0013) |
-| `n8n-nodes-base.loop` | Loop Over Items | `FLOW_CONTROL` | Map State (count) or Choice State (condition) | Placeholder wiring needed (TASK-0025) |
-| `n8n-nodes-base.code` | Code | `CODE_JS` / `CODE_PYTHON` | Lambda Function | n8n globals (`$env`, `$execution`, `$workflow`, `$prevNode`) not fully shimmed (TASK-0014) |
+| `n8n-nodes-base.merge` | Merge | `FLOW_CONTROL` | Parallel State (via engine post-processing) | Requires multi-branch join detection for complex topologies |
+| `n8n-nodes-base.splitInBatches` | Split In Batches | `FLOW_CONTROL` | Map State (`MaxConcurrency=1`) | Requires engine post-processing to wire loop body |
+| `n8n-nodes-base.loop` | Loop Over Items | `FLOW_CONTROL` | Map State (count-based) or Choice State with loop-back (condition-based) | Both modes implemented; complex loop bodies may need manual review |
+| `n8n-nodes-base.code` | Code | `CODE_JS` / `CODE_PYTHON` | Lambda Function | n8n globals (`$env`, `$execution`, `$workflow`, `$prevNode`) not fully shimmed |
 | `n8n-nodes-base.wait` | Wait | `FLOW_CONTROL` | Wait State or callback Task State | Callback modes (form/webhook waits) generate Lambda handler artifacts |
 
 ## Unsupported Nodes
@@ -122,6 +129,7 @@ This document can be regenerated from the codebase by inspecting:
 - `CodeNodeTranslator.can_translate()` in `n8n-to-sfn/src/n8n_to_sfn/translators/code_node.py`
 - `TriggerTranslator` in `n8n-to-sfn/src/n8n_to_sfn/translators/triggers.py`
 - SaaS translators in `n8n-to-sfn/src/n8n_to_sfn/translators/saas/`
+- `SetNodeTranslator` in `n8n-to-sfn/src/n8n_to_sfn/translators/set_node.py`
 - `NodeClassification` enum in `shared/phaeton-models/src/phaeton_models/translator.py`
 - Node registry in `workflow-analyzer/src/workflow_analyzer/classifier/registry.py`
 - Translator instantiation order in `n8n-to-sfn/src/n8n_to_sfn/handler.py` (`create_default_engine()`)

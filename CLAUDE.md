@@ -20,7 +20,7 @@ phaeton/end-to-end/
 
 - **Python:** >=3.14 for all components
 - **Package manager:** uv
-- **Build systems:** uv_build (most components), Hatchling (n8n-release-parser, deployment)
+- **Build systems:** uv_build (all components)
 - **Linting/formatting:** ruff
 - **Type checking:** ty
 - **Testing:** pytest + coverage
@@ -44,7 +44,7 @@ uv run coverage run -m pytest && uv run coverage report -m  # coverage
 Ruff is configured in the root `pyproject.toml` with a shared rule set. Each component inherits these rules. Key points:
 
 - **Selected rules:** B, D, E, F, G, I, N, S, W, ANN, BLE, C4, C90, DTZ, ERA, PLW, PT, RET, RUF, SIM, TRY, UP
-- **Ignored:** D203, D211, D213 (docstring style conflicts), E501 (line length), F403/F405 (wildcard imports)
+- **Ignored:** D203, D211, D212 (docstring style conflicts), E501 (line length), F403/F405 (wildcard imports)
 - Docstrings required on all public modules, classes, and functions (D rules).
 - Type annotations required on all parameters and return values (ANN rules).
 - `per-file-ignores`: test files (`test_*`) suppress only `S101` (assert) and `S108` (hardcoded tmp paths). All other rules apply.
@@ -65,10 +65,10 @@ Ruff is configured in the root `pyproject.toml` with a shared rule set. Each com
 
 ## Integration tests
 
-Root-level `tests/` contains cross-component tests with these subdirectories and markers:
+Root-level `tests/` contains cross-component tests with these subdirectories:
 
 - `tests/integration/` — `@pytest.mark.integration` (require AWS credentials)
 - `tests/performance/` — `@pytest.mark.performance` (large workflow scaling)
-- `tests/e2e/` — end-to-end pipeline tests
-- `tests/contract/` — cross-component contract tests
-- `tests/cdk_synth/` — CDK synthesis validation tests
+- `tests/e2e/` — end-to-end pipeline tests (run via `pytest tests/e2e/`)
+- `tests/contract/` — cross-component contract tests (run via `pytest tests/contract/`)
+- `tests/cdk_synth/` — CDK synthesis validation tests (run via `pytest tests/cdk_synth/`)

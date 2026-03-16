@@ -61,5 +61,5 @@ fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90
 unfixable = []
 
 [tool.ruff.lint.per-file-ignores]
-"test_*" = ["S101", "S108", "D100", "D101", "D102", "D103", "D104"]
+"test_*" = ["S101", "S108"]
 ```

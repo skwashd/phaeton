@@ -332,10 +332,12 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "aws-lambda-powertools", specifier = "==3.25.0" },
+    { name = "boto3", specifier = "==1.42.68" },
     { name = "coverage", specifier = "==7.13.4" },
     { name = "pytest", specifier = "==9.0.2" },
     { name = "ruff", specifier = "==0.15.6" },
     { name = "ty", specifier = "==0.0.23" },
+    { name = "types-boto3", specifier = "==1.42.68" },
 ]
 
 [[package]]
@@ -363,10 +365,13 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aws-lambda-powertools", specifier = "==3.25.0" },
+    { name = "boto3", specifier = "==1.42.68" },
     { name = "coverage", specifier = "==7.13.4" },
     { name = "pytest", specifier = "==9.0.2" },
     { name = "ruff", specifier = "==0.15.6" },
     { name = "ty", specifier = "==0.0.23" },
+    { name = "types-boto3", specifier = "==1.42.68" },
 ]
 
 [[package]]
@@ -819,6 +824,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aws-lambda-powertools", specifier = "==3.25.0" },
     { name = "coverage", specifier = "==7.13.4" },
     { name = "pytest", specifier = "==9.0.2" },
     { name = "ruff", specifier = "==0.15.6" },

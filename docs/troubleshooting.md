@@ -51,7 +51,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
 1. Review the `unsupported_nodes` list in the report to identify which nodes cannot be translated.
 2. Check [`docs/supported-node-types.md`](supported-node-types.md) for the current support matrix.
 3. Consider simplifying the workflow by replacing unsupported nodes with supported alternatives before conversion.
-4. For unsupported nodes, the AI agent fallback service (TASK-0008) can attempt automatic translation.
+4. For unsupported nodes, the AI agent fallback service can attempt automatic translation. See the [AI Agent Guide](ai-agent.md) for details.
 
 ### Payload analysis warnings
 
@@ -79,7 +79,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
 **Resolution:**
 
 1. Check [`docs/supported-node-types.md`](supported-node-types.md) for the list of supported node types and their translation targets.
-2. If the AI agent fallback service is enabled (TASK-0008), unsupported nodes are automatically translated using an LLM. Review the generated state for correctness.
+2. If the AI agent fallback service is enabled, unsupported nodes are automatically translated using an LLM. Review the generated state for correctness.
 3. For nodes not handled by the fallback, manually implement the equivalent Step Functions state in the generated ASL output.
 
 ### Expression translation failure
@@ -96,7 +96,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
    - n8n-specific helper functions (e.g., `$prevNode`, `$workflow`)
    - Regular expressions or string manipulation using JS-specific APIs
 3. Simplify the expression in the original n8n workflow, or plan to implement the logic in a Lambda function post-conversion.
-4. See TASK-0024 for ongoing work to expand expression translation coverage.
+4. Expression translation coverage is being expanded continuously; check the latest [Supported Node Types](supported-node-types.md) for current capabilities.
 
 ### ASL validation error during translation
 
@@ -169,7 +169,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
 1. Check the generated Lambda function code in the output directory under the `lambdas/` folder.
 2. Verify the code syntax: `python -c "import ast; ast.parse(open('handler.py').read())"` for Python handlers.
 3. For JavaScript code nodes, ensure the translated code is compatible with the Node.js Lambda runtime.
-4. If the code node uses n8n runtime globals (`$input`, `$json`, `$items`), see TASK-0014 for details on how these are shimmed in the Lambda environment.
+4. If the code node uses n8n runtime globals (`$input`, `$json`, `$items`), note that n8n runtime globals shimming (`$env`, `$execution`, `$workflow`, `$prevNode`) is not fully complete. Check the generated Lambda handler code for correctness.
 
 ### Missing IAM permissions in generated policy
 
@@ -181,7 +181,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
 
 1. Review the generated IAM policy in the CDK stack file.
 2. Follow the principle of least privilege: replace wildcard ARNs (`arn:aws:{service}:*:*:*`) with specific resource ARNs for your AWS account and region.
-3. See TASK-0009 for details on IAM wildcard ARN improvements.
+3. IAM wildcard ARN improvements are planned to further tighten resource-level permissions.
 4. For custom Lambda functions, ensure the state machine execution role has `lambda:InvokeFunction` permission on the specific function ARNs.
 
 ---
@@ -235,7 +235,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
      --value "your-credential-value"
    ```
 3. For OAuth2 credentials, you will need both the access token and refresh token parameters.
-4. See TASK-0018 for detailed credential setup documentation.
+4. For detailed credential setup instructions, see the generated `CREDENTIALS.md` file in your packager output directory.
 
 ---
 
@@ -319,10 +319,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
 
 ## Related Resources
 
-- [Getting Started Guide](getting-started.md) -- Installation, quick start, and initial setup.
-- [Supported Node Types](supported-node-types.md) -- Complete list of translatable n8n node types.
-- TASK-0008 -- AI agent fallback for unsupported node types.
-- TASK-0009 -- IAM wildcard ARN improvements.
-- TASK-0014 -- Code node n8n runtime globals shimming.
-- TASK-0018 -- Credential setup documentation.
-- TASK-0024 -- Complex expression translation coverage.
+- [Getting Started Guide](getting-started.md) — Installation, quick start, and initial setup.
+- [Supported Node Types](supported-node-types.md) — Complete list of translatable n8n node types.
+- [Deployment Guide](deployment.md) — Deploying the Phaeton pipeline to AWS.
+- [AI Agent Guide](ai-agent.md) — AI-powered fallback translation for unsupported nodes and expressions.

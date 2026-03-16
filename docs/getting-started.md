@@ -8,7 +8,7 @@ Install the following tools before proceeding:
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| [Python](https://www.python.org/downloads/) | 3.14+ (3.13+ for workflow-analyzer) | Runtime for all components |
+| [Python](https://www.python.org/downloads/) | 3.14+ | Runtime for all components |
 | [uv](https://docs.astral.sh/uv/) | Latest | Python package manager |
 | [Node.js](https://nodejs.org/) | 20+ | Required by AWS CDK CLI |
 | [AWS CDK CLI](https://docs.aws.amazon.com/cdk/v2/guide/cli.html) | Latest | `npm install -g aws-cdk` |
@@ -43,11 +43,14 @@ Clone the repository and install each component:
 git clone <repository-url>
 cd phaeton/end-to-end
 
-# Install all four components
+# Install all components
+cd shared/phaeton-models && uv sync && cd ../..
 cd n8n-release-parser && uv sync && cd ..
 cd workflow-analyzer && uv sync && cd ..
 cd n8n-to-sfn && uv sync && cd ..
 cd packager && uv sync && cd ..
+cd ai-agent && uv sync && cd ..
+cd deployment && uv sync && cd ..
 ```
 
 To verify the installation, run the test suite for any component:
@@ -154,13 +157,13 @@ The translation engine (`n8n-to-sfn`) is a library, not a standalone CLI. It con
 For a direct programmatic invocation:
 
 ```python
-from n8n_to_sfn.engine import TranslationEngine
+from n8n_to_sfn.handler import create_default_engine
 
-engine = TranslationEngine(translators=[...])
+engine = create_default_engine()
 output = engine.translate(analysis)
 ```
 
-In the standard pipeline flow, the packager handles this step. If you have a `PackagerInput` JSON file (produced by the deployment orchestration or by scripting the translation engine), proceed to the next step.
+The `create_default_engine()` factory registers all built-in translators (flow control, AWS services, triggers, code nodes, SaaS integrations) in the correct priority order. In the standard pipeline flow, the packager handles this step. If you have a `PackagerInput` JSON file (produced by the deployment orchestration or by scripting the translation engine), proceed to the next step.
 
 ### 5. Package into a CDK Application (Component 4 — Packager)
 
@@ -203,9 +206,21 @@ Key files:
 
 ## Deploying the Output
 
+### Bootstrap CDK (First Time Only)
+
+If you have not used CDK in your target AWS account and region, bootstrap it first:
+
+```bash
+cdk bootstrap aws://ACCOUNT_ID/REGION
+```
+
+### Populate SSM Parameters
+
+Before deploying, populate any SSM parameters referenced by the workflow. Check the generated `CREDENTIALS.md` or `ssm/parameters.json` for the list of required parameters and their expected values.
+
 ### Validate with CDK Synth
 
-Before deploying, verify the generated CDK application synthesizes correctly:
+Verify the generated CDK application synthesizes correctly:
 
 ```bash
 cd output/cdk
@@ -248,7 +263,7 @@ uv sync
 
 ### Python version mismatch
 
-Most components require Python 3.14+. The workflow-analyzer requires Python 3.13+. If you see version errors:
+All components require Python 3.14+. If you see version errors:
 
 ```bash
 python3 --version
@@ -284,8 +299,20 @@ cd <component-directory>
 uv sync
 ```
 
+## Deploying the Phaeton Pipeline
+
+The Phaeton pipeline itself can be deployed as a managed AWS service using CDK. This deploys Lambda functions for each component, a Step Functions state machine for orchestration, S3 buckets for artifacts, and EventBridge scheduling for automated catalog updates.
+
+See the [Deployment Guide](deployment.md) for full instructions.
+
+## AI Agent Fallback
+
+For n8n nodes and expressions that cannot be translated deterministically, Phaeton includes an AI agent fallback powered by Amazon Bedrock. The agent uses Strands Agents SDK with Claude Sonnet 4 to generate ASL state definitions and JSONata expressions.
+
+See the [AI Agent Guide](ai-agent.md) for configuration, security details, and integration information.
+
 ## Next Steps
 
-- Review the [architecture plan](n8n-to-stepfunctions-final-plan.md) for a deep dive into how Phaeton works.
+- Review the [architecture plan](plans/n8n-to-stepfunctions-final-plan.md) for a deep dive into how Phaeton works.
 - Check the [Python guidelines](python-guidelines.md) for development conventions.
 - Run the full test suite to verify your setup: `cd <component> && uv run pytest`.

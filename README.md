@@ -51,17 +51,21 @@ n8n Workflow JSON
 
 ```
 phaeton/end-to-end/
-├── n8n-release-parser/   # Component 1: node catalog & API spec matching
-├── workflow-analyzer/    # Component 2: workflow analysis & feasibility reports
-├── n8n-to-sfn/           # Component 3: translation engine
-├── packager/             # Component 4: CDK application generator
-├── docs/                 # Architecture plans & coding guidelines
-│   └── adr/             # Architecture Decision Records
+├── n8n-release-parser/      # Component 1: node catalog & API spec matching
+├── workflow-analyzer/       # Component 2: workflow analysis & feasibility reports
+├── n8n-to-sfn/              # Component 3: translation engine
+├── packager/                # Component 4: CDK application generator
+├── shared/phaeton-models/   # Shared Pydantic models and cross-component adapters
+├── deployment/              # CDK deployment stacks for the Phaeton pipeline
+├── ai-agent/                # AI agent fallback for complex node translation
+├── docs/                    # Architecture plans & coding guidelines
+│   └── adr/                # Architecture Decision Records
+└── tests/                   # Root-level cross-component integration tests
 ```
 
 ## Prerequisites
 
-- **Python 3.14** (3.13 for workflow-analyzer)
+- **Python 3.14+**
 - **uv** package manager
 
 ## Quick Start
@@ -115,10 +119,33 @@ Generates complete, deployable CDK applications from translation output. Produce
 - **CLI:** `uv run python -m n8n_to_sfn_packager --input <input.json> -o <output/>`
 - [Component README](packager/README.md)
 
+### Shared Models (phaeton-models)
+
+Shared Pydantic models and cross-component adapters used by all pipeline stages. Provides the common data contracts (`WorkflowAnalysis`, `TranslationOutput`, `PackagerInput`, etc.) that flow between components.
+
+- **Library** (no CLI)
+- [Component README](shared/phaeton-models/README.md)
+
+### Deployment
+
+CDK application that deploys the Phaeton pipeline as AWS infrastructure. Creates 6 CDK stacks including Lambda functions for each component, S3 buckets, a Step Functions orchestration state machine, and EventBridge scheduling.
+
+- **CLI:** `uv run cdk deploy`
+- [Deployment Guide](docs/deployment.md)
+
+### AI Agent
+
+Bedrock-powered fallback translation service for n8n nodes and expressions that cannot be translated deterministically. Uses Strands Agents SDK with Claude Sonnet 4 via Amazon Bedrock.
+
+- **Library** (invoked as Lambda by the Translation Engine)
+- [AI Agent Guide](docs/ai-agent.md)
+
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) — installation, quickstart, and first workflow conversion
 - [Supported Node Types](docs/supported-node-types.md) — reference of all translatable n8n nodes
+- [Deployment Guide](docs/deployment.md) — deploying the Phaeton pipeline to AWS
+- [AI Agent Guide](docs/ai-agent.md) — AI-powered fallback translation service
 - [Troubleshooting](docs/troubleshooting.md) — common errors and debugging tips
 - [Architecture Decision Records](docs/adr/README.md) — key design decisions and their rationale
 
@@ -149,7 +176,7 @@ uv run coverage report -m
 
 | Technology | Role |
 |---|---|
-| Python 3.14 | Primary language (3.13 for workflow-analyzer) |
+| Python 3.14 | Primary language |
 | uv | Package management |
 | Pydantic v2 | Data models and validation |
 | Typer | CLI interfaces |
@@ -160,4 +187,5 @@ uv run coverage report -m
 | ruff | Linting and formatting |
 | pytest | Testing |
 | coverage | Test coverage reporting |
+| Strands Agents | AI agent framework (Bedrock integration) |
 | ty | Type checking |
