@@ -109,6 +109,57 @@ def _build_upstream_bindings(node_refs: list[str]) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Expression security validation
+# ---------------------------------------------------------------------------
+
+_DANGEROUS_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bprocess\b"), "access to 'process' object"),
+    (re.compile(r"\brequire\b"), "use of 'require'"),
+    (re.compile(r"\beval\b"), "use of 'eval'"),
+    (re.compile(r"\bFunction\b"), "use of 'Function' constructor"),
+    (re.compile(r"\bimport\b"), "use of 'import'"),
+    (re.compile(r"\bglobal\b"), "access to 'global' object"),
+    (re.compile(r"\bwindow\b"), "access to 'window' object"),
+    (re.compile(r"\b__proto__\b"), "access to '__proto__'"),
+    (re.compile(r"\bconstructor\b"), "access to 'constructor'"),
+    (re.compile(r";"), "statement separator ';'"),
+]
+
+# Curly braces that are NOT part of template literal interpolation ${...}
+_BARE_BRACE_PATTERN = re.compile(r"(?<!\$)\{")
+
+
+def _validate_expression(expr: str) -> None:
+    """
+    Validate that an expression does not contain dangerous patterns.
+
+    Raises ``ValueError`` if the expression contains patterns that could
+    allow arbitrary code execution when interpolated into JavaScript.
+
+    Parameters
+    ----------
+    expr:
+        The stripped expression (without n8n ``={{ }}`` wrappers).
+
+    """
+    for pattern, description in _DANGEROUS_PATTERNS:
+        if pattern.search(expr):
+            msg = (
+                f"Expression rejected: contains {description}. "
+                f"Expression: {expr[:100]}"
+            )
+            raise ValueError(msg)
+
+    if _BARE_BRACE_PATTERN.search(expr):
+        msg = (
+            f"Expression rejected: contains block statement braces. "
+            f"Use template literals (${{...}}) instead. "
+            f"Expression: {expr[:100]}"
+        )
+        raise ValueError(msg)
+
+
 def _strip_expression_wrapper(expr: str) -> str:
     """Strip n8n expression wrappers (``={{ }}``, ``{{ }}``, ``=``)."""
     stripped = expr.strip()
@@ -122,8 +173,9 @@ def _strip_expression_wrapper(expr: str) -> str:
 
 
 def _build_expression_code(expr: str) -> str:
-    """Build the JS code that evaluates the expression."""
+    """Build the JS code that evaluates the expression; raises ValueError if unsafe."""
     inner = _strip_expression_wrapper(expr)
+    _validate_expression(inner)
     return f"  const expressionResult = {inner};"
 
 
@@ -243,6 +295,7 @@ def _try_ai_agent(
     try:
         translated = ai_agent.translate_expression(expr.original, node, context)
         if translated and translated != expr.original:
+            _validate_expression(translated)
             upstream_bindings = _build_upstream_bindings(node_refs)
             return _EXPR_LAMBDA_TEMPLATE.format(
                 node_name=node.node.name,

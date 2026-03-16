@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
 from phaeton_models.translator import (
     ClassifiedExpression,
     ClassifiedNode,
@@ -17,6 +18,7 @@ from n8n_to_sfn.models.n8n import N8nNode
 from n8n_to_sfn.translators.base import LambdaRuntime, TranslationContext
 from n8n_to_sfn.translators.expression_evaluator import (
     ExpressionEvalResult,
+    _validate_expression,
     evaluate_lambda_expressions,
 )
 
@@ -453,3 +455,155 @@ class TestEngineExpressionIntegration:
 
         prev_state = StateMachine.model_validate(output.state_machine).states["Prev"]
         assert prev_state.next == "Target_ExprEval"
+
+
+# ---------------------------------------------------------------------------
+# Expression injection validation tests
+# ---------------------------------------------------------------------------
+
+
+class TestExpressionValidation:
+    """Tests for expression security validation."""
+
+    @pytest.mark.parametrize(
+        ("payload", "expected_reason"),
+        [
+            ("1; process.exit(0); //", "'process'"),
+            ("process.env.SECRET", "'process'"),
+            ('eval("malicious")', "'eval'"),
+            ('require("child_process").exec("rm -rf /")', "'require'"),
+            ('Function("return this")()', "'Function'"),
+            ('import("fs")', "'import'"),
+            ("global.constructor", "'global'"),
+            ("window.location", "'window'"),
+            ("$json.__proto__.polluted", "'__proto__'"),
+            ("$json.constructor.prototype", "'constructor'"),
+            ("$json.a; $json.b", "';'"),
+        ],
+        ids=[
+            "process.exit",
+            "process.env",
+            "eval",
+            "require",
+            "Function_constructor",
+            "import",
+            "global",
+            "window",
+            "__proto__",
+            "constructor",
+            "semicolon",
+        ],
+    )
+    def test_dangerous_patterns_rejected(
+        self, payload: str, expected_reason: str
+    ) -> None:
+        """Test that known injection payloads are rejected."""
+        with pytest.raises(ValueError, match=expected_reason):
+            _validate_expression(payload)
+
+    def test_bare_brace_rejected(self) -> None:
+        """Test that block statement braces are rejected."""
+        with pytest.raises(ValueError, match="block statement braces"):
+            _validate_expression("if (true) { bad() }")
+
+    @pytest.mark.parametrize(
+        "expr",
+        [
+            "$json.name",
+            "$json.count + 1",
+            '$json.active ? "yes" : "no"',
+            "$json.name.toUpperCase()",
+            "$json.items.map(i => i.name)",
+            "Math.round($json.value * 100) / 100",
+            "DateTime.now().toISO()",
+            '$json.status === "active" ? "yes" : "no"',
+            "$json.items.length",
+            "$json.a + $json.b",
+            '$node["Lookup"].json.id',
+            "$json.name.trim().toLowerCase()",
+            "$json.list.filter(x => x > 0)",
+            "`Hello ${$json.name}`",
+        ],
+        ids=[
+            "property_access",
+            "arithmetic",
+            "ternary",
+            "string_method",
+            "array_map",
+            "math_round",
+            "datetime",
+            "equality_ternary",
+            "array_length",
+            "addition",
+            "node_reference",
+            "chained_methods",
+            "array_filter",
+            "template_literal",
+        ],
+    )
+    def test_legitimate_expressions_pass(self, expr: str) -> None:
+        """Test that legitimate n8n expressions pass validation."""
+        _validate_expression(expr)
+
+    def test_error_message_includes_expression(self) -> None:
+        """Test that error messages include the offending expression."""
+        with pytest.raises(ValueError, match=r"process\.exit"):
+            _validate_expression("process.exit(1)")
+
+
+class TestInjectionInBuildExpressionCode:
+    """Tests that injection is rejected through the full code path."""
+
+    def test_injection_rejected_in_direct_path(self) -> None:
+        """Test that _build_expression_code rejects injection payloads."""
+        expr = _lambda_expr('={{ 1; process.exit(0); // }}')
+        node = _node("InjectNode", [expr])
+        result = evaluate_lambda_expressions(node, _context())
+
+        # Should fall back to the placeholder template (not executable code)
+        handler = result.lambda_artifacts[0].handler_code
+        assert "Expression evaluation not implemented" in handler
+        # The dangerous expression must not appear as executable JS
+        assert "const expressionResult = 1; process.exit(0)" not in handler
+
+    def test_injection_rejected_in_ai_agent_path(self) -> None:
+        """Test that the AI agent path also rejects injection payloads."""
+        ai_agent = MagicMock()
+        ai_agent.translate_expression.return_value = (
+            '1; process.exit(0); //'
+        )
+
+        expr = _lambda_expr('={{ $json.value }}')
+        node = _node("AIInjectNode", [expr])
+        result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
+
+        # AI agent result rejected, should fall back to direct eval
+        handler = result.lambda_artifacts[0].handler_code
+        assert "process.exit" not in handler
+
+    def test_eval_injection_via_ai_agent(self) -> None:
+        """Test that eval injection via AI agent is blocked."""
+        ai_agent = MagicMock()
+        ai_agent.translate_expression.return_value = 'eval("malicious")'
+
+        expr = _lambda_expr('={{ $json.x }}')
+        node = _node("EvalInject", [expr])
+        result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
+
+        handler = result.lambda_artifacts[0].handler_code
+        # The eval("malicious") payload must not appear as executable code
+        assert 'eval("malicious")' not in handler
+
+    def test_require_injection_via_ai_agent(self) -> None:
+        """Test that require injection via AI agent is blocked."""
+        ai_agent = MagicMock()
+        ai_agent.translate_expression.return_value = (
+            'require("child_process").exec("rm -rf /")'
+        )
+
+        expr = _lambda_expr('={{ $json.x }}')
+        node = _node("ReqInject", [expr])
+        result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
+
+        handler = result.lambda_artifacts[0].handler_code
+        assert "child_process" not in handler
