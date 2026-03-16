@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from phaeton_models.translator import (
     ClassifiedNode,
     NodeClassification,
@@ -13,7 +12,6 @@ from n8n_to_sfn.ai_agent.fallback import (
     AITranslationResult,
     Confidence,
     MockAIAgent,
-    StubAIAgent,
 )
 from n8n_to_sfn.models.asl import PassState
 from n8n_to_sfn.models.n8n import N8nNode
@@ -41,21 +39,6 @@ def _context() -> TranslationContext:
         analysis=WorkflowAnalysis(classified_nodes=[], dependency_edges=[]),
     )
 
-
-class TestStubAIAgent:
-    """Tests for StubAIAgent."""
-
-    def test_translate_node_raises(self) -> None:
-        """Test translate_node raises NotImplementedError."""
-        agent = StubAIAgent()
-        with pytest.raises(NotImplementedError, match="AI agent not implemented"):
-            agent.translate_node(_node(), _context())
-
-    def test_translate_expression_raises(self) -> None:
-        """Test translate_expression raises NotImplementedError."""
-        agent = StubAIAgent()
-        with pytest.raises(NotImplementedError, match="AI agent not implemented"):
-            agent.translate_expression("{{ $json.x }}", _node(), _context())
 
 
 class TestMockAIAgent:

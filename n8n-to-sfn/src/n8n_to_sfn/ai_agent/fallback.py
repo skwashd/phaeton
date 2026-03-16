@@ -1,7 +1,7 @@
 """
 AI agent fallback for Category C expressions and unresolvable nodes.
 
-Provides a protocol interface for AI agent integration, a stub implementation,
+Provides a protocol interface for AI agent integration
 and a mock implementation for testing.
 """
 
@@ -32,40 +32,6 @@ class AITranslationResult(BaseModel):
     explanation: str = ""
 
 
-# ---------------------------------------------------------------------------
-# Prompt template
-# ---------------------------------------------------------------------------
-
-PROMPT_TEMPLATE = """\
-You are translating an n8n workflow node into an AWS Step Functions ASL state.
-
-## Node Configuration
-```json
-{node_json}
-```
-
-## Node Type
-{node_type}
-
-## Expressions Requiring Translation
-{expressions}
-
-## Workflow Context
-{workflow_context}
-
-## Target State
-- Position in ASL: {position}
-- Target state type: {target_state_type}
-
-## Constraints
-1. Output must be valid ASL JSON
-2. Use JSONata (not JSONPath) for all data transformations
-3. Use SSM Parameter Store for any credentials
-4. Flag any uncertainty in the output
-5. All state names must be 1-128 characters
-"""
-
-
 class AIAgentProtocol(Protocol):
     """Protocol defining the AI agent fallback interface."""
 
@@ -85,29 +51,6 @@ class AIAgentProtocol(Protocol):
     ) -> str:
         """Translate a single expression using AI agent fallback."""
         ...
-
-
-class StubAIAgent:
-    """Stub implementation that raises NotImplementedError."""
-
-    def translate_node(
-        self,
-        node: ClassifiedNode,
-        context: TranslationContext,
-    ) -> TranslationResult:
-        """Raise NotImplementedError — LLM integration not yet implemented."""
-        msg = f"AI agent not implemented for node: {node.node.name} ({node.node.type})"
-        raise NotImplementedError(msg)
-
-    def translate_expression(
-        self,
-        expr: str,
-        node: ClassifiedNode,
-        context: TranslationContext,
-    ) -> str:
-        """Raise NotImplementedError — LLM integration not yet implemented."""
-        msg = f"AI agent not implemented for expression: {expr}"
-        raise NotImplementedError(msg)
 
 
 class MockAIAgent:
