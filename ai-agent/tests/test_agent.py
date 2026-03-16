@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from phaeton_ai_agent.agent import (
+    _DEFAULT_MODEL_ID,
     EXPRESSION_PROMPT_TEMPLATE,
     NODE_PROMPT_TEMPLATE,
     _parse_json_response,
@@ -366,12 +367,13 @@ class TestBedrockRegionConfiguration:
     ) -> None:
         """Bedrock model uses AWS_REGION environment variable when set."""
         monkeypatch.setenv("AWS_REGION", "eu-west-1")
+        monkeypatch.delenv("BEDROCK_MODEL_ID", raising=False)
         from phaeton_ai_agent.agent import _get_agent
 
         _get_agent()
 
         mock_bedrock_model.assert_called_once_with(
-            model_id="us.anthropic.claude-sonnet-4-20250514",
+            model_id=_DEFAULT_MODEL_ID,
             region_name="eu-west-1",
         )
 
@@ -381,12 +383,49 @@ class TestBedrockRegionConfiguration:
     ) -> None:
         """Bedrock model defaults to us-east-1 when AWS_REGION is not set."""
         monkeypatch.delenv("AWS_REGION", raising=False)
+        monkeypatch.delenv("BEDROCK_MODEL_ID", raising=False)
         from phaeton_ai_agent.agent import _get_agent
 
         _get_agent()
 
         mock_bedrock_model.assert_called_once_with(
-            model_id="us.anthropic.claude-sonnet-4-20250514",
+            model_id=_DEFAULT_MODEL_ID,
+            region_name="us-east-1",
+        )
+
+
+class TestBedrockModelIdConfiguration:
+    """Tests for Bedrock model ID configuration via environment variable."""
+
+    @patch("phaeton_ai_agent.agent.BedrockModel")
+    def test_uses_bedrock_model_id_env_var(
+        self, mock_bedrock_model: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Bedrock model uses BEDROCK_MODEL_ID environment variable when set."""
+        monkeypatch.setenv("BEDROCK_MODEL_ID", "us.anthropic.claude-opus-4-20250514")
+        monkeypatch.delenv("AWS_REGION", raising=False)
+        from phaeton_ai_agent.agent import _get_agent
+
+        _get_agent()
+
+        mock_bedrock_model.assert_called_once_with(
+            model_id="us.anthropic.claude-opus-4-20250514",
+            region_name="us-east-1",
+        )
+
+    @patch("phaeton_ai_agent.agent.BedrockModel")
+    def test_falls_back_to_default_model_id(
+        self, mock_bedrock_model: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Bedrock model uses default model ID when BEDROCK_MODEL_ID is not set."""
+        monkeypatch.delenv("BEDROCK_MODEL_ID", raising=False)
+        monkeypatch.delenv("AWS_REGION", raising=False)
+        from phaeton_ai_agent.agent import _get_agent
+
+        _get_agent()
+
+        mock_bedrock_model.assert_called_once_with(
+            model_id=_DEFAULT_MODEL_ID,
             region_name="us-east-1",
         )
 

@@ -20,6 +20,8 @@ from phaeton_ai_agent.models import (
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_MODEL_ID = "us.anthropic.claude-sonnet-4-20250514"
+
 SYSTEM_PROMPT = """\
 You are translating an n8n workflow node into an AWS Step Functions ASL state.
 
@@ -121,7 +123,7 @@ def _get_agent() -> Agent:
     global _agent  # noqa: PLW0603
     if _agent is None:
         model = BedrockModel(
-            model_id="us.anthropic.claude-sonnet-4-20250514",
+            model_id=os.environ.get("BEDROCK_MODEL_ID", _DEFAULT_MODEL_ID),
             region_name=os.environ.get("AWS_REGION", "us-east-1"),
         )
         _agent = Agent(
