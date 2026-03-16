@@ -1,0 +1,11 @@
+TASK-0001-engine-translation-output-alignment.md
+TASK-0005-ai-agent-prompt-injection.md
+TASK-0004-expression-evaluator-code-injection.md
+TASK-0007-ai-agent-hardcoded-aws-region.md
+TASK-0008-ai-agent-frozen-models.md
+TASK-0009-remove-stub-ai-agent-dead-code.md
+TASK-0011-ai-agent-model-id-configurable.md
+TASK-0002-shared-packager-input-parity.md
+TASK-0006-webhook-auth-config-unreachable.md
+TASK-0010-lint-type-suppression-cleanup.md
+TASK-0003-pydantic-frozen-true-project-wide.md
