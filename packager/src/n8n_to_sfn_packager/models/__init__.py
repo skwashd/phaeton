@@ -14,6 +14,10 @@ from n8n_to_sfn_packager.models.inputs import (
     SubWorkflowReference,
     TriggerSpec,
     TriggerType,
+    VpcBoundService,
+    VpcConfig,
+    WebhookAuthConfig,
+    WebhookAuthType,
     WorkflowMetadata,
 )
 from n8n_to_sfn_packager.models.ssm import SSMParameterDefinition
@@ -31,5 +35,9 @@ __all__ = [
     "SubWorkflowReference",
     "TriggerSpec",
     "TriggerType",
+    "VpcBoundService",
+    "VpcConfig",
+    "WebhookAuthConfig",
+    "WebhookAuthType",
     "WorkflowMetadata",
 ]

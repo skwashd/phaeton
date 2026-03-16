@@ -211,7 +211,42 @@ class TestFullConversion:
         assert result.lambda_functions == []
         assert result.triggers == []
         assert result.credentials == []
+        assert result.oauth_credentials == []
+        assert result.sub_workflows == []
+        assert result.vpc_config is None
         assert result.metadata.workflow_name == "empty-workflow"
+
+    def test_oauth_credentials_separated(self) -> None:
+        """OAuth2 credentials are routed to oauth_credentials, not credentials."""
+        output = _make_output(
+            credential_artifacts=[
+                CredentialArtifact(
+                    parameter_path="/creds/api",
+                    credential_type="apiKey",
+                    auth_type="api_key",
+                ),
+                CredentialArtifact(
+                    parameter_path="/creds/google",
+                    credential_type="oauth2",
+                    auth_type="oauth2",
+                    placeholder_value="https://oauth2.googleapis.com/token",
+                ),
+            ],
+        )
+        result = convert_output_to_packager_input(output, "test")
+
+        assert len(result.credentials) == 1
+        assert result.credentials[0].parameter_path == "/creds/api"
+
+        assert len(result.oauth_credentials) == 1
+        assert (
+            result.oauth_credentials[0].credential_spec.parameter_path
+            == "/creds/google"
+        )
+        assert (
+            result.oauth_credentials[0].token_endpoint_url
+            == "https://oauth2.googleapis.com/token"  # noqa: S105
+        )
 
     def test_credential_path_normalisation(self) -> None:
         """Paths missing a leading slash get one prepended."""
@@ -279,7 +314,10 @@ class TestFunctionTypeInference:
             ],
         )
         result = convert_output_to_packager_input(output, "test")
-        assert result.lambda_functions[0].function_type == LambdaFunctionType.CODE_NODE_PYTHON
+        assert (
+            result.lambda_functions[0].function_type
+            == LambdaFunctionType.CODE_NODE_PYTHON
+        )
 
     def test_nodejs_defaults_to_code_node_js(self) -> None:
         """Node.js runtime defaults to CODE_NODE_JS."""
@@ -293,7 +331,9 @@ class TestFunctionTypeInference:
             ],
         )
         result = convert_output_to_packager_input(output, "test")
-        assert result.lambda_functions[0].function_type == LambdaFunctionType.CODE_NODE_JS
+        assert (
+            result.lambda_functions[0].function_type == LambdaFunctionType.CODE_NODE_JS
+        )
 
     def test_webhook_name_infers_webhook_handler(self) -> None:
         """Function name containing 'webhook' infers WEBHOOK_HANDLER."""
@@ -307,7 +347,10 @@ class TestFunctionTypeInference:
             ],
         )
         result = convert_output_to_packager_input(output, "test")
-        assert result.lambda_functions[0].function_type == LambdaFunctionType.WEBHOOK_HANDLER
+        assert (
+            result.lambda_functions[0].function_type
+            == LambdaFunctionType.WEBHOOK_HANDLER
+        )
 
     def test_picofun_name_infers_api_client(self) -> None:
         """Function name containing 'picofun' infers PICOFUN_API_CLIENT."""
@@ -321,4 +364,7 @@ class TestFunctionTypeInference:
             ],
         )
         result = convert_output_to_packager_input(output, "test")
-        assert result.lambda_functions[0].function_type == LambdaFunctionType.PICOFUN_API_CLIENT
+        assert (
+            result.lambda_functions[0].function_type
+            == LambdaFunctionType.PICOFUN_API_CLIENT
+        )

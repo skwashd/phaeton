@@ -101,7 +101,9 @@ def test_node_category_mapping() -> None:
     result = convert_report_to_analysis(report)
 
     for i, cat in enumerate(NodeCategory):
-        assert result.classified_nodes[i].classification == NodeClassification(cat.value)
+        assert result.classified_nodes[i].classification == NodeClassification(
+            cat.value
+        )
 
 
 def test_expression_category_mapping() -> None:

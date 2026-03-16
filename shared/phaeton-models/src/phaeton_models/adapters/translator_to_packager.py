@@ -15,6 +15,7 @@ from phaeton_models.packager_input import (
     CredentialSpec,
     LambdaFunctionSpec,
     LambdaFunctionType,
+    OAuthCredentialSpec,
     PackagerInput,
     StateMachineDefinition,
     TriggerSpec,
@@ -76,7 +77,17 @@ def convert_output_to_packager_input(
     """
     lambda_functions = [_convert_lambda(a) for a in output.lambda_artifacts]
     triggers = [_convert_trigger(a) for a in output.trigger_artifacts]
-    credentials = [_convert_credential(a) for a in output.credential_artifacts]
+
+    credentials: list[CredentialSpec] = []
+    oauth_credentials: list[OAuthCredentialSpec] = []
+    for artifact in output.credential_artifacts:
+        cred = _convert_credential(artifact)
+        if artifact.auth_type == "oauth2":
+            oauth_credentials.append(
+                _convert_oauth_credential(artifact, cred),
+            )
+        else:
+            credentials.append(cred)
 
     report = output.conversion_report
     confidence = _normalise_confidence(report.get("confidence_score", 0.0))
@@ -106,6 +117,7 @@ def convert_output_to_packager_input(
         state_machine=state_machine,
         lambda_functions=lambda_functions,
         credentials=credentials,
+        oauth_credentials=oauth_credentials,
         triggers=triggers,
         conversion_report=conversion_report,
     )
@@ -180,6 +192,18 @@ def _convert_credential(artifact: CredentialArtifact) -> CredentialSpec:
         parameter_path=path,
         credential_type=artifact.credential_type,
         placeholder_value=artifact.placeholder_value,
+    )
+
+
+def _convert_oauth_credential(
+    artifact: CredentialArtifact,
+    cred: CredentialSpec,
+) -> OAuthCredentialSpec:
+    """Convert an OAuth2 ``CredentialArtifact`` to an ``OAuthCredentialSpec``."""
+    return OAuthCredentialSpec(
+        credential_spec=cred,
+        token_endpoint_url=artifact.placeholder_value
+        or "https://oauth.example.com/token",
     )
 
 

@@ -61,6 +61,35 @@ class TriggerType(StrEnum):
     APP_EVENT = "app_event"
 
 
+class WebhookAuthType(StrEnum):
+    """
+    Supported webhook authentication methods.
+
+    Example::
+
+        WebhookAuthType.API_KEY
+    """
+
+    API_KEY = "api_key"
+    HMAC_SHA256 = "hmac_sha256"
+
+
+class VpcBoundService(StrEnum):
+    """
+    Services that require VPC access for Lambda functions.
+
+    Example::
+
+        VpcBoundService.RDS_MYSQL
+    """
+
+    RDS_MYSQL = "rds_mysql"
+    RDS_POSTGRESQL = "rds_postgresql"
+    ELASTICACHE_REDIS = "elasticache_redis"
+    ELASTICACHE_MEMCACHED = "elasticache_memcached"
+    REDSHIFT = "redshift"
+
+
 class WorkflowMetadata(BaseModel):
     """
     Metadata about the source n8n workflow and the conversion.
@@ -98,6 +127,60 @@ class StateMachineDefinition(BaseModel):
     query_language: str = "JSONata"
 
 
+class VpcConfig(BaseModel):
+    """
+    VPC configuration for Lambda functions that access VPC-bound resources.
+
+    Example::
+
+        VpcConfig(vpc_bound_services=[VpcBoundService.RDS_MYSQL])
+    """
+
+    vpc_bound_services: list[VpcBoundService] = Field(..., min_length=1)
+
+    @property
+    def security_group_rules(self) -> list[dict[str, Any]]:
+        """Derive egress rules from the declared VPC-bound services."""
+        port_map: dict[VpcBoundService, tuple[int, str]] = {
+            VpcBoundService.RDS_MYSQL: (3306, "MySQL"),
+            VpcBoundService.RDS_POSTGRESQL: (5432, "PostgreSQL"),
+            VpcBoundService.ELASTICACHE_REDIS: (6379, "Redis"),
+            VpcBoundService.ELASTICACHE_MEMCACHED: (11211, "Memcached"),
+            VpcBoundService.REDSHIFT: (5439, "Redshift"),
+        }
+        rules = []
+        for svc in self.vpc_bound_services:
+            port, desc = port_map[svc]
+            rules.append({"port": port, "description": desc})
+        return rules
+
+
+class WebhookAuthConfig(BaseModel):
+    """
+    Authentication configuration for webhook/callback Lambda handlers.
+
+    Example::
+
+        WebhookAuthConfig(
+            auth_type=WebhookAuthType.API_KEY,
+            credential_parameter_path="/phaeton/creds/webhook-secret",
+        )
+    """
+
+    auth_type: WebhookAuthType
+    credential_parameter_path: str
+    header_name: str = "x-api-key"
+
+    @field_validator("credential_parameter_path")
+    @classmethod
+    def validate_credential_path(cls, v: str) -> str:
+        """SSM parameter paths must start with '/'."""
+        if not v.startswith("/"):
+            msg = f"credential_parameter_path must start with '/': {v!r}"
+            raise ValueError(msg)
+        return v
+
+
 class LambdaFunctionSpec(BaseModel):
     """
     Specification for a single Lambda function to generate.
@@ -119,6 +202,7 @@ class LambdaFunctionSpec(BaseModel):
     source_node_name: str = ""
     dependencies: list[str] = Field(default_factory=list)
     function_type: LambdaFunctionType
+    webhook_auth: WebhookAuthConfig | None = None
 
     @field_validator("function_name")
     @classmethod
@@ -161,6 +245,27 @@ class CredentialSpec(BaseModel):
         return v
 
 
+class OAuthCredentialSpec(BaseModel):
+    """
+    Extended credential spec for OAuth2 credentials requiring token rotation.
+
+    Example::
+
+        OAuthCredentialSpec(
+            credential_spec=CredentialSpec(
+                parameter_path="/phaeton/creds/oauth",
+                credential_type="oauth2",
+            ),
+            token_endpoint_url="https://oauth.example.com/token",
+        )
+    """
+
+    credential_spec: CredentialSpec
+    token_endpoint_url: str
+    refresh_schedule_expression: str = "rate(50 minutes)"
+    scopes: list[str] = Field(default_factory=list)
+
+
 class TriggerSpec(BaseModel):
     """
     Specification for a workflow trigger.
@@ -173,6 +278,23 @@ class TriggerSpec(BaseModel):
     trigger_type: TriggerType
     configuration: dict[str, Any] = Field(default_factory=dict)
     associated_lambda_name: str | None = None
+
+
+class SubWorkflowReference(BaseModel):
+    """
+    Reference to a sub-workflow that must be deployed separately.
+
+    Example::
+
+        SubWorkflowReference(
+            name="process-order",
+            source_workflow_file="process_order.json",
+        )
+    """
+
+    name: str = Field(..., min_length=1)
+    source_workflow_file: str
+    description: str = ""
 
 
 class ConversionReport(BaseModel):
@@ -213,5 +335,8 @@ class PackagerInput(BaseModel):
     state_machine: StateMachineDefinition
     lambda_functions: list[LambdaFunctionSpec] = Field(default_factory=list)
     credentials: list[CredentialSpec] = Field(default_factory=list)
+    oauth_credentials: list[OAuthCredentialSpec] = Field(default_factory=list)
     triggers: list[TriggerSpec] = Field(default_factory=list)
+    sub_workflows: list[SubWorkflowReference] = Field(default_factory=list)
+    vpc_config: VpcConfig | None = None
     conversion_report: ConversionReport
