@@ -4,13 +4,13 @@ Converts n8n workflows into deployable AWS Step Functions CDK applications.
 
 ## Overview
 
-Phaeton is a modular platform for enterprise migration from n8n to AWS-native orchestration. It takes an n8n workflow JSON export as input and produces a complete, deployable CDK application containing the equivalent AWS Step Functions state machine, Lambda functions, IAM policies, SSM credential placeholders, and a migration guide.
+Phaeton is a managed pipeline that converts n8n workflow JSON exports into complete, deployable AWS CDK applications. Submit a workflow JSON, and Phaeton produces a zip archive containing an ASL state machine definition, Lambda functions, IAM policies, SSM credential placeholders, CDK infrastructure code, and a migration guide — ready to extract and deploy with `cdk deploy`.
 
-The system uses deterministic translation wherever possible (flow control, AWS service nodes, expressions) and an AI agent as a fallback for complex cases that can't be mapped mechanically.
+The pipeline is deployed as AWS infrastructure (6 CDK stacks) with a Step Functions state machine (`phaeton-conversion-pipeline`) orchestrating the end-to-end conversion. It uses deterministic translation wherever possible and an AI agent (Bedrock + Claude Sonnet 4) as a fallback for complex cases.
 
 ## Architecture
 
-Phaeton is a 4-component pipeline. Each component can be used independently but they are designed to flow sequentially:
+Phaeton is built as 4 independent microservices, each with its own Lambda, codebase, and test suite. Services communicate only via well-defined contracts defined in phaeton-models. A Step Functions state machine orchestrates them sequentially:
 
 ```
 n8n Workflow JSON
@@ -28,23 +28,24 @@ n8n Workflow JSON
 │  Node classification, dependency graphs,         │
 │  expression analysis, feasibility reports        │
 └──────────────────────┬───────────────────────────┘
-                       │  WorkflowAnalysis
+                       │  ConversionReport → WorkflowAnalysis
                        ▼
 ┌──────────────────────────────────────────────────┐
 │  3. Translation Engine (n8n-to-sfn)              │
 │  Deterministic ASL translation + AI fallback     │
 │  Lambda artifacts, trigger configs, variables    │
 └──────────────────────┬───────────────────────────┘
-                       │  TranslationOutput → PackagerInput JSON
+                       │  TranslationOutput → PackagerInput
                        ▼
 ┌──────────────────────────────────────────────────┐
 │  4. Packager                                     │
 │  CDK app, ASL definition, Lambda code, IAM,      │
 │  SSM params, MIGRATE.md, conversion reports      │
-└──────────────────────────────────────────────────┘
-        │
-        ▼
-  Deployable CDK Application
+└──────────────────────┬───────────────────────────┘
+                       │
+                       ▼
+               Zip Archive in S3
+        (download → extract → cdk deploy)
 ```
 
 ## Project Structure
@@ -70,7 +71,29 @@ phaeton/end-to-end/
 
 ## Quick Start
 
-Each component is an independent Python package. Install and use them from their respective directories:
+### Managed Pipeline (Primary)
+
+Once the Phaeton pipeline is [deployed to AWS](docs/deployment.md), submit a workflow via the Step Functions state machine:
+
+```bash
+aws stepfunctions start-execution \
+  --state-machine-arn arn:aws:states:REGION:ACCOUNT_ID:stateMachine:phaeton-conversion-pipeline \
+  --input '{"workflow_name": "my-workflow", "workflow": { <n8n workflow JSON> }}'
+```
+
+When the execution completes, download the output zip from S3:
+
+```bash
+aws s3 cp s3://{output-bucket}/packages/my-workflow.zip .
+unzip my-workflow.zip -d my-workflow
+cd my-workflow/cdk && uv sync && uv run cdk deploy
+```
+
+See [Getting Started](docs/getting-started.md) for a full walkthrough including SSM credential setup.
+
+### Local Development
+
+Each component is an independent Python package. For development and testing, run them locally from their respective directories:
 
 ```bash
 # 1. Build a node catalog
@@ -143,6 +166,8 @@ Bedrock-powered fallback translation service for n8n nodes and expressions that 
 ## Documentation
 
 - [Getting Started](docs/getting-started.md) — installation, quickstart, and first workflow conversion
+- [Architecture](docs/architecture.md) — system architecture, component details, operational concerns
+- [Workflow Guide](docs/workflow-guide.md) — end-to-end data flow from workflow JSON to deployable zip
 - [Supported Node Types](docs/supported-node-types.md) — reference of all translatable n8n nodes
 - [Deployment Guide](docs/deployment.md) — deploying the Phaeton pipeline to AWS
 - [AI Agent Guide](docs/ai-agent.md) — AI-powered fallback translation service

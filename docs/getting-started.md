@@ -59,9 +59,77 @@ To verify the installation, run the test suite for any component:
 cd workflow-analyzer && uv run pytest && cd ..
 ```
 
-## Quick Start: Convert a Workflow End-to-End
+## Quick Start: Managed Pipeline
 
-This section walks through converting a simple n8n workflow into a deployable CDK application using all four pipeline stages.
+The primary way to use Phaeton is via the managed AWS pipeline. Once [deployed](deployment.md), the Step Functions state machine handles the entire conversion.
+
+### Start a Conversion
+
+Submit a workflow JSON to the `phaeton-conversion-pipeline` state machine:
+
+```bash
+aws stepfunctions start-execution \
+  --state-machine-arn arn:aws:states:REGION:ACCOUNT_ID:stateMachine:phaeton-conversion-pipeline \
+  --input "$(cat <<'EOF'
+{
+  "workflow_name": "my-workflow",
+  "workflow": {
+    "name": "my-workflow",
+    "nodes": [...],
+    "connections": {...},
+    "settings": {"executionOrder": "v1"}
+  }
+}
+EOF
+)"
+```
+
+The pipeline runs through analysis, translation, and packaging automatically. Monitor progress in the [Step Functions console](https://console.aws.amazon.com/states/).
+
+### Download the Output
+
+When the execution succeeds, the output contains the S3 location of the zip:
+
+```json
+{
+  "status": "success",
+  "s3_bucket": "phaeton-output-bucket-...",
+  "s3_key": "packages/my-workflow.zip",
+  "workflow_name": "my-workflow"
+}
+```
+
+Download and extract:
+
+```bash
+aws s3 cp s3://{bucket}/packages/my-workflow.zip .
+unzip my-workflow.zip -d my-workflow
+```
+
+### Deploy the Output
+
+1. Populate SSM parameters per `CREDENTIALS.md` in the extracted zip:
+   ```bash
+   aws ssm put-parameter --name "/phaeton/creds/{name}" --value "..." --type SecureString
+   ```
+
+2. Validate and deploy:
+   ```bash
+   cd my-workflow/cdk
+   uv sync
+   uv run cdk synth    # validate
+   uv run cdk deploy   # deploy to AWS
+   ```
+
+3. Test in the [Step Functions console](https://console.aws.amazon.com/states/) — start an execution and verify the output.
+
+For a detailed walkthrough of the pipeline stages and data transformations, see the [Workflow Guide](workflow-guide.md).
+
+---
+
+## Local Development Flow
+
+For development and testing, you can run each pipeline stage locally via CLI. This section walks through converting a simple n8n workflow into a deployable CDK application using all four pipeline stages.
 
 ### 1. Prepare a Sample Workflow
 
@@ -178,33 +246,42 @@ Replace `<translation_output.json>` with the path to your PackagerInput JSON fil
 
 ## Understanding the Output
 
-The packager generates the following directory structure:
+Whether you use the managed pipeline (zip from S3) or the local CLI flow (directory on disk), the output has the same structure:
 
 ```
-output/
+{workflow_name}/
 ├── statemachine/
-│   └── definition.asl.json    # AWS Step Functions ASL definition
+│   └── definition.asl.json          # AWS Step Functions ASL definition
 ├── lambdas/
-│   └── <function_name>/       # Lambda function code for each code node
-│       └── index.py
+│   └── {function_name}/
+│       ├── handler.py                # Lambda function code
+│       └── requirements.txt          # Function dependencies (if any)
 ├── cdk/
-│   ├── app.py                 # CDK application entry point
-│   ├── stack.py               # CDK stack defining all AWS resources
-│   └── requirements.txt       # CDK Python dependencies
-├── iam/
-│   └── policies.json          # IAM policies for the state machine
-├── ssm/
-│   └── parameters.json        # SSM parameter placeholders for credentials
-├── MIGRATE.md                 # Migration checklist and manual steps
-└── report.json                # Conversion report with warnings
+│   ├── app.py                        # CDK application entry point
+│   ├── stacks/
+│   │   └── workflow_stack.py         # CDK stack defining all AWS resources
+│   ├── pyproject.toml                # CDK project dependencies
+│   └── cdk.json                      # CDK configuration
+├── MIGRATE.md                        # Migration checklist and manual steps
+├── CREDENTIALS.md                    # SSM parameter setup instructions
+├── README.md                         # Deployment instructions for this workflow
+└── reports/
+    ├── conversion_report.json        # Machine-readable conversion report
+    └── conversion_report.md          # Human-readable conversion report
 ```
 
 Key files:
 - **`definition.asl.json`** — the Step Functions state machine definition in Amazon States Language.
-- **`app.py` / `stack.py`** — the CDK application that deploys the state machine, Lambda functions, and supporting resources.
+- **`cdk/app.py`** — the CDK application entry point that deploys the state machine, Lambda functions, and supporting resources.
 - **`MIGRATE.md`** — a checklist of manual steps required after deployment (e.g., setting up credentials in SSM Parameter Store).
+- **`CREDENTIALS.md`** — lists all SSM parameters that need to be populated with credential values before deployment.
+- **`reports/conversion_report.md`** — human-readable summary of conversion results, including any warnings or AI-assisted translations that need review.
+
+When using the managed pipeline, this directory is zipped and uploaded to `s3://{OUTPUT_BUCKET}/packages/{workflow_name}.zip`.
 
 ## Deploying the Output
+
+This section covers deploying the *generated CDK application* (the output of Phaeton). To deploy the *Phaeton pipeline itself*, see [Deployment Guide](deployment.md).
 
 ### Bootstrap CDK (First Time Only)
 
@@ -216,16 +293,20 @@ cdk bootstrap aws://ACCOUNT_ID/REGION
 
 ### Populate SSM Parameters
 
-Before deploying, populate any SSM parameters referenced by the workflow. Check the generated `CREDENTIALS.md` or `ssm/parameters.json` for the list of required parameters and their expected values.
+Before deploying, populate any SSM parameters referenced by the workflow. Check the generated `CREDENTIALS.md` for the list of required parameters and their expected values:
+
+```bash
+aws ssm put-parameter --name "/phaeton/creds/{name}" --value "your-secret" --type SecureString
+```
 
 ### Validate with CDK Synth
 
 Verify the generated CDK application synthesizes correctly:
 
 ```bash
-cd output/cdk
-pip install -r requirements.txt
-cdk synth
+cd {workflow_name}/cdk
+uv sync
+uv run cdk synth
 ```
 
 This produces a CloudFormation template without deploying anything. Review the output for any errors.
@@ -235,7 +316,7 @@ This produces a CloudFormation template without deploying anything. Review the o
 Deploy the converted workflow to your AWS account:
 
 ```bash
-cdk deploy
+uv run cdk deploy
 ```
 
 CDK will show you the resources it plans to create and ask for confirmation. After deployment, your Step Functions state machine is live.
@@ -313,6 +394,7 @@ See the [AI Agent Guide](ai-agent.md) for configuration, security details, and i
 
 ## Next Steps
 
-- Review the [architecture plan](plans/n8n-to-stepfunctions-final-plan.md) for a deep dive into how Phaeton works.
-- Check the [Python guidelines](python-guidelines.md) for development conventions.
+- Read the [Architecture Reference](architecture.md) for component details, operational concerns, and extensibility.
+- Trace the full data flow in the [Workflow Guide](workflow-guide.md).
+- Review [Supported Node Types](supported-node-types.md) to see which n8n nodes are translatable.
 - Run the full test suite to verify your setup: `cd <component> && uv run pytest`.
