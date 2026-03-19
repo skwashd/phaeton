@@ -136,7 +136,9 @@ class TestHandlerWithContext:
 
         class _FakeContext:
             function_name = "phaeton-ai-agent"
-            invoked_function_arn = "arn:aws:lambda:us-east-1:123:function:phaeton-ai-agent"
+            invoked_function_arn = (
+                "arn:aws:lambda:us-east-1:123:function:phaeton-ai-agent"
+            )
             aws_request_id = "test-request-id"
 
         event = {
