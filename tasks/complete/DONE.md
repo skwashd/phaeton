@@ -19,3 +19,4 @@ TASK-0018-update-deployment-tests.md
 TASK-0019-update-lambda-code-assets.md
 TASK-0020-update-root-claude-md.md
 TASK-0021-update-root-readme.md
+TASK-0024-update-deployment-documentation.md

@@ -16,7 +16,7 @@ The `deployment/` component is a CDK application that deploys the entire Phaeton
 
 ## Architecture
 
-The deployment creates 6 CDK stacks:
+The deployment creates 8 CDK stacks:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -30,13 +30,23 @@ The deployment creates 6 CDK stacks:
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
-│  PhaetonAiAgent                                             │
+│  PhaetonNodeTranslator                                      │
 │  Lambda + Bedrock IAM permissions                           │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
+│  PhaetonExpressionTranslator                                │
+│  Lambda + Bedrock IAM permissions                           │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  PhaetonSpecRegistry                                        │
+│  Lambda + S3 (KMS-encrypted) + S3 event notifications       │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
 │  PhaetonTranslationEngine                                   │
-│  Lambda (depends on AI Agent for fallback invocation)       │
+│  Lambda (depends on NodeTranslator + ExpressionTranslator)  │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -48,6 +58,27 @@ The deployment creates 6 CDK stacks:
 │  PhaetonOrchestration                                       │
 │  Step Functions state machine + Adapter Lambda              │
 └─────────────────────────────────────────────────────────────┘
+```
+
+### Stack Dependencies
+
+```
+ReleaseParserStack          (independent)
+WorkflowAnalyzerStack       (independent)
+NodeTranslatorStack         (independent)
+ExpressionTranslatorStack   (independent)
+SpecRegistryStack           (independent)
+
+TranslationEngineStack
+  ├── depends on: NodeTranslatorStack (invoke grant + function name env var)
+  └── depends on: ExpressionTranslatorStack (invoke grant + function name env var)
+
+PackagerStack               (independent)
+
+OrchestrationStack
+  ├── depends on: WorkflowAnalyzerStack (Lambda invoke)
+  ├── depends on: TranslationEngineStack (Lambda invoke)
+  └── depends on: PackagerStack (Lambda invoke)
 ```
 
 ## Pipeline Flow
@@ -93,7 +124,9 @@ uv run cdk deploy PhaetonReleaseParser
 | Lambda | Variable | Purpose |
 |--------|----------|---------|
 | phaeton-release-parser | `CATALOG_BUCKET` | S3 bucket for n8n node catalog storage |
-| phaeton-translation-engine | `AI_AGENT_FUNCTION_NAME` | AI Agent Lambda name for fallback invocation |
+| phaeton-spec-indexer | `SPEC_BUCKET_NAME` | S3 bucket name for API spec storage (`phaeton-spec-registry`) |
+| phaeton-translation-engine | `NODE_TRANSLATOR_FUNCTION_NAME` | Node Translator Lambda name for node translation invocation |
+| phaeton-translation-engine | `EXPRESSION_TRANSLATOR_FUNCTION_NAME` | Expression Translator Lambda name for expression translation invocation |
 | phaeton-packager | `OUTPUT_BUCKET` | S3 bucket for generated CDK application output |
 
 ### Memory and Timeout Settings
@@ -102,22 +135,39 @@ uv run cdk deploy PhaetonReleaseParser
 |--------|--------|---------|
 | phaeton-release-parser | 512 MB | 120 seconds |
 | phaeton-workflow-analyzer | 512 MB | 120 seconds |
-| phaeton-ai-agent | 1024 MB | 120 seconds |
+| phaeton-node-translator | 1024 MB | 120 seconds |
+| phaeton-expression-translator | 1024 MB | 120 seconds |
+| phaeton-spec-indexer | 512 MB | 120 seconds |
 | phaeton-translation-engine | 512 MB | 300 seconds |
 | phaeton-packager | 1024 MB | 300 seconds |
 | phaeton-adapter | 256 MB | 30 seconds |
 
 All Lambda functions use Python 3.13 runtime with ARM64 architecture.
 
+### S3 Buckets
+
+| Bucket | Stack | Encryption | Versioning | Event Triggers |
+|--------|-------|------------|------------|----------------|
+| Catalog bucket | ReleaseParserStack | S3-managed | No | None |
+| phaeton-spec-registry | SpecRegistryStack | KMS (key rotation enabled) | Yes | `OBJECT_CREATED` on `*.json` and `*.yaml` → phaeton-spec-indexer Lambda |
+| Output bucket | PackagerStack | S3-managed | No | None |
+
+### IAM Permissions
+
+- **NodeTranslatorStack:** `bedrock:InvokeModel` on `arn:aws:bedrock:*::foundation-model/*`
+- **ExpressionTranslatorStack:** `bedrock:InvokeModel` on `arn:aws:bedrock:*::foundation-model/*`
+- **TranslationEngineStack:** `lambda:InvokeFunction` grants from both translator Lambdas
+
 ## AWS Resource Summary
 
 | Resource Type | Count | Details |
 |---------------|-------|---------|
-| Lambda Functions | 6 | One per pipeline stage + adapter |
-| S3 Buckets | 2 | Catalog storage + CDK output |
+| Lambda Functions | 8 | One per pipeline stage + two AI translators + spec indexer + adapter |
+| S3 Buckets | 3 | Catalog storage + spec registry + CDK output |
+| KMS Keys | 1 | Spec registry bucket encryption |
 | Step Functions State Machine | 1 | Pipeline orchestration (30-min timeout) |
 | EventBridge Rules | 1 | Daily Release Parser schedule |
-| IAM Roles | 7 | One per Lambda + one for state machine |
+| IAM Roles | 9 | One per Lambda + one for state machine |
 
 ## First-Time Deployment
 
@@ -158,4 +208,4 @@ uv sync
 uv run pytest
 ```
 
-The test suite validates that all 6 stacks synthesize correctly and produce the expected resources.
+The test suite validates that all 8 stacks synthesize correctly and produce the expected resources.
