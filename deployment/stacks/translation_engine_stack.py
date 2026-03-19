@@ -17,8 +17,8 @@ class TranslationEngineStack(cdk.Stack):
         scope: Construct,
         construct_id: str,
         *,
-        node_translator_function: lambda_.IFunction | None = None,
-        expression_translator_function: lambda_.IFunction | None = None,
+        node_translator_function: lambda_.IFunction,
+        expression_translator_function: lambda_.IFunction,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -33,18 +33,11 @@ class TranslationEngineStack(cdk.Stack):
             code=lambda_.Code.from_asset("../n8n-to-sfn/src"),
             memory_size=512,
             timeout=cdk.Duration.seconds(300),
+            environment={
+                "NODE_TRANSLATOR_FUNCTION_NAME": node_translator_function.function_name,
+                "EXPRESSION_TRANSLATOR_FUNCTION_NAME": expression_translator_function.function_name,
+            },
         )
 
-        if node_translator_function is not None:
-            self.function.add_environment(
-                "NODE_TRANSLATOR_FUNCTION_NAME",
-                node_translator_function.function_name,
-            )
-            node_translator_function.grant_invoke(self.function)
-
-        if expression_translator_function is not None:
-            self.function.add_environment(
-                "EXPRESSION_TRANSLATOR_FUNCTION_NAME",
-                expression_translator_function.function_name,
-            )
-            expression_translator_function.grant_invoke(self.function)
+        node_translator_function.grant_invoke(self.function)
+        expression_translator_function.grant_invoke(self.function)

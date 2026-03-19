@@ -158,9 +158,22 @@ class TestWorkflowAnalyzerStack:
 class TestTranslationEngineStack:
     """Tests for the Translation Engine stack."""
 
-    def test_has_lambda_function(self):
+    @staticmethod
+    def _create_stack() -> TranslationEngineStack:
+        """Create a TranslationEngineStack with translator dependencies."""
         app = cdk.App()
-        stack = TranslationEngineStack(app, "TestTranslationEngine")
+        node_stack = NodeTranslatorStack(app, "NodeTranslator")
+        expr_stack = ExpressionTranslatorStack(app, "ExpressionTranslator")
+        return TranslationEngineStack(
+            app,
+            "TestTranslationEngine",
+            node_translator_function=node_stack.function,
+            expression_translator_function=expr_stack.function,
+        )
+
+    def test_has_lambda_function(self) -> None:
+        """Verify Lambda function name, architecture, and runtime."""
+        stack = self._create_stack()
         template = _synth_template(stack)
         template.has_resource_properties(
             "AWS::Lambda::Function",
@@ -170,6 +183,31 @@ class TestTranslationEngineStack:
                 "Runtime": "python3.13",
             },
         )
+
+    def test_has_translator_env_vars(self) -> None:
+        """Verify both translator function name env vars are set."""
+        stack = self._create_stack()
+        template = _synth_template(stack)
+        template.has_resource_properties(
+            "AWS::Lambda::Function",
+            {
+                "FunctionName": "phaeton-translation-engine",
+                "Environment": {
+                    "Variables": {
+                        "NODE_TRANSLATOR_FUNCTION_NAME": {},
+                        "EXPRESSION_TRANSLATOR_FUNCTION_NAME": {},
+                    },
+                },
+            },
+        )
+
+    def test_grants_invoke_on_both_translators(self) -> None:
+        """Verify IAM invoke permissions for both translator functions."""
+        stack = self._create_stack()
+        template = _synth_template(stack)
+        policies = template.find_resources("AWS::IAM::Policy")
+        policy_json = str(policies)
+        assert "lambda:InvokeFunction" in policy_json
 
 
 class TestNodeTranslatorStack:
@@ -294,7 +332,14 @@ class TestOrchestrationStack:
     def _create_stack() -> OrchestrationStack:
         app = cdk.App()
         analyzer_stack = WorkflowAnalyzerStack(app, "Analyzer")
-        translator_stack = TranslationEngineStack(app, "Translator")
+        node_stack = NodeTranslatorStack(app, "NodeTranslator")
+        expr_stack = ExpressionTranslatorStack(app, "ExpressionTranslator")
+        translator_stack = TranslationEngineStack(
+            app,
+            "Translator",
+            node_translator_function=node_stack.function,
+            expression_translator_function=expr_stack.function,
+        )
         packager_stack = PackagerStack(app, "Packager")
         return OrchestrationStack(
             app,
@@ -354,7 +399,16 @@ class TestFullAppSynth:
         ReleaseParserStack(app, "ReleaseParser")
         SpecRegistryStack(app, "SpecRegistry")
         workflow_analyzer = WorkflowAnalyzerStack(app, "WorkflowAnalyzer")
-        translation_engine = TranslationEngineStack(app, "TranslationEngine")
+        node_translator = NodeTranslatorStack(app, "NodeTranslator")
+        expression_translator = ExpressionTranslatorStack(
+            app, "ExpressionTranslator",
+        )
+        translation_engine = TranslationEngineStack(
+            app,
+            "TranslationEngine",
+            node_translator_function=node_translator.function,
+            expression_translator_function=expression_translator.function,
+        )
         packager = PackagerStack(app, "Packager")
         OrchestrationStack(
             app,
