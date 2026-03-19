@@ -8,10 +8,13 @@ See [README.md](README.md) for project overview, architecture, and CLI usage.
 
 - **Build system:** uv_build
 - **Source layout:** `src/n8n_release_parser/`
-- **Entry point:** `n8n_release_parser.cli:main`
+- **Lambda handler:** `n8n_release_parser.handler:handler`
+- **Dev CLI entry point:** `n8n_release_parser.cli:main` (Typer — dev/testing only, not deployed)
 
 ## Code conventions
 
+- The Lambda handler (`handler.py`) is the primary interface for this component.
+- The CLI (`cli.py`) is a dev/testing adapter only and is not included in Lambda deployments. Typer is a dev dependency.
 - All Pydantic models live in `models.py` and use `frozen=True` (immutable value objects).
 - Modules use functional helpers (not classes) for parsing and diffing logic.
 - `fetcher.py` uses async (`httpx`); the CLI wraps calls with `asyncio.run()`.
