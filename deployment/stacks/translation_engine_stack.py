@@ -17,7 +17,8 @@ class TranslationEngineStack(cdk.Stack):
         scope: Construct,
         construct_id: str,
         *,
-        ai_agent_function: lambda_.IFunction | None = None,
+        node_translator_function: lambda_.IFunction | None = None,
+        expression_translator_function: lambda_.IFunction | None = None,
         **kwargs: Any,  # noqa: ANN401
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -34,9 +35,16 @@ class TranslationEngineStack(cdk.Stack):
             timeout=cdk.Duration.seconds(300),
         )
 
-        if ai_agent_function is not None:
+        if node_translator_function is not None:
             self.function.add_environment(
-                "AI_AGENT_FUNCTION_NAME",
-                ai_agent_function.function_name,
+                "NODE_TRANSLATOR_FUNCTION_NAME",
+                node_translator_function.function_name,
             )
-            ai_agent_function.grant_invoke(self.function)
+            node_translator_function.grant_invoke(self.function)
+
+        if expression_translator_function is not None:
+            self.function.add_environment(
+                "EXPRESSION_TRANSLATOR_FUNCTION_NAME",
+                expression_translator_function.function_name,
+            )
+            expression_translator_function.grant_invoke(self.function)
