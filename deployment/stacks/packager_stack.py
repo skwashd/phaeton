@@ -30,7 +30,10 @@ class PackagerStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="n8n_to_sfn_packager.handler.handler",
-            code=lambda_.Code.from_asset("../packager/src"),
+            code=lambda_.Code.from_asset(
+                "../packager/src",
+                exclude=["*/cli.py", "*/__main__.py"],
+            ),
             memory_size=1024,
             timeout=cdk.Duration.seconds(300),
             ephemeral_storage_size=cdk.Size.gibibytes(1),

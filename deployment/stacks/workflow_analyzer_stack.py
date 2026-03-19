@@ -22,7 +22,10 @@ class WorkflowAnalyzerStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="workflow_analyzer.handler.handler",
-            code=lambda_.Code.from_asset("../workflow-analyzer/src"),
+            code=lambda_.Code.from_asset(
+                "../workflow-analyzer/src",
+                exclude=["*/cli.py", "*/__main__.py"],
+            ),
             memory_size=512,
             timeout=cdk.Duration.seconds(120),
         )

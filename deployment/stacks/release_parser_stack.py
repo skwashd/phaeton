@@ -32,7 +32,10 @@ class ReleaseParserStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="n8n_release_parser.handler.handler",
-            code=lambda_.Code.from_asset("../n8n-release-parser/src"),
+            code=lambda_.Code.from_asset(
+                "../n8n-release-parser/src",
+                exclude=["*/cli.py", "*/__main__.py"],
+            ),
             memory_size=512,
             timeout=cdk.Duration.seconds(120),
             environment={

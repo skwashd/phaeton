@@ -30,7 +30,10 @@ class TranslationEngineStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="n8n_to_sfn.handler.handler",
-            code=lambda_.Code.from_asset("../n8n-to-sfn/src"),
+            code=lambda_.Code.from_asset(
+                "../n8n-to-sfn/src",
+                exclude=["*/cli.py", "*/__main__.py"],
+            ),
             memory_size=512,
             timeout=cdk.Duration.seconds(300),
             environment={

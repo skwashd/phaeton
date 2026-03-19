@@ -41,7 +41,10 @@ class SpecRegistryStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="spec_registry.handler.handler",
-            code=lambda_.Code.from_asset("../spec-registry/src"),
+            code=lambda_.Code.from_asset(
+                "../spec-registry/src",
+                exclude=["*/cli.py", "*/__main__.py"],
+            ),
             memory_size=512,
             timeout=cdk.Duration.seconds(120),
             environment={

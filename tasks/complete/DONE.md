@@ -16,3 +16,4 @@ TASK-0015-update-translation-engine-stack-split.md
 TASK-0010-release-parser-ports-adapters.md
 TASK-0017-update-app-delete-old-stack.md
 TASK-0018-update-deployment-tests.md
+TASK-0019-update-lambda-code-assets.md

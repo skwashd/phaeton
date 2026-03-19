@@ -23,7 +23,10 @@ class ExpressionTranslatorStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="phaeton_expression_translator.handler.handler",
-            code=lambda_.Code.from_asset("../expression-translator/src"),
+            code=lambda_.Code.from_asset(
+                "../expression-translator/src",
+                exclude=["*/cli.py", "*/__main__.py"],
+            ),
             memory_size=1024,
             timeout=cdk.Duration.seconds(120),
         )
