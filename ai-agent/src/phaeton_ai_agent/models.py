@@ -2,18 +2,10 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any
 
+from phaeton_models import Confidence
 from pydantic import BaseModel, ConfigDict
-
-
-class Confidence(StrEnum):
-    """Confidence level for AI-generated translations."""
-
-    HIGH = "HIGH"
-    MEDIUM = "MEDIUM"
-    LOW = "LOW"
 
 
 class NodeTranslationRequest(BaseModel):
