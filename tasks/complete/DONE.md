@@ -14,3 +14,4 @@ TASK-0016-create-spec-registry-stack.md
 TASK-0009-delete-original-ai-agent.md
 TASK-0015-update-translation-engine-stack-split.md
 TASK-0010-release-parser-ports-adapters.md
+TASK-0017-update-app-delete-old-stack.md

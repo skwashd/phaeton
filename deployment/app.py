@@ -8,6 +8,7 @@ from stacks.node_translator_stack import NodeTranslatorStack
 from stacks.orchestration_stack import OrchestrationStack
 from stacks.packager_stack import PackagerStack
 from stacks.release_parser_stack import ReleaseParserStack
+from stacks.spec_registry_stack import SpecRegistryStack
 from stacks.translation_engine_stack import TranslationEngineStack
 from stacks.workflow_analyzer_stack import WorkflowAnalyzerStack
 
@@ -17,6 +18,7 @@ release_parser = ReleaseParserStack(app, "PhaetonReleaseParser")
 workflow_analyzer = WorkflowAnalyzerStack(app, "PhaetonWorkflowAnalyzer")
 node_translator = NodeTranslatorStack(app, "PhaetonNodeTranslator")
 expression_translator = ExpressionTranslatorStack(app, "PhaetonExpressionTranslator")
+spec_registry = SpecRegistryStack(app, "PhaetonSpecRegistry")
 translation_engine = TranslationEngineStack(
     app,
     "PhaetonTranslationEngine",
