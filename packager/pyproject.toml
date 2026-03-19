@@ -10,7 +10,6 @@ dependencies = [
     "jsonschema==4.26.0",
     "phaeton-models",
     "pydantic==2.12.5",
-    "typer==0.24.1",
 ]
 
 [build-system]
@@ -44,6 +43,7 @@ source = ["src/n8n_to_sfn_packager"]
 [dependency-groups]
 dev = [
     "aws-lambda-powertools==3.25.0",
+    "typer==0.24.1",
     "boto3==1.42.68",
     "coverage==7.13.4",
     "pytest==9.0.2",
