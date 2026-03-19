@@ -12,7 +12,9 @@ phaeton/end-to-end/
 ├── packager/                # CDK application generator from translation output
 ├── shared/phaeton-models/   # Shared Pydantic models and cross-component adapters
 ├── deployment/              # CDK deployment stacks for the Phaeton pipeline
-├── ai-agent/                # AI agent fallback for complex node translation (Strands + Bedrock)
+├── node-translator/         # AI agent for n8n node → ASL state translation
+├── expression-translator/   # AI agent for n8n expression → JSONata translation
+├── spec-registry/           # API specification registry and indexer
 └── tests/                   # Root-level cross-component integration tests
 ```
 
@@ -57,6 +59,7 @@ Ruff is configured in the root `pyproject.toml` with a shared rule set. Each com
 - **No `py.typed` marker files.** Do not create `py.typed` files. This project uses `ty` for type checking, not mypy/pyright. Always use modern type annotations (PEP 604 unions `X | Y`, `list[...]`/`dict[...]` builtins, etc.) directly in code.
 - **Python 3 exception syntax only.** Always use parenthesized tuples for multi-exception `except` clauses: `except (ExcA, ExcB):`. Never use the Python 2 comma syntax `except ExcA, ExcB:`.
 - **No CDK alpha constructs.** Generated CDK code must use stable `aws_cdk.aws_lambda` constructs (`lambda_.Function`, `lambda_.LayerVersion`) with explicit `cdk.BundlingOptions`, never `aws_cdk.aws_lambda_python_alpha` (`PythonFunction`, `PythonLayerVersion`).
+- **Lambda handlers are the primary interface** for all components. CLI modules (Typer-based) are dev/testing adapters only and are not bundled in Lambda deployments. Typer is a dev dependency in all components.
 
 ## Dependency rules
 
