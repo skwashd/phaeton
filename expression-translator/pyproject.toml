@@ -1,0 +1,52 @@
+[project]
+name = "phaeton-expression-translator"
+version = "0.1.0"
+description = "AI-powered expression translator: converts n8n expressions to JSONata expressions for AWS Step Functions using Strands Agents and Bedrock."
+readme = { text = "", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+    "phaeton-models @ file:///${PROJECT_ROOT}/../shared/phaeton-models",
+    "pydantic==2.12.5",
+    "strands-agents==1.30.0",
+    "strands-agents-builder==0.1.10",
+]
+
+[tool.uv]
+override-dependencies = [
+    "docstring-parser==0.17.0",
+]
+
+[build-system]
+requires = ["uv-build==0.10.10"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+# Rules listed at https://github.com/charliermarsh/ruff#supported-rules
+select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+ignore = ["D203", "D211", "D212", "E501", "F403", "F405"]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"test_*" = ["S101", "S108"]
+
+[tool.ty.environment]
+python = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/phaeton_expression_translator"]
+
+[dependency-groups]
+dev = [
+    "aws-lambda-powertools==3.25.0",
+    "coverage==7.13.4",
+    "pytest==9.0.2",
+    "ruff==0.15.6",
+    "ty==0.0.23",
+    "typer==0.24.1",
+]
