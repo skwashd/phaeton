@@ -22,9 +22,6 @@ override-dependencies = [
     "phaeton-models @ file://${PROJECT_ROOT}/shared/phaeton-models",
 ]
 
-[build-system]
-requires = ["uv-build==0.10.10"]
-build-backend = "uv_build"
 
 [tool.ruff.lint]
 select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN", "BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]

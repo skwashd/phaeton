@@ -386,7 +386,7 @@ wheels = [
 [[package]]
 name = "phaeton-integration-tests"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "boto3" },
     { name = "n8n-to-sfn" },
