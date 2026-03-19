@@ -12,7 +12,6 @@ from workflow_analyzer.graph.cross_node_detector import detect_cross_node_refere
 from workflow_analyzer.graph.graph_builder import GraphBuilder
 from workflow_analyzer.parser.accessors import WorkflowAccessor
 from workflow_analyzer.parser.workflow_parser import WorkflowParser
-from workflow_analyzer.report import json_renderer, markdown_renderer
 from workflow_analyzer.report.report_generator import ReportGenerator
 
 
@@ -81,27 +80,3 @@ class WorkflowAnalyzer:
             cross_refs,
         )
 
-    def analyze_and_render(
-        self,
-        workflow_path: Path,
-        output_dir: Path,
-        formats: list[str] | None = None,
-    ) -> ConversionReport:
-        """Analyze a workflow and write report files to the output directory."""
-        if formats is None:
-            formats = ["json", "md"]
-
-        report = self.analyze(workflow_path)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        stem = workflow_path.stem
-
-        if "json" in formats:
-            json_path = output_dir / f"{stem}_report.json"
-            json_path.write_text(json_renderer.render(report), encoding="utf-8")
-
-        if "md" in formats:
-            md_path = output_dir / f"{stem}_report.md"
-            md_path.write_text(markdown_renderer.render(report), encoding="utf-8")
-
-        return report

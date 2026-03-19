@@ -35,35 +35,6 @@ def test_analyze_cross_references(fixtures_dir: Path) -> None:
     assert len(report.cross_node_references) > 0
 
 
-def test_analyze_and_render(fixtures_dir: Path, tmp_path: Path) -> None:
-    """Test analyze and render."""
-    analyzer = WorkflowAnalyzer()
-    report = analyzer.analyze_and_render(
-        fixtures_dir / "simple_linear.json",
-        tmp_path,
-    )
-    assert report.total_nodes == 4
-
-    json_file = tmp_path / "simple_linear_report.json"
-    md_file = tmp_path / "simple_linear_report.md"
-    assert json_file.exists()
-    assert md_file.exists()
-    assert json_file.stat().st_size > 0
-    assert md_file.stat().st_size > 0
-
-
-def test_analyze_and_render_json_only(fixtures_dir: Path, tmp_path: Path) -> None:
-    """Test analyze and render JSON only."""
-    analyzer = WorkflowAnalyzer()
-    analyzer.analyze_and_render(
-        fixtures_dir / "simple_linear.json",
-        tmp_path,
-        formats=["json"],
-    )
-    assert (tmp_path / "simple_linear_report.json").exists()
-    assert not (tmp_path / "simple_linear_report.md").exists()
-
-
 def test_all_fixtures_pass(fixtures_dir: Path) -> None:
     """Test all fixtures pass."""
     analyzer = WorkflowAnalyzer()

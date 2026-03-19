@@ -6,6 +6,7 @@ from typing import Annotated
 import typer
 
 from workflow_analyzer.analyzer import WorkflowAnalyzer
+from workflow_analyzer.report import json_renderer, markdown_renderer
 
 app = typer.Typer(help="Analyze n8n workflows for AWS Step Functions conversion.")
 
@@ -32,8 +33,20 @@ def analyze(
     """Analyze an n8n workflow and generate conversion feasibility reports."""
     if formats is None:
         formats = ["json", "md"]
+
     analyzer = WorkflowAnalyzer(payload_limit_kb=payload_limit)
-    report = analyzer.analyze_and_render(workflow_path, output_dir, formats)
+    report = analyzer.analyze(workflow_path)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stem = workflow_path.stem
+
+    if "json" in formats:
+        json_path = output_dir / f"{stem}_report.json"
+        json_path.write_text(json_renderer.render(report), encoding="utf-8")
+
+    if "md" in formats:
+        md_path = output_dir / f"{stem}_report.md"
+        md_path.write_text(markdown_renderer.render(report), encoding="utf-8")
 
     typer.echo(f"Workflow: {report.source_workflow_name}")
     typer.echo(f"Confidence Score: {report.confidence_score}%")

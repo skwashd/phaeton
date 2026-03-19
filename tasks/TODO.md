@@ -1,4 +1,3 @@
-TASK-0011-workflow-analyzer-ports-adapters.md
 TASK-0012-packager-ports-adapters.md
 TASK-0013-add-dev-cli-n8n-to-sfn.md
 TASK-0004-create-node-translator-component.md
