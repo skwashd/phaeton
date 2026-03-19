@@ -27,8 +27,10 @@ flowchart TB
 
     subgraph Support
         PM["phaeton-models<br/>Shared Contracts"]
-        AI["AI Agent<br/>Lambda · Bedrock"]
-        DEP["Deployment<br/>6 CDK Stacks"]
+        NT["Node Translator<br/>Lambda · Bedrock"]
+        ET["Expression Translator<br/>Lambda · Bedrock"]
+        SR["Spec Registry<br/>Lambda · S3"]
+        DEP["Deployment<br/>8 CDK Stacks"]
     end
 
     subgraph Output
@@ -44,7 +46,9 @@ flowchart TB
     TE --> A2
     A2 --> PK
     PK --> ZIP
-    TE -.->|fallback| AI
+    TE -.->|fallback| NT
+    TE -.->|fallback| ET
+    OAS --> SR
     PM -.->|contracts| AN
     PM -.->|contracts| TE
     PM -.->|contracts| PK
@@ -193,48 +197,79 @@ flowchart LR
 
 **Source:** `packager/src/n8n_to_sfn_packager/packager.py`, `packager/src/n8n_to_sfn_packager/handler.py`
 
-### AI Agent
+### Node Translator
 
-Bedrock-powered fallback for nodes and expressions the deterministic translators cannot handle.
+Bedrock-powered fallback that translates individual n8n nodes into ASL state definitions when no rule-based translator matches.
+
+### Expression Translator
+
+Bedrock-powered fallback that translates n8n expressions (e.g., `$json.field`, `$node["Name"].json`) into JSONata expressions for ASL when rule-based expression translation is insufficient.
+
+Both translators use the Strands Agents SDK with Claude Sonnet 4 via Amazon Bedrock. They are deployed as separate Lambda functions, each with its own system prompt tuned for its translation domain.
 
 ```mermaid
 sequenceDiagram
     participant TE as Translation Engine
     participant AC as AIAgentClient
-    participant AL as AI Agent Lambda
-    participant SA as Strands Agent
+    participant NT as Node Translator Lambda
+    participant ET as Expression Translator Lambda
     participant BR as Bedrock (Claude Sonnet 4)
 
     TE->>AC: translate_node(node, context)
-    AC->>AL: Lambda.invoke(NodeTranslationRequest)
-    AL->>SA: Agent.run(prompt)
-    SA->>BR: InvokeModel
-    BR-->>SA: Response
-    SA-->>AL: Parsed JSON
-    AL-->>AC: AIAgentResponse
+    AC->>NT: Lambda.invoke(NodeTranslationRequest)
+    NT->>BR: InvokeModel (ASL system prompt)
+    BR-->>NT: ASL states JSON
+    NT-->>AC: NodeTranslationResponse
     AC-->>TE: TranslationResult
+
+    TE->>AC: translate_expression(expr, node, context)
+    AC->>ET: Lambda.invoke(ExpressionTranslationRequest)
+    ET->>BR: InvokeModel (JSONata system prompt)
+    BR-->>ET: JSONata expression JSON
+    ET-->>AC: ExpressionTranslationResponse
+    AC-->>TE: translated JSONata string
 ```
 
 AI-generated translations include `metadata={"ai_generated": True, "confidence": "..."}` so the packager can flag them in the migration checklist.
 
-See [AI Agent Guide](ai-agent.md) for configuration, security, and request/response schemas.
+See [AI Translator Guide](ai-translators.md) for configuration, security, system prompts, and request/response schemas.
+
+### Spec Registry
+
+An indexed registry of API specifications (Swagger 2.0 and OpenAPI 3.x). The spec registry scans uploaded spec files, extracts metadata (service names, authentication types, endpoints), and provides intelligent matching of n8n node types to API specs.
+
+```mermaid
+flowchart LR
+    S3E["S3 Upload Event<br/>(JSON/YAML spec)"] --> IX["Indexer"]
+    IX --> IDX["Spec Index (S3)"]
+    IDX --> MT["Matcher"]
+    NT2["n8n Node Type"] --> MT
+    MT --> ASE["ApiSpecEntry"]
+```
+
+The registry is event-driven: when a spec file is uploaded to the `phaeton-spec-registry` S3 bucket, the indexer Lambda automatically rebuilds the index. The index is consumed by other pipeline components to enrich translation with API context.
+
+**Source:** `spec-registry/src/spec_registry/`
 
 ### Deployment
 
-Six CDK stacks deploy the Phaeton pipeline as managed AWS infrastructure.
+Eight CDK stacks deploy the Phaeton pipeline as managed AWS infrastructure.
 
 ```mermaid
 flowchart LR
     subgraph Stacks
         RP["ReleaseParserStack<br/>Lambda + S3 + EventBridge"]
         AN["WorkflowAnalyzerStack<br/>Lambda"]
-        AI["AiAgentStack<br/>Lambda + Bedrock IAM"]
+        NT["NodeTranslatorStack<br/>Lambda + Bedrock IAM"]
+        ET["ExpressionTranslatorStack<br/>Lambda + Bedrock IAM"]
+        SR["SpecRegistryStack<br/>Lambda + S3 (KMS)"]
         TE["TranslationEngineStack<br/>Lambda"]
         PK["PackagerStack<br/>Lambda + S3 + 1 GiB /tmp"]
         OR["OrchestrationStack<br/>Step Functions + Adapter Lambda"]
     end
 
-    TE -.->|AI_AGENT_FUNCTION_NAME| AI
+    TE -.->|NODE_TRANSLATOR_FUNCTION_NAME| NT
+    TE -.->|EXPRESSION_TRANSLATOR_FUNCTION_NAME| ET
     OR -->|invokes| AN
     OR -->|invokes| TE
     OR -->|invokes| PK
@@ -361,6 +396,38 @@ flowchart LR
 
 ---
 
+## Ports and Adapters
+
+Each component follows the ports-and-adapters (hexagonal) architecture pattern. Core business logic is isolated from infrastructure concerns, with two adapter layers providing entry points:
+
+```mermaid
+flowchart LR
+    subgraph Adapters
+        LH["Lambda Handler<br/>(production adapter)"]
+        CLI["Typer CLI<br/>(dev adapter)"]
+    end
+
+    subgraph Core
+        BL["Core Logic<br/>(pure business rules)"]
+    end
+
+    LH --> BL
+    CLI --> BL
+```
+
+**Lambda handler** (`handler.py`) — The production entry point. Accepts JSON payloads, validates with Pydantic, delegates to core logic, and returns structured responses. This is the primary interface for all components.
+
+**CLI adapter** (`cli.py`) — A Typer-based command-line interface for local development and testing. CLI modules are dev dependencies only and are excluded from Lambda deployment bundles (via `exclude=["*/cli.py", "*/__main__.py"]` in CDK bundling options).
+
+**Core logic** — Pure business logic with no infrastructure dependencies. In translator components this is `agent.py`; in the workflow analyzer it is `analyzer.py` and its submodules; in the packager it is `packager.py` and its writers.
+
+This separation enables:
+- Testing core logic without Lambda runtime or AWS credentials
+- Swapping adapters without changing business rules
+- Keeping Lambda deployment bundles minimal
+
+---
+
 ## Operational Concerns
 
 ### Resource Sizing
@@ -369,8 +436,10 @@ flowchart LR
 |--------|--------|---------|-------------------|-------|
 | `phaeton-release-parser` | 512 MB | 120 s | default | npm fetch + parsing |
 | `phaeton-workflow-analyzer` | 512 MB | 120 s | default | Graph analysis |
-| `phaeton-ai-agent` | 1024 MB | 120 s | default | Bedrock invocation |
-| `phaeton-translation-engine` | 512 MB | 300 s | default | May invoke AI agent |
+| `phaeton-node-translator` | 1024 MB | 120 s | default | Bedrock invocation (node → ASL) |
+| `phaeton-expression-translator` | 1024 MB | 120 s | default | Bedrock invocation (expression → JSONata) |
+| `phaeton-spec-indexer` | 512 MB | 120 s | default | API spec indexing |
+| `phaeton-translation-engine` | 512 MB | 300 s | default | May invoke AI translators |
 | `phaeton-packager` | 1024 MB | 300 s | 1 GiB | File generation + zip |
 | `phaeton-adapter` | 256 MB | 30 s | default | Lightweight data mapping |
 

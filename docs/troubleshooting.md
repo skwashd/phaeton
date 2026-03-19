@@ -51,7 +51,7 @@ This guide covers common issues encountered when converting n8n workflows to AWS
 1. Review the `unsupported_nodes` list in the report to identify which nodes cannot be translated.
 2. Check [`docs/supported-node-types.md`](supported-node-types.md) for the current support matrix.
 3. Consider simplifying the workflow by replacing unsupported nodes with supported alternatives before conversion.
-4. For unsupported nodes, the AI agent fallback service can attempt automatic translation. See the [AI Agent Guide](ai-agent.md) for details.
+4. For unsupported nodes, the AI translator fallback can attempt automatic translation. See the [AI Translator Guide](ai-translators.md) for details.
 
 ### Payload analysis warnings
 
@@ -322,4 +322,4 @@ This guide covers common issues encountered when converting n8n workflows to AWS
 - [Getting Started Guide](getting-started.md) — Installation, quick start, and initial setup.
 - [Supported Node Types](supported-node-types.md) — Complete list of translatable n8n node types.
 - [Deployment Guide](deployment.md) — Deploying the Phaeton pipeline to AWS.
-- [AI Agent Guide](ai-agent.md) — AI-powered fallback translation for unsupported nodes and expressions.
+- [AI Translator Guide](ai-translators.md) — AI-powered fallback translation for unsupported nodes and expressions.

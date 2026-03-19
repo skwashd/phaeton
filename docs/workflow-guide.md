@@ -141,7 +141,7 @@ sequenceDiagram
     participant E as TranslationEngine
     participant TS as TopologicalSort
     participant T as Translators (priority order)
-    participant AI as AI Agent (fallback)
+    participant AI as AI Translators (fallback)
     participant V as ASL Validator
 
     E->>TS: Sort nodes by dependency graph

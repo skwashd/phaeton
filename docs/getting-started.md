@@ -49,7 +49,9 @@ cd n8n-release-parser && uv sync && cd ..
 cd workflow-analyzer && uv sync && cd ..
 cd n8n-to-sfn && uv sync && cd ..
 cd packager && uv sync && cd ..
-cd ai-agent && uv sync && cd ..
+cd node-translator && uv sync && cd ..
+cd expression-translator && uv sync && cd ..
+cd spec-registry && uv sync && cd ..
 cd deployment && uv sync && cd ..
 ```
 
@@ -386,11 +388,11 @@ The Phaeton pipeline itself can be deployed as a managed AWS service using CDK. 
 
 See the [Deployment Guide](deployment.md) for full instructions.
 
-## AI Agent Fallback
+## AI Translator Fallback
 
-For n8n nodes and expressions that cannot be translated deterministically, Phaeton includes an AI agent fallback powered by Amazon Bedrock. The agent uses Strands Agents SDK with Claude Sonnet 4 to generate ASL state definitions and JSONata expressions.
+For n8n nodes and expressions that cannot be translated deterministically, Phaeton includes two AI-powered translator components — node-translator and expression-translator — powered by Amazon Bedrock. Both use the Strands Agents SDK with Claude Sonnet 4 to generate ASL state definitions and JSONata expressions respectively.
 
-See the [AI Agent Guide](ai-agent.md) for configuration, security details, and integration information.
+See the [AI Translator Guide](ai-translators.md) for configuration, security details, and integration information.
 
 ## Next Steps
 
