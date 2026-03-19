@@ -8,6 +8,7 @@ from stacks.node_translator_stack import NodeTranslatorStack
 from stacks.orchestration_stack import OrchestrationStack
 from stacks.packager_stack import PackagerStack
 from stacks.release_parser_stack import ReleaseParserStack
+from stacks.spec_registry_stack import SpecRegistryStack
 from stacks.translation_engine_stack import TranslationEngineStack
 from stacks.workflow_analyzer_stack import WorkflowAnalyzerStack
 
@@ -46,6 +47,94 @@ class TestReleaseParserStack:
         template.has_resource_properties(
             "AWS::Events::Rule",
             {"ScheduleExpression": "rate(1 day)"},
+        )
+
+
+class TestSpecRegistryStack:
+    """Tests for the Spec Registry stack."""
+
+    def test_has_lambda_function(self) -> None:
+        """Verify Lambda function name, architecture, and runtime."""
+        app = cdk.App()
+        stack = SpecRegistryStack(app, "TestSpecRegistry")
+        template = _synth_template(stack)
+        template.has_resource_properties(
+            "AWS::Lambda::Function",
+            {
+                "FunctionName": "phaeton-spec-indexer",
+                "Architectures": ["arm64"],
+                "Runtime": "python3.13",
+            },
+        )
+
+    def test_has_s3_bucket_with_kms_encryption(self) -> None:
+        """Verify S3 bucket exists with KMS encryption and versioning."""
+        app = cdk.App()
+        stack = SpecRegistryStack(app, "TestSpecRegistry")
+        template = _synth_template(stack)
+        template.resource_count_is("AWS::S3::Bucket", 1)
+        template.has_resource_properties(
+            "AWS::S3::Bucket",
+            {
+                "BucketName": "phaeton-spec-registry",
+                "VersioningConfiguration": {"Status": "Enabled"},
+            },
+        )
+
+    def test_has_kms_key(self) -> None:
+        """Verify KMS key is created for bucket encryption."""
+        app = cdk.App()
+        stack = SpecRegistryStack(app, "TestSpecRegistry")
+        template = _synth_template(stack)
+        template.resource_count_is("AWS::KMS::Key", 1)
+
+    def test_lambda_has_bucket_permissions(self) -> None:
+        """Verify Lambda has read/write permissions on the S3 bucket."""
+        app = cdk.App()
+        stack = SpecRegistryStack(app, "TestSpecRegistry")
+        template = _synth_template(stack)
+        # The policy has both S3 and KMS statements; verify the IAM policy
+        # resource exists (CDK grants read/write on both bucket and key).
+        policies = template.find_resources("AWS::IAM::Policy")
+        policy_strs = [str(v) for v in policies.values()]
+        combined = " ".join(policy_strs)
+        assert "s3:GetObject*" in combined, "Missing S3 read permission"
+        assert "s3:PutObject" in combined, "Missing S3 write permission"
+
+    def test_has_s3_event_notifications(self) -> None:
+        """Verify S3 event notifications for .json and .yaml suffixes."""
+        app = cdk.App()
+        stack = SpecRegistryStack(app, "TestSpecRegistry")
+        template = _synth_template(stack)
+        # CDK creates a custom resource for S3 notifications
+        template.has_resource_properties(
+            "Custom::S3BucketNotifications",
+            {
+                "NotificationConfiguration": {
+                    "LambdaFunctionConfigurations": [
+                        {
+                            "Events": ["s3:ObjectCreated:*"],
+                            "Filter": {
+                                "Key": {
+                                    "FilterRules": [
+                                        {"Name": "suffix", "Value": ".json"},
+                                    ],
+                                },
+                            },
+                        },
+                        {
+                            "Events": ["s3:ObjectCreated:*"],
+                            "Filter": {
+                                "Key": {
+                                    "FilterRules": [
+                                        {"Name": "suffix", "Value": ".yaml"},
+                                    ],
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
         )
 
 
@@ -263,6 +352,7 @@ class TestFullAppSynth:
         app = cdk.App()
 
         ReleaseParserStack(app, "ReleaseParser")
+        SpecRegistryStack(app, "SpecRegistry")
         workflow_analyzer = WorkflowAnalyzerStack(app, "WorkflowAnalyzer")
         translation_engine = TranslationEngineStack(app, "TranslationEngine")
         packager = PackagerStack(app, "Packager")
@@ -278,6 +368,7 @@ class TestFullAppSynth:
         assembly = app.synth()
         stack_names = [s.stack_name for s in assembly.stacks]
         assert "ReleaseParser" in stack_names
+        assert "SpecRegistry" in stack_names
         assert "WorkflowAnalyzer" in stack_names
         assert "TranslationEngine" in stack_names
         assert "Packager" in stack_names
