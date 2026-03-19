@@ -1,0 +1,49 @@
+[project]
+name = "spec-registry"
+version = "0.1.0"
+description = "Standalone indexed registry of API specifications with S3-backed storage and event-driven index rebuilds."
+readme = { text = "", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+    "boto3==1.42.68",
+    "phaeton-models @ file:///${PROJECT_ROOT}/../shared/phaeton-models",
+    "pydantic==2.12.5",
+    "pyyaml==6.0.3",
+]
+
+[project.scripts]
+spec-registry = "spec_registry.cli:app"
+
+[build-system]
+requires = ["uv-build==0.10.10"]
+build-backend = "uv_build"
+
+[tool.ruff.lint]
+select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN", "BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+ignore = ["D203", "D211", "D212", "E501", "F403", "F405"]
+
+fixable = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN", "BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"test_*" = ["S101", "S108"]
+
+[tool.ty.environment]
+python = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/spec_registry"]
+
+[dependency-groups]
+dev = [
+    "coverage==7.13.4",
+    "moto==5.1.22",
+    "pytest==9.0.2",
+    "ruff==0.15.6",
+    "ty==0.0.23",
+    "typer==0.24.1",
+    "types-boto3==1.42.68",
+]
