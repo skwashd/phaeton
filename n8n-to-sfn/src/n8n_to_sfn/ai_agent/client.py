@@ -27,13 +27,15 @@ class AIAgentClient:
 
     def __init__(
         self,
-        function_name: str,
+        node_translator_function_name: str,
+        expression_translator_function_name: str,
         region_name: str | None = None,
     ) -> None:
-        """Initialize the client with the Lambda function name."""
+        """Initialize the client with the Lambda function names."""
         import boto3
 
-        self._function_name = function_name
+        self._node_translator_function_name = node_translator_function_name
+        self._expression_translator_function_name = expression_translator_function_name
         self._lambda = boto3.client("lambda", region_name=region_name)
 
     def translate_node(
@@ -59,18 +61,17 @@ class AIAgentClient:
         """
         try:
             payload = {
-                "operation": "translate_node",
-                "payload": {
-                    "node_json": node.node.model_dump_json(),
-                    "node_type": node.node.type,
-                    "node_name": node.node.name,
-                    "expressions": _format_expressions(node),
-                    "workflow_context": _format_context(context),
-                    "position": f"states.{node.node.name}",
-                    "target_state_type": "Task",
-                },
+                "node_json": node.node.model_dump_json(),
+                "node_type": node.node.type,
+                "node_name": node.node.name,
+                "expressions": _format_expressions(node),
+                "workflow_context": _format_context(context),
+                "position": f"states.{node.node.name}",
+                "target_state_type": "Task",
             }
-            response = self._invoke(payload)
+            response = self._invoke(
+                self._node_translator_function_name, payload,
+            )
         except Exception:
             logger.exception("Failed to invoke AI agent for node: %s", node.node.name)
             return TranslationResult(
@@ -121,15 +122,14 @@ class AIAgentClient:
         """
         try:
             payload = {
-                "operation": "translate_expression",
-                "payload": {
-                    "expression": expr,
-                    "node_json": node.node.model_dump_json(),
-                    "node_type": node.node.type,
-                    "workflow_context": _format_context(context),
-                },
+                "expression": expr,
+                "node_json": node.node.model_dump_json(),
+                "node_type": node.node.type,
+                "workflow_context": _format_context(context),
             }
-            response = self._invoke(payload)
+            response = self._invoke(
+                self._expression_translator_function_name, payload,
+            )
         except Exception:
             logger.exception("Failed to invoke AI agent for expression: %s", expr)
             return expr
@@ -139,10 +139,12 @@ class AIAgentClient:
 
         return response.get("translated", expr)
 
-    def _invoke(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _invoke(
+        self, function_name: str, payload: dict[str, Any],
+    ) -> dict[str, Any]:
         """Invoke the Lambda function and return the parsed response."""
         response = self._lambda.invoke(
-            FunctionName=self._function_name,
+            FunctionName=function_name,
             InvocationType="RequestResponse",
             Payload=json.dumps(payload),
         )

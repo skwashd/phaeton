@@ -73,7 +73,10 @@ def _create_client_with_mock(mock_invoke: MagicMock) -> AIAgentClient:
     mock_boto3.client.return_value = mock_lambda_client
 
     with patch.dict(sys.modules, {"boto3": mock_boto3}):
-        return AIAgentClient(function_name="phaeton-ai-agent")
+        return AIAgentClient(
+            node_translator_function_name="phaeton-node-translator",
+            expression_translator_function_name="phaeton-expression-translator",
+        )
 
 
 class TestTranslateNode:
@@ -123,7 +126,7 @@ class TestTranslateNode:
         assert len(result.warnings) > 0
 
     def test_invocation_payload(self) -> None:
-        """Lambda is invoked with the correct operation and payload fields."""
+        """Lambda is invoked with a flat payload (no operation wrapper)."""
         mock_invoke = MagicMock(return_value=_mock_lambda_response({
             "states": {},
             "confidence": "MEDIUM",
@@ -135,10 +138,25 @@ class TestTranslateNode:
         client.translate_node(node, _make_context())
 
         call_args = mock_invoke.call_args
+        assert call_args[1]["FunctionName"] == "phaeton-node-translator"
         payload = json.loads(call_args[1]["Payload"])
-        assert payload["operation"] == "translate_node"
-        assert payload["payload"]["node_type"] == "n8n-nodes-base.custom"
-        assert payload["payload"]["node_name"] == "My Node"
+        assert "operation" not in payload
+        assert payload["node_type"] == "n8n-nodes-base.custom"
+        assert payload["node_name"] == "My Node"
+
+    def test_invokes_correct_function(self) -> None:
+        """translate_node invokes the node translator Lambda."""
+        mock_invoke = MagicMock(return_value=_mock_lambda_response({
+            "states": {},
+            "confidence": "LOW",
+            "explanation": "",
+            "warnings": [],
+        }))
+        client = _create_client_with_mock(mock_invoke)
+        client.translate_node(_make_node(), _make_context())
+
+        call_args = mock_invoke.call_args
+        assert call_args[1]["FunctionName"] == "phaeton-node-translator"
 
 
 class TestTranslateExpression:
@@ -183,6 +201,30 @@ class TestTranslateExpression:
         )
 
         assert result == "{{ $json.x }}"
+
+    def test_invokes_correct_function(self) -> None:
+        """translate_expression invokes the expression translator Lambda."""
+        mock_invoke = MagicMock(return_value=_mock_lambda_response({
+            "translated": "$.input",
+        }))
+        client = _create_client_with_mock(mock_invoke)
+        client.translate_expression("{{ $json.x }}", _make_node(), _make_context())
+
+        call_args = mock_invoke.call_args
+        assert call_args[1]["FunctionName"] == "phaeton-expression-translator"
+
+    def test_flat_payload(self) -> None:
+        """Lambda is invoked with a flat payload (no operation wrapper)."""
+        mock_invoke = MagicMock(return_value=_mock_lambda_response({
+            "translated": "$.input",
+        }))
+        client = _create_client_with_mock(mock_invoke)
+        client.translate_expression("{{ $json.x }}", _make_node(), _make_context())
+
+        call_args = mock_invoke.call_args
+        payload = json.loads(call_args[1]["Payload"])
+        assert "operation" not in payload
+        assert payload["expression"] == "{{ $json.x }}"
 
 
 class TestFormatExpressions:

@@ -35,9 +35,15 @@ logger = Logger(service="n8n-to-sfn")
 def create_default_engine() -> TranslationEngine:
     """Create a TranslationEngine with all registered translators."""
     ai_agent = None
-    agent_function = os.environ.get("AI_AGENT_FUNCTION_NAME")
-    if agent_function:
-        ai_agent = AIAgentClient(function_name=agent_function)
+    node_translator_function = os.environ.get("NODE_TRANSLATOR_FUNCTION_NAME")
+    expression_translator_function = os.environ.get(
+        "EXPRESSION_TRANSLATOR_FUNCTION_NAME",
+    )
+    if node_translator_function and expression_translator_function:
+        ai_agent = AIAgentClient(
+            node_translator_function_name=node_translator_function,
+            expression_translator_function_name=expression_translator_function,
+        )
     return TranslationEngine(
         translators=[
             FlowControlTranslator(),

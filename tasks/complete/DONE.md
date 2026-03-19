@@ -8,3 +8,4 @@ TASK-0004-create-node-translator-component.md
 TASK-0005-create-expression-translator-component.md
 TASK-0006-create-spec-registry-component.md
 TASK-0007-remove-spec-ownership-release-parser.md
+TASK-0008-update-ai-agent-client-split.md
