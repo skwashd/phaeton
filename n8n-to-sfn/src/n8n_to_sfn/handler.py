@@ -142,18 +142,3 @@ def _error_response(
             "details": details,
         },
     }
-
-
-if __name__ == "__main__":
-    import json
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python -m n8n_to_sfn.handler <payload.json>")
-        sys.exit(1)
-
-    with open(sys.argv[1]) as f:
-        payload = json.load(f)
-
-    result = handler(payload, None)
-    print(json.dumps(result, indent=2))
