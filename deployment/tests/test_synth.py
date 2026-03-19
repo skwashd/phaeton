@@ -3,6 +3,8 @@
 import aws_cdk as cdk
 from aws_cdk.assertions import Template
 
+from stacks.expression_translator_stack import ExpressionTranslatorStack
+from stacks.node_translator_stack import NodeTranslatorStack
 from stacks.orchestration_stack import OrchestrationStack
 from stacks.packager_stack import PackagerStack
 from stacks.release_parser_stack import ReleaseParserStack
@@ -77,6 +79,86 @@ class TestTranslationEngineStack:
                 "FunctionName": "phaeton-translation-engine",
                 "Architectures": ["arm64"],
                 "Runtime": "python3.13",
+            },
+        )
+
+
+class TestNodeTranslatorStack:
+    """Tests for the Node Translator stack."""
+
+    def test_has_lambda_function(self) -> None:
+        """Verify Lambda function name, architecture, runtime, and memory."""
+        app = cdk.App()
+        stack = NodeTranslatorStack(app, "TestNodeTranslator")
+        template = _synth_template(stack)
+        template.has_resource_properties(
+            "AWS::Lambda::Function",
+            {
+                "FunctionName": "phaeton-node-translator",
+                "Architectures": ["arm64"],
+                "Runtime": "python3.13",
+                "MemorySize": 1024,
+                "Timeout": 120,
+            },
+        )
+
+    def test_has_bedrock_policy(self) -> None:
+        """Verify Bedrock InvokeModel IAM policy is attached."""
+        app = cdk.App()
+        stack = NodeTranslatorStack(app, "TestNodeTranslator")
+        template = _synth_template(stack)
+        template.has_resource_properties(
+            "AWS::IAM::Policy",
+            {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": "bedrock:InvokeModel",
+                            "Effect": "Allow",
+                            "Resource": "arn:aws:bedrock:*::foundation-model/*",
+                        },
+                    ],
+                },
+            },
+        )
+
+
+class TestExpressionTranslatorStack:
+    """Tests for the Expression Translator stack."""
+
+    def test_has_lambda_function(self) -> None:
+        """Verify Lambda function name, architecture, runtime, and memory."""
+        app = cdk.App()
+        stack = ExpressionTranslatorStack(app, "TestExpressionTranslator")
+        template = _synth_template(stack)
+        template.has_resource_properties(
+            "AWS::Lambda::Function",
+            {
+                "FunctionName": "phaeton-expression-translator",
+                "Architectures": ["arm64"],
+                "Runtime": "python3.13",
+                "MemorySize": 1024,
+                "Timeout": 120,
+            },
+        )
+
+    def test_has_bedrock_policy(self) -> None:
+        """Verify Bedrock InvokeModel IAM policy is attached."""
+        app = cdk.App()
+        stack = ExpressionTranslatorStack(app, "TestExpressionTranslator")
+        template = _synth_template(stack)
+        template.has_resource_properties(
+            "AWS::IAM::Policy",
+            {
+                "PolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": "bedrock:InvokeModel",
+                            "Effect": "Allow",
+                            "Resource": "arn:aws:bedrock:*::foundation-model/*",
+                        },
+                    ],
+                },
             },
         )
 
