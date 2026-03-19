@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -53,8 +52,6 @@ class TestMainHelp:
         assert result.exit_code == 0
         assert "fetch-releases" in result.output
         assert "diff" in result.output
-        assert "build-index" in result.output
-        assert "match" in result.output
         assert "lookup" in result.output
         assert "report" in result.output
 
@@ -124,61 +121,6 @@ class TestDiff:
         assert "Modified:" in result.output
         # discord was added, github was removed, slack was modified
         assert "1" in result.output
-
-
-class TestBuildIndex:
-    """Tests for BuildIndex."""
-
-    def test_build_index(self, tmp_path: Path) -> None:
-        """Test build index."""
-        specs_dir = tmp_path / "specs"
-        specs_dir.mkdir()
-
-        spec = {
-            "openapi": "3.0.0",
-            "info": {"title": "Test API"},
-            "paths": {"/test": {"get": {"operationId": "getTest", "tags": ["test"]}}},
-        }
-        (specs_dir / "test_api.json").write_text(json.dumps(spec), encoding="utf-8")
-
-        output_path = tmp_path / "index.json"
-        runner = CliRunner()
-        result = runner.invoke(
-            app,
-            ["build-index", str(specs_dir), "--output", str(output_path)],
-        )
-        assert result.exit_code == 0
-        assert "Indexed" in result.output
-        assert "1" in result.output
-        assert output_path.exists()
-
-    def test_build_index_empty_dir(self, tmp_path: Path) -> None:
-        """Test build index empty dir."""
-        specs_dir = tmp_path / "empty_specs"
-        specs_dir.mkdir()
-
-        output_path = tmp_path / "index.json"
-        runner = CliRunner()
-        result = runner.invoke(
-            app,
-            ["build-index", str(specs_dir), "--output", str(output_path)],
-        )
-        assert result.exit_code == 0
-        assert "Indexed 0 specs" in result.output
-
-
-class TestMatch:
-    """Tests for Match."""
-
-    def test_match_missing_catalog(self, tmp_path: Path) -> None:
-        """Test match missing catalog."""
-        runner = CliRunner()
-        result = runner.invoke(
-            app,
-            ["match", "--version", "1.20.0", "--store-dir", str(tmp_path)],
-        )
-        assert result.exit_code != 0
-        assert "not found" in result.output
 
 
 class TestLookup:

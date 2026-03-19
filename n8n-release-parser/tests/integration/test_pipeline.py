@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 
 from phaeton_models.spec import NodeApiMapping
 
-from n8n_release_parser import differ, matcher, parser, priority, spec_index
+from n8n_release_parser import differ, parser, priority
 from n8n_release_parser.catalog import NodeCatalogStore
 from n8n_release_parser.models import (
     NodeCatalog,
     NodeClassification,
     NodeParameter,
     NodeTypeEntry,
-    ResourceOperation,
 )
 
 
@@ -160,74 +158,6 @@ def test_parse_diff_store_pipeline(tmp_path: Path) -> None:
     assert diff.added_count == 1
     assert diff.removed_count == 1
     assert diff.modified_count == 0
-
-
-def test_spec_index_match_pipeline(tmp_path: Path) -> None:
-    """Test spec index match pipeline."""
-    specs_dir = tmp_path / "specs"
-    specs_dir.mkdir()
-
-    spec = {
-        "openapi": "3.0.0",
-        "info": {"title": "Slack"},
-        "servers": [{"url": "https://slack.com/api"}],
-        "paths": {
-            "/chat.postMessage": {
-                "post": {
-                    "operationId": "postMessage",
-                    "tags": ["chat"],
-                    "responses": {"200": {"description": "OK"}},
-                },
-            },
-            "/conversations.list": {
-                "get": {
-                    "operationId": "listConversations",
-                    "tags": ["conversations"],
-                    "responses": {"200": {"description": "OK"}},
-                },
-            },
-        },
-        "components": {
-            "securitySchemes": {
-                "bearerAuth": {"type": "http", "scheme": "bearer"},
-            },
-        },
-    }
-    spec_file = specs_dir / "slack_openapi.json"
-    spec_file.write_text(json.dumps(spec), encoding="utf-8")
-
-    index = spec_index.build_spec_index(specs_dir)
-    assert len(index.entries) == 1
-    assert index.entries[0].service_name == "Slack"
-    assert index.entries[0].auth_type == "bearer"
-
-    slack_entry = NodeTypeEntry(
-        node_type="n8n-nodes-base.slack",
-        type_version=1,
-        display_name="Slack",
-        request_defaults={"baseURL": "https://slack.com/api"},
-        resource_operations=[
-            ResourceOperation(resource="message", operation="send"),
-            ResourceOperation(resource="channel", operation="getAll"),
-        ],
-    )
-    cat = NodeCatalog(
-        n8n_version="1.20.0",
-        release_date=datetime.now(tz=UTC),
-        entries=[slack_entry],
-    )
-
-    mappings = matcher.match_all_nodes(cat, index)
-    assert len(mappings) >= 1
-    slack_mapping = mappings[0]
-    assert slack_mapping.node_type == "n8n-nodes-base.slack"
-    assert slack_mapping.api_spec == "slack_openapi.json"
-
-    store = NodeCatalogStore(tmp_path / "store")
-    store.save_api_mappings(mappings)
-    loaded_mappings = store.load_api_mappings()
-    assert len(loaded_mappings) == len(mappings)
-    assert loaded_mappings[0].node_type == "n8n-nodes-base.slack"
 
 
 def test_priority_classification_pipeline() -> None:
@@ -406,37 +336,7 @@ def test_full_pipeline_with_store(tmp_path: Path) -> None:
     assert diff.removed_count == 0
     assert diff.modified_count == 0
 
-    specs_dir = tmp_path / "specs"
-    specs_dir.mkdir()
-    spec = {
-        "openapi": "3.0.0",
-        "info": {"title": "Slack"},
-        "servers": [{"url": "https://slack.com/api"}],
-        "paths": {
-            "/chat.postMessage": {
-                "post": {
-                    "operationId": "postMessage",
-                    "tags": ["chat"],
-                    "responses": {"200": {"description": "OK"}},
-                },
-            },
-        },
-        "components": {
-            "securitySchemes": {
-                "bearerAuth": {"type": "http", "scheme": "bearer"},
-            },
-        },
-    }
-    (specs_dir / "slack_openapi.json").write_text(json.dumps(spec), encoding="utf-8")
-
-    index = spec_index.build_spec_index(specs_dir)
-    mappings = matcher.match_all_nodes(loaded_v2, index)
-
-    store.save_api_mappings(mappings)
-    reloaded_mappings = store.load_api_mappings()
-    assert len(reloaded_mappings) == len(mappings)
-
-    report = priority.priority_coverage_report(loaded_v2, reloaded_mappings)
+    report = priority.priority_coverage_report(loaded_v2, [])
     assert isinstance(report["total_priority_nodes"], int)
     assert isinstance(report["mapped_priority_nodes"], int)
     assert isinstance(report["missing_mappings"], list)

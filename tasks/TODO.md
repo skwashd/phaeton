@@ -1,4 +1,3 @@
-TASK-0007-remove-spec-ownership-release-parser.md
 TASK-0008-update-ai-agent-client-split.md
 TASK-0014-create-translator-deployment-stacks.md
 TASK-0016-create-spec-registry-stack.md

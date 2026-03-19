@@ -5,15 +5,13 @@ build-backend = "uv_build"
 [project]
 name = "n8n-release-parser"
 version = "0.1.0"
-description = "Versioned catalog of n8n node types with API spec matching"
+description = "Versioned catalog of n8n node types"
 requires-python = ">=3.14"
 dependencies = [
     "boto3==1.42.68",
     "httpx==0.28.1",
     "phaeton-models",
     "pydantic==2.12.5",
-    "pyyaml==6.0.3",
-    "rapidfuzz==3.14.3",
     "typer==0.24.1",
 ]
 

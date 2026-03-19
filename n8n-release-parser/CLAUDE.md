@@ -13,7 +13,7 @@ See [README.md](README.md) for project overview, architecture, and CLI usage.
 ## Code conventions
 
 - All Pydantic models live in `models.py` and use `frozen=True` (immutable value objects).
-- Modules use functional helpers (not classes) for parsing, diffing, and matching logic.
+- Modules use functional helpers (not classes) for parsing and diffing logic.
 - `fetcher.py` uses async (`httpx`); the CLI wraps calls with `asyncio.run()`.
 - Storage backends implement the `StorageBackend` protocol in `storage.py`. Use `create_backend()` to instantiate.
 - `boto3` is lazy-imported only when `s3://` URIs are detected — do not add top-level boto3 imports elsewhere.
@@ -38,8 +38,6 @@ models.py          (no internal deps)
   -> storage.py    (no internal deps)
   -> storage_s3.py (storage protocol)
   -> catalog.py    (models, storage)
-  -> spec_index.py (models, storage)
-  -> matcher.py    (models)
   -> priority.py   (models)
   -> cli.py        (all modules, lazy imports)
 ```

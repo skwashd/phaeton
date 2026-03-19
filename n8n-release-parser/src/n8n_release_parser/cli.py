@@ -2,8 +2,7 @@
 CLI entry point for the n8n release parser.
 
 Orchestrates all Component 1 operations: fetching n8n releases, parsing node
-descriptions, diffing releases, building API spec indexes, matching nodes to
-specs, and managing the versioned node catalog.
+descriptions, diffing releases, and managing the versioned node catalog.
 """
 
 import asyncio
@@ -101,86 +100,6 @@ def diff(
             typer.echo(f"  [{change.change_type.value}] {change.node_type}")
             for field in change.changed_fields:
                 typer.echo(f"    - {field}")
-
-
-@app.command(name="build-index")
-def build_index(
-    specs_dir: Annotated[Path, typer.Argument()],
-    output: Annotated[
-        str, typer.Option(help="Output path or s3:// URI for the index JSON.")
-    ] = "spec_index.json",
-) -> None:
-    """Build an API spec index from a directory of OpenAPI/Swagger files."""
-    from n8n_release_parser import spec_index
-
-    try:
-        index = spec_index.build_spec_index(specs_dir)
-        if output.startswith("s3://"):
-            from n8n_release_parser.spec_index import save_index_to_backend
-
-            backend = create_backend(output.rsplit("/", 1)[0] if "/" in output[5:] else output)
-            key = output.rsplit("/", 1)[1] if "/" in output[5:] else "spec_index.json"
-            save_index_to_backend(index, backend, key)
-        else:
-            spec_index.save_index(index, Path(output))
-    except Exception as exc:
-        typer.echo(f"Error: failed to build spec index: {exc}")
-        raise typer.Exit(1) from exc
-
-    typer.echo(f"Indexed {len(index.entries)} specs -> {output}")
-
-
-@app.command()
-def match(
-    store_dir: Annotated[
-        str, typer.Option(help="Catalog store directory or s3:// URI.")
-    ] = ".n8n-catalog",
-    index_file: Annotated[
-        str, typer.Option(help="Path or s3:// URI to the spec index JSON.")
-    ] = "spec_index.json",
-    version: Annotated[  # type: ignore[invalid-parameter-default]
-        str, typer.Option(help="n8n version to match.")
-    ] = ...,
-) -> None:
-    """Match catalog nodes against API specs."""
-    from n8n_release_parser import matcher
-    from n8n_release_parser.spec_index import load_index, load_index_from_backend
-
-    backend = create_backend(store_dir)
-    store = NodeCatalogStore(backend)
-    catalog = store.load_catalog(version)
-    if catalog is None:
-        typer.echo(f"Error: catalog for version {version} not found in {store_dir}")
-        raise typer.Exit(1)
-
-    if index_file.startswith("s3://"):
-        idx_backend = create_backend(index_file.rsplit("/", 1)[0] if "/" in index_file[5:] else index_file)
-        idx_key = index_file.rsplit("/", 1)[1] if "/" in index_file[5:] else "spec_index.json"
-        index = load_index_from_backend(idx_backend, idx_key)
-        if index is None:
-            typer.echo(f"Error: spec index file not found: {index_file}")
-            raise typer.Exit(1)
-    else:
-        index_path = Path(index_file)
-        if not index_path.exists():
-            typer.echo(f"Error: spec index file not found: {index_file}")
-            raise typer.Exit(1)
-        try:
-            index = load_index(index_path)
-        except Exception as exc:
-            typer.echo(f"Error: failed to load spec index: {exc}")
-            raise typer.Exit(1) from exc
-
-    mappings = matcher.match_all_nodes(catalog, index)
-    store.save_api_mappings(mappings)
-
-    matched_count = len(mappings)
-    total_count = len(catalog.entries)
-    unmatched_count = total_count - matched_count
-
-    typer.echo(f"Matched {matched_count}/{total_count} nodes.")
-    if unmatched_count:
-        typer.echo(f"Unmatched: {unmatched_count}")
 
 
 @app.command()

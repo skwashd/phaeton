@@ -8,8 +8,9 @@ categories and generating coverage reports.
 
 from __future__ import annotations
 
+from phaeton_models.spec import NodeApiMapping
+
 from n8n_release_parser.models import (
-    NodeApiMapping,
     NodeCatalog,
     NodeClassification,
     NodeTypeEntry,

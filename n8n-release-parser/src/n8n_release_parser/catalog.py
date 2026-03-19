@@ -11,8 +11,10 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+from phaeton_models.spec import NodeApiMapping
+
 from n8n_release_parser.differ import build_cumulative_catalog
-from n8n_release_parser.models import NodeApiMapping, NodeCatalog, NodeTypeEntry
+from n8n_release_parser.models import NodeCatalog, NodeTypeEntry
 from n8n_release_parser.storage import LocalStorageBackend, StorageBackend
 
 _API_MAPPINGS_FILENAME = "api_mappings.json"

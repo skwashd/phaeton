@@ -1,9 +1,8 @@
 """
 Pydantic models for all data structures used in the n8n release parser.
 
-Defines the core node catalog models, diff models, API spec matching models,
-and priority classification enums. All value objects use frozen model config
-for immutability.
+Defines the core node catalog models, diff models, and priority classification
+enums. All value objects use frozen model config for immutability.
 """
 
 from __future__ import annotations
@@ -12,10 +11,6 @@ import enum
 from datetime import datetime
 from typing import Any
 
-from phaeton_models.spec import ApiSpecEntry as ApiSpecEntry
-from phaeton_models.spec import ApiSpecIndex as ApiSpecIndex
-from phaeton_models.spec import NodeApiMapping as NodeApiMapping
-from phaeton_models.spec import SpecEndpoint as SpecEndpoint
 from pydantic import BaseModel, ConfigDict
 
 # ---------------------------------------------------------------------------
