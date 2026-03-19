@@ -6,10 +6,11 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from phaeton_models.spec import NodeApiMapping
+
 from n8n_release_parser import differ, matcher, parser, priority, spec_index
 from n8n_release_parser.catalog import NodeCatalogStore
 from n8n_release_parser.models import (
-    NodeApiMapping,
     NodeCatalog,
     NodeClassification,
     NodeParameter,

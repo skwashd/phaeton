@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
+from phaeton_models.spec import ApiSpecEntry, ApiSpecIndex, NodeApiMapping, SpecEndpoint
 
 from n8n_release_parser.matcher import (
     calculate_spec_coverage,
@@ -14,14 +15,10 @@ from n8n_release_parser.matcher import (
     match_node_to_spec,
 )
 from n8n_release_parser.models import (
-    ApiSpecEntry,
-    ApiSpecIndex,
     CredentialType,
-    NodeApiMapping,
     NodeCatalog,
     NodeTypeEntry,
     ResourceOperation,
-    SpecEndpoint,
 )
 
 # ---------------------------------------------------------------------------

@@ -2,8 +2,9 @@
 
 from datetime import UTC, datetime
 
+from phaeton_models.spec import NodeApiMapping
+
 from n8n_release_parser.models import (
-    NodeApiMapping,
     NodeCatalog,
     NodeClassification,
     NodeParameter,

@@ -4,14 +4,12 @@ import json
 from datetime import UTC, datetime
 
 import pytest
+from phaeton_models.spec import ApiSpecEntry, ApiSpecIndex, NodeApiMapping, SpecEndpoint
 from pydantic import ValidationError
 
 from n8n_release_parser.models import (
-    ApiSpecEntry,
-    ApiSpecIndex,
     ChangeType,
     CredentialType,
-    NodeApiMapping,
     NodeCatalog,
     NodeChange,
     NodeClassification,
@@ -20,7 +18,6 @@ from n8n_release_parser.models import (
     NpmVersionInfo,
     ReleaseDiff,
     ResourceOperation,
-    SpecEndpoint,
 )
 
 

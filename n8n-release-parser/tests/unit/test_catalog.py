@@ -9,10 +9,10 @@ from pathlib import Path
 import boto3
 import pytest
 from moto import mock_aws
+from phaeton_models.spec import NodeApiMapping
 
 from n8n_release_parser.catalog import NodeCatalogStore
 from n8n_release_parser.models import (
-    NodeApiMapping,
     NodeCatalog,
     NodeTypeEntry,
 )

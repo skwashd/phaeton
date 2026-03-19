@@ -10,12 +10,10 @@ from __future__ import annotations
 
 import re
 
+from phaeton_models.spec import ApiSpecEntry, ApiSpecIndex, NodeApiMapping
 from rapidfuzz import fuzz
 
 from n8n_release_parser.models import (
-    ApiSpecEntry,
-    ApiSpecIndex,
-    NodeApiMapping,
     NodeCatalog,
     NodeTypeEntry,
 )

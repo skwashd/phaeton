@@ -13,8 +13,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
+from phaeton_models.spec import ApiSpecEntry, ApiSpecIndex, SpecEndpoint
 
-from n8n_release_parser.models import ApiSpecEntry, ApiSpecIndex, SpecEndpoint
 from n8n_release_parser.storage import StorageBackend
 
 
