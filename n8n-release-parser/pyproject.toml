@@ -12,7 +12,6 @@ dependencies = [
     "httpx==0.28.1",
     "phaeton-models",
     "pydantic==2.12.5",
-    "typer==0.24.1",
 ]
 
 [tool.uv.sources]
@@ -28,6 +27,7 @@ dev = [
     "respx==0.22.0",
     "ruff==0.15.6",
     "ty==0.0.23",
+    "typer==0.24.1",
     "types-boto3==1.42.68",
 ]
 

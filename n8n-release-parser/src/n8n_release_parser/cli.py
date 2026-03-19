@@ -1,18 +1,17 @@
 """
 CLI entry point for the n8n release parser.
 
-Orchestrates all Component 1 operations: fetching n8n releases, parsing node
-descriptions, diffing releases, and managing the versioned node catalog.
+Thin adapter layer that parses CLI arguments, calls :mod:`service` functions,
+and formats output for the terminal. All business logic lives in ``service.py``.
 """
 
-import asyncio
 import logging
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from n8n_release_parser.catalog import NodeCatalogStore
+from n8n_release_parser import service
 from n8n_release_parser.storage import create_backend
 
 app = typer.Typer()
@@ -41,14 +40,10 @@ def fetch_releases(
     ] = Path(".n8n-cache"),
 ) -> None:
     """Fetch recent n8n-nodes-base releases from npm."""
-    from n8n_release_parser import fetcher
-
     _ = cache_dir  # available for future use
-    logger = logging.getLogger(__name__)
-    logger.debug("Fetching releases for the last %d months", months)
 
     try:
-        versions = asyncio.run(fetcher.list_versions(months))
+        versions = service.fetch_releases(months=months)
     except Exception as exc:
         typer.echo(f"Error: failed to fetch releases: {exc}")
         raise typer.Exit(1) from exc
@@ -68,26 +63,13 @@ def diff(
     ] = ".n8n-catalog",
 ) -> None:
     """Diff two n8n release catalogs."""
-    from n8n_release_parser import differ
-
     backend = create_backend(store_dir)
-    store = NodeCatalogStore(backend)
 
-    old_cat = store.load_catalog(old_version)
-    if old_cat is None:
-        typer.echo(
-            f"Error: catalog for version {old_version} not found in {store_dir}"
-        )
-        raise typer.Exit(1)
-
-    new_cat = store.load_catalog(new_version)
-    if new_cat is None:
-        typer.echo(
-            f"Error: catalog for version {new_version} not found in {store_dir}"
-        )
-        raise typer.Exit(1)
-
-    result = differ.diff_catalogs(old_cat, new_cat)
+    try:
+        result = service.diff_catalogs(backend, old_version, new_version)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}")
+        raise typer.Exit(1) from exc
 
     typer.echo(f"Diff {result.from_version} -> {result.to_version}")
     typer.echo(f"  Added:    {result.added_count}")
@@ -114,10 +96,9 @@ def lookup(
 ) -> None:
     """Look up a node type across stored catalogs."""
     backend = create_backend(store_dir)
-    store = NodeCatalogStore(backend)
 
     try:
-        all_entries = store.build_lookup()
+        all_entries = service.build_catalog(backend)
     except Exception as exc:
         typer.echo(f"Error: failed to build lookup: {exc}")
         raise typer.Exit(1) from exc
@@ -148,32 +129,20 @@ def report(
     ] = ".n8n-catalog",
 ) -> None:
     """Generate priority coverage report from the latest catalog."""
-    from n8n_release_parser import priority
-
     backend = create_backend(store_dir)
-    store = NodeCatalogStore(backend)
 
-    catalogs = store.list_catalogs()
-    if not catalogs:
-        typer.echo("Error: no catalogs found in store.")
-        raise typer.Exit(1)
-
-    latest_version = catalogs[0][0]
-    catalog = store.load_catalog(latest_version)
-    if catalog is None:
-        typer.echo(f"Error: could not load catalog for {latest_version}.")
-        raise typer.Exit(1)
-
-    mappings = store.load_api_mappings()
-
-    result = priority.priority_coverage_report(catalog, mappings)
+    try:
+        result = service.generate_report(backend)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}")
+        raise typer.Exit(1) from exc
 
     total = result["total_priority_nodes"]
     mapped = result["mapped_priority_nodes"]
     missing = result["missing_mappings"]
     breakdown = result["breakdown"]
 
-    typer.echo(f"Priority Coverage Report (v{latest_version})")
+    typer.echo("Priority Coverage Report")
     typer.echo(f"  Total priority nodes:  {total}")
     typer.echo(f"  Mapped priority nodes: {mapped}")
 
@@ -184,8 +153,8 @@ def report(
 
     if isinstance(missing, list) and missing:
         typer.echo(f"\n  Missing mappings ({len(missing)}):")
-        for node_type in missing:
-            typer.echo(f"    - {node_type}")
+        for node_type_name in missing:
+            typer.echo(f"    - {node_type_name}")
 
 
 def main() -> None:

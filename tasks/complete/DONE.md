@@ -13,3 +13,4 @@ TASK-0014-create-translator-deployment-stacks.md
 TASK-0016-create-spec-registry-stack.md
 TASK-0009-delete-original-ai-agent.md
 TASK-0015-update-translation-engine-stack-split.md
+TASK-0010-release-parser-ports-adapters.md
