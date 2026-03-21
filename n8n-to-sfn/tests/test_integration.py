@@ -217,7 +217,9 @@ class TestIfBranchWorkflow:
 
     def test_sns_uses_publish(self) -> None:
         """Test SNS uses publish resource."""
-        state = StateMachine.model_validate(self.output.state_machine).states["SNSPublish"]
+        state = StateMachine.model_validate(self.output.state_machine).states[
+            "SNSPublish"
+        ]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "publish" in dumped["Resource"]
 
@@ -310,7 +312,10 @@ class TestWaitAndNotify:
 
     def test_sns_after_wait(self) -> None:
         """Test SNS state is after wait."""
-        assert "SNSPublish" in StateMachine.model_validate(self.output.state_machine).states
+        assert (
+            "SNSPublish"
+            in StateMachine.model_validate(self.output.state_machine).states
+        )
 
 
 class TestErrorHandlingWorkflow:
@@ -375,7 +380,9 @@ class TestMultiStepETL:
 
     def test_dynamodb_query_resource(self) -> None:
         """Test DynamoDB query resource is correct."""
-        state = StateMachine.model_validate(self.output.state_machine).states["DDBQuery"]
+        state = StateMachine.model_validate(self.output.state_machine).states[
+            "DDBQuery"
+        ]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "query" in dumped["Resource"]
 
@@ -397,7 +404,9 @@ class TestMultiStepETL:
 
     def test_sns_publish_resource(self) -> None:
         """Test SNS publish resource is correct."""
-        state = StateMachine.model_validate(self.output.state_machine).states["SNSNotify"]
+        state = StateMachine.model_validate(self.output.state_machine).states[
+            "SNSNotify"
+        ]
         dumped = state if isinstance(state, dict) else state.model_dump(by_alias=True)
         assert "publish" in dumped["Resource"]
 

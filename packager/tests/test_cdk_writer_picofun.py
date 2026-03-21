@@ -228,9 +228,7 @@ class TestNoPicoFunSectionWhenNoFunctions:
                 placeholder_value="<your-token>",
             ),
         ]
-        cdk_dir, _warnings = writer.write(
-            input_data, iam_policy, ssm_params, tmp_path
-        )
+        cdk_dir, _warnings = writer.write(input_data, iam_policy, ssm_params, tmp_path)
 
         stack_code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
 

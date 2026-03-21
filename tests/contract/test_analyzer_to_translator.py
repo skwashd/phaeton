@@ -34,7 +34,8 @@ class TestJsonRoundTrip:
     """ConversionReport survives JSON serialization across the boundary."""
 
     def test_report_serializes_and_adapter_accepts(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Serialize report to JSON, deserialize, then convert via adapter."""
         json_data = sample_conversion_report.model_dump(mode="json")
@@ -43,7 +44,8 @@ class TestJsonRoundTrip:
         assert isinstance(analysis, WorkflowAnalysis)
 
     def test_report_json_string_round_trip(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Verify JSON string serialization fidelity."""
         json_str = sample_conversion_report.model_dump_json()
@@ -55,7 +57,8 @@ class TestJsonRoundTrip:
         )
 
     def test_analysis_output_is_valid_pydantic(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """WorkflowAnalysis produced by adapter is itself serializable."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -84,7 +87,8 @@ class TestNodeCategoryEnumMapping:
             )
 
     def test_category_to_classification_via_adapter(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Verify adapter maps each node's category correctly."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -118,7 +122,8 @@ class TestExpressionCategoryMapping:
         )
 
     def test_expression_categories_fully_covered_by_adapter(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Adapter handles all three expression categories in fixture."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -135,7 +140,8 @@ class TestFieldMapping:
     """Field names and structures transform correctly across the boundary."""
 
     def test_raw_expression_becomes_original(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """ClassifiedExpression.raw_expression maps to .original."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -151,7 +157,8 @@ class TestFieldMapping:
         assert sorted(all_originals) == sorted(all_raw)
 
     def test_referenced_nodes_becomes_node_references(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """ClassifiedExpression.referenced_nodes maps to .node_references."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -164,7 +171,8 @@ class TestFieldMapping:
         assert "Transform" in all_refs
 
     def test_expressions_redistributed_to_nodes(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Top-level expressions are grouped by node_name into per-node lists."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -174,7 +182,8 @@ class TestFieldMapping:
         assert len(node_map["Transform"].expressions) == 1
 
     def test_payload_warnings_become_strings(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """PayloadWarning objects become formatted strings."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -186,14 +195,16 @@ class TestFieldMapping:
             assert ":" in warning  # format: "node_name: description"
 
     def test_unsupported_nodes_become_names(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Unsupported ClassifiedNodes become a list of node name strings."""
         analysis = convert_report_to_analysis(sample_conversion_report)
         assert analysis.unsupported_nodes == ["Unsupported"]
 
     def test_confidence_score_preserved(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Confidence score passes through unchanged."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -204,7 +215,8 @@ class TestDependencyEdgeParsing:
     """Graph metadata converts to typed DependencyEdge objects."""
 
     def test_edges_parsed_from_graph_metadata(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Both from_node/to_node and source_node/target_node variants work."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -214,7 +226,8 @@ class TestDependencyEdgeParsing:
         assert ("Transform", "DynamoDB Put") in edge_names
 
     def test_edge_types_uppercased(
-        self, sample_conversion_report: ConversionReport,
+        self,
+        sample_conversion_report: ConversionReport,
     ) -> None:
         """Edge type strings normalize to uppercase literals."""
         analysis = convert_report_to_analysis(sample_conversion_report)
@@ -255,6 +268,4 @@ class TestSchemaCompatibility:
             "confidence_score",
         ]
         for field in expected_fields:
-            assert field in props, (
-                f"WorkflowAnalysis missing field {field!r}"
-            )
+            assert field in props, f"WorkflowAnalysis missing field {field!r}"

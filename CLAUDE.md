@@ -41,6 +41,26 @@ uv run ty check                                      # type check
 uv run coverage run -m pytest && uv run coverage report -m  # coverage
 ```
 
+## Quality gates
+
+All quality checks must pass in modified component(s) **and** at the repo root before committing. This applies to both human and AI contributors.
+
+**Per-component** (`cd` into the component directory):
+
+```bash
+uv run ruff format --check .   # verify formatting
+uv run ruff check .            # lint
+uv run ty check                # type check
+uv run pytest                  # tests
+```
+
+**Root-level** (from the repo root — validates cross-component tests and whole-repo formatting/types):
+
+```bash
+uv run ruff format --check .   # verify formatting across all components
+uv run ty check                # type check cross-component tests
+```
+
 ## Linting rules
 
 Ruff is configured in the root `pyproject.toml` with a shared rule set. Each component inherits these rules. Key points:

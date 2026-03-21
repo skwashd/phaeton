@@ -166,9 +166,7 @@ class PicoFunTranslator(BaseTranslator):
                 node.node.parameters, node.operation_mappings
             )
             if endpoint_info is None:
-                logger.warning(
-                    "No operation mapping for node '%s'", node.node.name
-                )
+                logger.warning("No operation mapping for node '%s'", node.node.name)
                 return None
 
             method, path = endpoint_info
@@ -187,10 +185,8 @@ class PicoFunTranslator(BaseTranslator):
 
             base_url = api_spec.servers[0]["url"] if api_spec.servers else ""
 
-            handler_code = self._bridge.render_endpoint(
-                base_url, endpoint, namespace
-            )
-        except (OSError, KeyError, ValueError, TypeError, RuntimeError):
+            handler_code = self._bridge.render_endpoint(base_url, endpoint, namespace)
+        except OSError, KeyError, ValueError, TypeError, RuntimeError:
             logger.warning(
                 "PicoFun code generation failed for node '%s'",
                 node.node.name,

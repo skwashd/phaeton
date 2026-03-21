@@ -375,9 +375,7 @@ def _translate_loop_count(
     item_processor = ItemProcessor(
         processor_config=processor_config,
         start_at=placeholder_name,
-        states={
-            placeholder_name: PassState(end=True, comment="Loop body placeholder")
-        },
+        states={placeholder_name: PassState(end=True, comment="Loop body placeholder")},
     )
 
     state = MapState(
@@ -524,9 +522,7 @@ def _translate_wait(
     return TranslationResult(states={node.node.name: state})
 
 
-def _translate_wait_callback(
-    node: ClassifiedNode, resume: str
-) -> TranslationResult:
+def _translate_wait_callback(node: ClassifiedNode, resume: str) -> TranslationResult:
     """
     Translate a form-submission or webhook wait into a callback TaskState.
 
@@ -699,9 +695,7 @@ def _translate_execute_workflow(
         # The Packager populates sub_workflow_arns in the execution context at
         # deploy time so this resolves to a real state machine ARN.
         arguments["StateMachineArn"] = (
-            "{% $states.context.sub_workflow_arns['"
-            + wf_id_value
-            + "'] %}"
+            "{% $states.context.sub_workflow_arns['" + wf_id_value + "'] %}"
         )
 
     state = TaskState(  # type: ignore[missing-argument]

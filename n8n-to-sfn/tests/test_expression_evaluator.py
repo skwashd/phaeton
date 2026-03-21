@@ -104,7 +104,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_single_lambda_expression_produces_state_and_artifact(self) -> None:
         """Test that a single REQUIRES_LAMBDA expression produces one state and artifact."""
-        expr = _lambda_expr('={{ Math.round($json.value * 100) / 100 }}')
+        expr = _lambda_expr("={{ Math.round($json.value * 100) / 100 }}")
         node = _node("CalcNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -126,8 +126,8 @@ class TestEvaluateLambdaExpressions:
 
     def test_multiple_lambda_expressions_produce_indexed_states(self) -> None:
         """Test that multiple REQUIRES_LAMBDA expressions produce indexed states."""
-        expr1 = _lambda_expr('={{ Math.round($json.x) }}')
-        expr2 = _lambda_expr('={{ DateTime.now().toISO() }}')
+        expr1 = _lambda_expr("={{ Math.round($json.x) }}")
+        expr2 = _lambda_expr("={{ DateTime.now().toISO() }}")
         node = _node("MultiExpr", [expr1, expr2])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -166,7 +166,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_javascript_builtins_in_handler(self) -> None:
         """Test JavaScript built-in methods are preserved in handler code."""
-        expr = _lambda_expr('={{ Math.round($json.value * 100) / 100 }}')
+        expr = _lambda_expr("={{ Math.round($json.value * 100) / 100 }}")
         node = _node("MathNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -176,7 +176,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_string_operation_expression(self) -> None:
         """Test string operation expressions are handled."""
-        expr = _lambda_expr('={{ $json.name.toUpperCase() }}')
+        expr = _lambda_expr("={{ $json.name.toUpperCase() }}")
         node = _node("StrNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -185,7 +185,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_date_expression(self) -> None:
         """Test DateTime/luxon expressions include luxon import."""
-        expr = _lambda_expr('={{ DateTime.now().toISO() }}')
+        expr = _lambda_expr("={{ DateTime.now().toISO() }}")
         node = _node("DateNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -195,9 +195,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_conditional_expression(self) -> None:
         """Test conditional (ternary) expressions are handled."""
-        expr = _lambda_expr(
-            '={{ $json.status === "active" ? "yes" : "no" }}'
-        )
+        expr = _lambda_expr('={{ $json.status === "active" ? "yes" : "no" }}')
         node = _node("CondNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -208,7 +206,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_warnings_generated_for_each_expression(self) -> None:
         """Test that a warning is emitted for each REQUIRES_LAMBDA expression."""
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         node = _node("WarnNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -218,7 +216,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_function_name_sanitized(self) -> None:
         """Test that function names are sanitized from node names."""
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         node = _node("My Cool Node!", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -229,7 +227,7 @@ class TestEvaluateLambdaExpressions:
 
     def test_expression_wrapper_stripped(self) -> None:
         """Test that n8n expression wrappers are properly stripped."""
-        expr = _lambda_expr('={{ Math.floor($json.val) }}')
+        expr = _lambda_expr("={{ Math.floor($json.val) }}")
         node = _node("StripNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -246,7 +244,7 @@ class TestAIAgentIntegration:
         ai_agent = MagicMock()
         ai_agent.translate_expression.return_value = "Math.round(event.value)"
 
-        expr = _lambda_expr('={{ Math.round($json.value) }}')
+        expr = _lambda_expr("={{ Math.round($json.value) }}")
         node = _node("AINode", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
 
@@ -257,9 +255,9 @@ class TestAIAgentIntegration:
     def test_ai_agent_fallback_on_same_return(self) -> None:
         """Test fallback when AI agent returns the original expression."""
         ai_agent = MagicMock()
-        ai_agent.translate_expression.return_value = '={{ Math.round($json.value) }}'
+        ai_agent.translate_expression.return_value = "={{ Math.round($json.value) }}"
 
-        expr = _lambda_expr('={{ Math.round($json.value) }}')
+        expr = _lambda_expr("={{ Math.round($json.value) }}")
         node = _node("FallbackNode", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
 
@@ -271,7 +269,7 @@ class TestAIAgentIntegration:
         ai_agent = MagicMock()
         ai_agent.translate_expression.side_effect = ConnectionError("Agent down")
 
-        expr = _lambda_expr('={{ $json.name.toUpperCase() }}')
+        expr = _lambda_expr("={{ $json.name.toUpperCase() }}")
         node = _node("ErrorNode", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
 
@@ -284,7 +282,7 @@ class TestAIAgentIntegration:
         ai_agent = MagicMock()
         ai_agent.translate_expression.return_value = ""
 
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         node = _node("EmptyNode", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
 
@@ -294,7 +292,7 @@ class TestAIAgentIntegration:
 
     def test_no_ai_agent_uses_fallback(self) -> None:
         """Test that no AI agent falls back to direct evaluation."""
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         node = _node("NoAgent", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=None)
 
@@ -327,7 +325,7 @@ class TestEngineExpressionIntegration:
                     states={node.node.name: PassState()},
                 )
 
-        expr = _lambda_expr('={{ DateTime.now().toISO() }}')
+        expr = _lambda_expr("={{ DateTime.now().toISO() }}")
         cn = _node("MyNode", [expr])
 
         analysis = WorkflowAnalysis(
@@ -338,7 +336,10 @@ class TestEngineExpressionIntegration:
         engine = TranslationEngine(translators=[StubTranslator()])
         output = engine.translate(analysis)
 
-        assert "MyNode_ExprEval" in StateMachine.model_validate(output.state_machine).states
+        assert (
+            "MyNode_ExprEval"
+            in StateMachine.model_validate(output.state_machine).states
+        )
         assert "MyNode" in StateMachine.model_validate(output.state_machine).states
         assert len(output.lambda_artifacts) == 1
         assert any("Lambda evaluation" in w for w in output.warnings)
@@ -364,7 +365,7 @@ class TestEngineExpressionIntegration:
                     states={node.node.name: PassState()},
                 )
 
-        expr = _lambda_expr('={{ Math.round($json.x) }}')
+        expr = _lambda_expr("={{ Math.round($json.x) }}")
         cn = _node("Calc", [expr])
 
         analysis = WorkflowAnalysis(
@@ -375,7 +376,9 @@ class TestEngineExpressionIntegration:
         engine = TranslationEngine(translators=[StubTranslator()])
         output = engine.translate(analysis)
 
-        eval_state = StateMachine.model_validate(output.state_machine).states["Calc_ExprEval"]
+        eval_state = StateMachine.model_validate(output.state_machine).states[
+            "Calc_ExprEval"
+        ]
         assert eval_state.next == "Calc"  # type: ignore[unresolved-attribute]
 
     def test_engine_start_at_points_to_eval_state(self) -> None:
@@ -399,7 +402,7 @@ class TestEngineExpressionIntegration:
                     states={node.node.name: PassState()},
                 )
 
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         cn = _node("First", [expr])
 
         analysis = WorkflowAnalysis(
@@ -436,7 +439,7 @@ class TestEngineExpressionIntegration:
                 )
 
         prev_node = _node("Prev")
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         target_node = _node("Target", [expr])
 
         analysis = WorkflowAnalysis(
@@ -556,7 +559,7 @@ class TestInjectionInBuildExpressionCode:
 
     def test_injection_rejected_in_direct_path(self) -> None:
         """Test that _build_expression_code rejects injection payloads."""
-        expr = _lambda_expr('={{ 1; process.exit(0); // }}')
+        expr = _lambda_expr("={{ 1; process.exit(0); // }}")
         node = _node("InjectNode", [expr])
         result = evaluate_lambda_expressions(node, _context())
 
@@ -569,11 +572,9 @@ class TestInjectionInBuildExpressionCode:
     def test_injection_rejected_in_ai_agent_path(self) -> None:
         """Test that the AI agent path also rejects injection payloads."""
         ai_agent = MagicMock()
-        ai_agent.translate_expression.return_value = (
-            '1; process.exit(0); //'
-        )
+        ai_agent.translate_expression.return_value = "1; process.exit(0); //"
 
-        expr = _lambda_expr('={{ $json.value }}')
+        expr = _lambda_expr("={{ $json.value }}")
         node = _node("AIInjectNode", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
 
@@ -586,7 +587,7 @@ class TestInjectionInBuildExpressionCode:
         ai_agent = MagicMock()
         ai_agent.translate_expression.return_value = 'eval("malicious")'
 
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         node = _node("EvalInject", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
 
@@ -601,7 +602,7 @@ class TestInjectionInBuildExpressionCode:
             'require("child_process").exec("rm -rf /")'
         )
 
-        expr = _lambda_expr('={{ $json.x }}')
+        expr = _lambda_expr("={{ $json.x }}")
         node = _node("ReqInject", [expr])
         result = evaluate_lambda_expressions(node, _context(), ai_agent=ai_agent)
 

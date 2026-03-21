@@ -40,7 +40,6 @@ def _context() -> TranslationContext:
     )
 
 
-
 class TestMockAIAgent:
     """Tests for MockAIAgent."""
 

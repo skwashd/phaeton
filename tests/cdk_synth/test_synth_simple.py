@@ -32,17 +32,13 @@ class TestSimpleSynthSucceeds:
 class TestSimpleSynthStateMachine:
     """Verify the state machine resource in the synthesized template."""
 
-    def test_has_state_machine(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_has_state_machine(self, simple_dynamodb_synth: SynthResult) -> None:
         """Template must contain a Step Functions StateMachine resource."""
         simple_dynamodb_synth.workflow_template.resource_count_is(
             "AWS::StepFunctions::StateMachine", 1
         )
 
-    def test_state_machine_has_name(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_state_machine_has_name(self, simple_dynamodb_synth: SynthResult) -> None:
         """State machine must have a StateMachineName property."""
         simple_dynamodb_synth.workflow_template.has_resource_properties(
             "AWS::StepFunctions::StateMachine",
@@ -89,13 +85,9 @@ class TestSimpleSynthStateMachine:
 class TestSimpleSynthIAM:
     """Verify IAM resources in the synthesized template."""
 
-    def test_has_execution_role(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_has_execution_role(self, simple_dynamodb_synth: SynthResult) -> None:
         """Template must contain an IAM Role for the state machine."""
-        roles = simple_dynamodb_synth.workflow_template.find_resources(
-            "AWS::IAM::Role"
-        )
+        roles = simple_dynamodb_synth.workflow_template.find_resources("AWS::IAM::Role")
         assert len(roles) >= 1, "No IAM Roles found"
 
     def test_execution_role_assumed_by_states(
@@ -110,18 +102,14 @@ class TestSimpleSynthIAM:
                         {
                             "Action": "sts:AssumeRole",
                             "Effect": "Allow",
-                            "Principal": {
-                                "Service": "states.amazonaws.com"
-                            },
+                            "Principal": {"Service": "states.amazonaws.com"},
                         }
                     ],
                 },
             },
         )
 
-    def test_has_execution_policy(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_has_execution_policy(self, simple_dynamodb_synth: SynthResult) -> None:
         """Template must contain an IAM Policy with DynamoDB permissions."""
         policies = simple_dynamodb_synth.workflow_template.find_resources(
             "AWS::IAM::Policy"
@@ -136,18 +124,14 @@ class TestSimpleSynthIAM:
 class TestSimpleSynthInfrastructure:
     """Verify supporting infrastructure resources."""
 
-    def test_has_dead_letter_queue(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_has_dead_letter_queue(self, simple_dynamodb_synth: SynthResult) -> None:
         """Template must contain an SQS dead-letter queue."""
         simple_dynamodb_synth.workflow_template.has_resource_properties(
             "AWS::SQS::Queue",
             {"QueueName": "simple-dynamodb-e2e-dlq"},
         )
 
-    def test_has_cloudwatch_alarms(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_has_cloudwatch_alarms(self, simple_dynamodb_synth: SynthResult) -> None:
         """Template must contain CloudWatch alarms for the state machine."""
         alarms = simple_dynamodb_synth.workflow_template.find_resources(
             "AWS::CloudWatch::Alarm"
@@ -166,26 +150,20 @@ class TestSimpleSynthInfrastructure:
         )
         assert len(rules) >= 1, "No EventBridge rules found"
         rule_str = str(next(iter(rules.values())))
-        assert "FAILED" in rule_str, (
-            "No EventBridge rule for failed executions"
-        )
+        assert "FAILED" in rule_str, "No EventBridge rule for failed executions"
 
 
 class TestSimpleSynthSharedStack:
     """Verify the shared stack contains expected resources."""
 
-    def test_has_kms_key(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_has_kms_key(self, simple_dynamodb_synth: SynthResult) -> None:
         """Shared stack must contain a KMS key with rotation enabled."""
         simple_dynamodb_synth.shared_template.has_resource_properties(
             "AWS::KMS::Key",
             {"EnableKeyRotation": True},
         )
 
-    def test_has_log_group(
-        self, simple_dynamodb_synth: SynthResult
-    ) -> None:
+    def test_has_log_group(self, simple_dynamodb_synth: SynthResult) -> None:
         """Shared stack must contain a CloudWatch log group."""
         simple_dynamodb_synth.shared_template.resource_count_is(
             "AWS::Logs::LogGroup", 1

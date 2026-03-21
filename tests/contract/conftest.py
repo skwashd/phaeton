@@ -57,7 +57,9 @@ def _make_node(
 @pytest.fixture
 def sample_conversion_report() -> ConversionReport:
     """Build a representative ConversionReport covering all fields."""
-    trigger_node = _make_node("Schedule Trigger", "n8n-nodes-base.scheduleTrigger", "t1")
+    trigger_node = _make_node(
+        "Schedule Trigger", "n8n-nodes-base.scheduleTrigger", "t1"
+    )
     dynamo_node = _make_node("DynamoDB Put", "n8n-nodes-base.dynamoDb", "n1")
     code_node = _make_node("Transform", "n8n-nodes-base.code", "n2")
     unsupported_node = _make_node("Unsupported", "n8n-nodes-base.unknown", "n3")

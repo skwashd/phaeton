@@ -44,7 +44,9 @@ exclude = [
     "packager/",
     "shared/",
     "deployment/",
-
+    "expression-translator/",
+    "node-translator/",
+    "spec-registry/",
 ]
 
 [tool.pytest.ini_options]

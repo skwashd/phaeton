@@ -276,9 +276,7 @@ class TestPicoFunTranslatorBridge:
         artifact = result.lambda_artifacts[0]
         assert artifact.dependencies == ["picorun", "requests", "aws-lambda-powertools"]
 
-    def test_dependencies_include_boto3_with_credentials(
-        self, tmp_path: Path
-    ) -> None:
+    def test_dependencies_include_boto3_with_credentials(self, tmp_path: Path) -> None:
         """Credentials on node add boto3 to dependencies."""
         filename = _write_openapi3_spec(tmp_path)
         bridge = PicoFunBridge(spec_directory=str(tmp_path))

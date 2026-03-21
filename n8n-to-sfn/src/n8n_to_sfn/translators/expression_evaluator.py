@@ -147,8 +147,7 @@ def _validate_expression(expr: str) -> None:
     for pattern, description in _DANGEROUS_PATTERNS:
         if pattern.search(expr):
             msg = (
-                f"Expression rejected: contains {description}. "
-                f"Expression: {expr[:100]}"
+                f"Expression rejected: contains {description}. Expression: {expr[:100]}"
             )
             raise ValueError(msg)
 
@@ -303,7 +302,7 @@ def _try_ai_agent(
                 upstream_bindings=upstream_bindings,
                 expression_code=f"  const expressionResult = {translated};",
             )
-    except (ConnectionError, TimeoutError, json.JSONDecodeError, ValueError):
+    except ConnectionError, TimeoutError, json.JSONDecodeError, ValueError:
         logger.debug("AI agent failed for expression: %s", expr.original)
 
     return None
@@ -324,7 +323,7 @@ def _build_eval_lambda(
 
     try:
         expression_code = _build_expression_code(expr.original)
-    except (ValueError, IndexError, KeyError):
+    except ValueError, IndexError, KeyError:
         return _FALLBACK_EXPR_TEMPLATE.format(
             node_name=node.node.name,
             original_expr=expr.original.replace("*/", "* /"),

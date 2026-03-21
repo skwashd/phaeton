@@ -238,9 +238,7 @@ class TestSanitisation:
 class TestWebhookAuthCodeInjection:
     """Tests for webhook authentication code injection in handlers."""
 
-    def test_api_key_auth_preamble(
-        self, writer: LambdaWriter, tmp_path: Path
-    ) -> None:
+    def test_api_key_auth_preamble(self, writer: LambdaWriter, tmp_path: Path) -> None:
         """Test that API key auth injects SSM client and _authenticate function."""
         spec = LambdaFunctionSpec(
             function_name="webhook_handler",
@@ -261,9 +259,7 @@ class TestWebhookAuthCodeInjection:
         assert "x-api-key" in content
         assert '"statusCode": 401' in content
 
-    def test_hmac_auth_preamble(
-        self, writer: LambdaWriter, tmp_path: Path
-    ) -> None:
+    def test_hmac_auth_preamble(self, writer: LambdaWriter, tmp_path: Path) -> None:
         """Test that HMAC auth injects signature verification logic."""
         spec = LambdaFunctionSpec(
             function_name="webhook_handler",
@@ -285,9 +281,7 @@ class TestWebhookAuthCodeInjection:
         assert "x-hub-signature-256" in content
         assert '"statusCode": 403' in content
 
-    def test_custom_header_name(
-        self, writer: LambdaWriter, tmp_path: Path
-    ) -> None:
+    def test_custom_header_name(self, writer: LambdaWriter, tmp_path: Path) -> None:
         """Test that custom header name is used in auth code."""
         spec = LambdaFunctionSpec(
             function_name="webhook_handler",
@@ -305,9 +299,7 @@ class TestWebhookAuthCodeInjection:
         content = (result / "handler.py").read_text()
         assert '"authorization"' in content
 
-    def test_no_auth_no_preamble(
-        self, writer: LambdaWriter, tmp_path: Path
-    ) -> None:
+    def test_no_auth_no_preamble(self, writer: LambdaWriter, tmp_path: Path) -> None:
         """Test that webhook handler without auth has no auth preamble."""
         spec = LambdaFunctionSpec(
             function_name="webhook_handler",

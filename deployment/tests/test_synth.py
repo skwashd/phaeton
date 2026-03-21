@@ -401,7 +401,8 @@ class TestFullAppSynth:
         workflow_analyzer = WorkflowAnalyzerStack(app, "WorkflowAnalyzer")
         node_translator = NodeTranslatorStack(app, "NodeTranslator")
         expression_translator = ExpressionTranslatorStack(
-            app, "ExpressionTranslator",
+            app,
+            "ExpressionTranslator",
         )
         translation_engine = TranslationEngineStack(
             app,

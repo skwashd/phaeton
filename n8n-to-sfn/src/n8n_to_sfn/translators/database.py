@@ -34,11 +34,13 @@ _DEFAULT_RETRY = RetryConfig(  # type: ignore[missing-argument]
     max_delay_seconds=30,
 )
 
-_SUPPORTED_DB_NODE_TYPES = frozenset({
-    "n8n-nodes-base.postgres",
-    "n8n-nodes-base.mySql",
-    "n8n-nodes-base.microsoftSql",
-})
+_SUPPORTED_DB_NODE_TYPES = frozenset(
+    {
+        "n8n-nodes-base.postgres",
+        "n8n-nodes-base.mySql",
+        "n8n-nodes-base.microsoftSql",
+    }
+)
 
 
 def _build_ssm_path(workflow_name: str, credential_type: str) -> str:

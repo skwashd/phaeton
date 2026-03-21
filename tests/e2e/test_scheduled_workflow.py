@@ -17,15 +17,9 @@ from tests.e2e.conftest import PipelineResult
 class TestScheduledPipelineOutput:
     """Verify the pipeline output for a scheduled workflow."""
 
-    def test_asl_definition_is_valid(
-        self, scheduled_result: PipelineResult
-    ) -> None:
+    def test_asl_definition_is_valid(self, scheduled_result: PipelineResult) -> None:
         """ASL JSON must be structurally valid."""
-        asl_path = (
-            scheduled_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
-        )
+        asl_path = scheduled_result.output_dir / "statemachine" / "definition.asl.json"
         assert asl_path.exists(), "ASL definition file not found"
         asl = json.loads(asl_path.read_text())
         assert "StartAt" in asl
@@ -57,73 +51,49 @@ class TestScheduledPipelineOutput:
             f"{[t.trigger_type for t in triggers]}"
         )
 
-    def test_sqs_state_in_asl(
-        self, scheduled_result: PipelineResult
-    ) -> None:
+    def test_sqs_state_in_asl(self, scheduled_result: PipelineResult) -> None:
         """The SQS SendMessage node must appear as a state in the ASL."""
-        asl_path = (
-            scheduled_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
-        )
+        asl_path = scheduled_result.output_dir / "statemachine" / "definition.asl.json"
         asl = json.loads(asl_path.read_text())
         assert "SendToSQS" in asl["States"], (
             f"SendToSQS state not found. States: {list(asl['States'].keys())}"
         )
 
-    def test_lambda_invoke_state_in_asl(
-        self, scheduled_result: PipelineResult
-    ) -> None:
+    def test_lambda_invoke_state_in_asl(self, scheduled_result: PipelineResult) -> None:
         """The Lambda invoke node must appear as a state in the ASL."""
-        asl_path = (
-            scheduled_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
-        )
+        asl_path = scheduled_result.output_dir / "statemachine" / "definition.asl.json"
         asl = json.loads(asl_path.read_text())
         assert "InvokeLambda" in asl["States"], (
             f"InvokeLambda state not found. States: {list(asl['States'].keys())}"
         )
 
-    def test_cdk_app_structure(
-        self, scheduled_result: PipelineResult
-    ) -> None:
+    def test_cdk_app_structure(self, scheduled_result: PipelineResult) -> None:
         """CDK application must include required files."""
         cdk_dir = scheduled_result.output_dir / "cdk"
         assert (cdk_dir / "app.py").exists()
         assert (cdk_dir / "cdk.json").exists()
         assert (cdk_dir / "pyproject.toml").exists()
 
-    def test_iam_policy_references_sqs(
-        self, scheduled_result: PipelineResult
-    ) -> None:
+    def test_iam_policy_references_sqs(self, scheduled_result: PipelineResult) -> None:
         """IAM policy must reference SQS permissions."""
         stack_path = (
-            scheduled_result.output_dir
-            / "cdk"
-            / "stacks"
-            / "workflow_stack.py"
+            scheduled_result.output_dir / "cdk" / "stacks" / "workflow_stack.py"
         )
         assert stack_path.exists()
         stack_code = stack_path.read_text()
-        assert "sqs" in stack_code.lower(), (
-            "Stack code does not reference SQS"
-        )
+        assert "sqs" in stack_code.lower(), "Stack code does not reference SQS"
 
 
 class TestScheduledBoundaryIntegrity:
     """Verify data integrity across adapter boundaries for scheduled workflows."""
 
-    def test_all_nodes_classified(
-        self, scheduled_result: PipelineResult
-    ) -> None:
+    def test_all_nodes_classified(self, scheduled_result: PipelineResult) -> None:
         """Every workflow node must appear in the analyzer report."""
         workflow_node_names = {
             n["name"] for n in scheduled_result.workflow_data["nodes"]
         }
         report_node_names = {
-            cn.node.name
-            for cn in scheduled_result.report.classified_nodes
+            cn.node.name for cn in scheduled_result.report.classified_nodes
         }
         assert workflow_node_names == report_node_names
 
@@ -131,13 +101,9 @@ class TestScheduledBoundaryIntegrity:
         self, scheduled_result: PipelineResult
     ) -> None:
         """The analyzer-to-translator adapter must preserve all nodes."""
-        report_names = {
-            cn.node.name
-            for cn in scheduled_result.report.classified_nodes
-        }
+        report_names = {cn.node.name for cn in scheduled_result.report.classified_nodes}
         analysis_names = {
-            cn.node.name
-            for cn in scheduled_result.analysis.classified_nodes
+            cn.node.name for cn in scheduled_result.analysis.classified_nodes
         }
         assert report_names == analysis_names
 
@@ -157,11 +123,7 @@ class TestScheduledBoundaryIntegrity:
         self, scheduled_result: PipelineResult
     ) -> None:
         """Every non-trigger node from the analysis must appear as an ASL state."""
-        asl_path = (
-            scheduled_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
-        )
+        asl_path = scheduled_result.output_dir / "statemachine" / "definition.asl.json"
         asl = json.loads(asl_path.read_text())
         state_names = set(asl["States"].keys())
 

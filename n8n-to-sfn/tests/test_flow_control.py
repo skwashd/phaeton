@@ -17,7 +17,10 @@ from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 
 
 def _fc_node(
-    name: str, node_type: str, params: dict | None = None, **kwargs: Any  # noqa: ANN401
+    name: str,
+    node_type: str,
+    params: dict | None = None,
+    **kwargs: Any,  # noqa: ANN401
 ) -> ClassifiedNode:
     """Create a flow control classified node for testing."""
     return ClassifiedNode(
@@ -308,9 +311,7 @@ class TestFlowControlTranslator:
 
     def test_merge_mode_combine(self) -> None:
         """Test Merge node with combine mode."""
-        node = _fc_node(
-            "Merge", "n8n-nodes-base.merge", params={"mode": "combine"}
-        )
+        node = _fc_node("Merge", "n8n-nodes-base.merge", params={"mode": "combine"})
         result = self.translator.translate(node, _context())
         assert result.metadata.get("merge_mode") == "combine"
 

@@ -226,7 +226,7 @@ def _collect_node_files(
             entries.extend(parsed)
             if cache is not None:
                 cache.put(rel, h, parsed)
-        except (json.JSONDecodeError, KeyError):
+        except json.JSONDecodeError, KeyError:
             logger.warning("Skipping invalid node file: %s", json_file)
 
 

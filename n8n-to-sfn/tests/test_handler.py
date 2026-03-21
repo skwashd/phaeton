@@ -44,7 +44,9 @@ def _valid_payload() -> dict:
             _node("End", classification=NodeClassification.FLOW_CONTROL),
         ],
         dependency_edges=[
-            DependencyEdge(from_node="SetFields", to_node="End", edge_type="CONNECTION"),
+            DependencyEdge(
+                from_node="SetFields", to_node="End", edge_type="CONNECTION"
+            ),
         ],
     )
     return analysis.model_dump(mode="json")
@@ -121,7 +123,9 @@ class TestHandler:
 
         assert "error" not in result
         assert len(result["warnings"]) > 0
-        assert any("unsupported" in w.lower() or "Unsupported" in w for w in result["warnings"])
+        assert any(
+            "unsupported" in w.lower() or "Unsupported" in w for w in result["warnings"]
+        )
 
 
 class TestCreateDefaultEngine:

@@ -47,6 +47,7 @@ _MAX_SCALING_RATIO = 3.5
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _translate_workflow(workflow_data: dict[str, Any]) -> BoundaryTranslationOutput:
     """Run analyze + adapt + translate and return the boundary output."""
     analyzer = make_analyzer()
@@ -95,7 +96,9 @@ class TestPackagingScaling:
 
     @pytest.mark.parametrize("num_nodes", WORKFLOW_SIZES)
     def test_packaging_completes(
-        self, num_nodes: int, tmp_path: Path,
+        self,
+        num_nodes: int,
+        tmp_path: Path,
     ) -> None:
         """Packager must finish without errors for each workflow size."""
         workflow = generate_workflow(num_nodes)
@@ -126,10 +129,12 @@ class TestPackagingScaling:
     def test_packaging_scaling_ratio(self, tmp_path: Path) -> None:
         """Packaging time ratio (200 / 100 nodes) must stay below threshold."""
         bench_100 = _run_packaging(
-            generate_workflow(100), tmp_path / "pkg-100",
+            generate_workflow(100),
+            tmp_path / "pkg-100",
         )
         bench_200 = _run_packaging(
-            generate_workflow(200), tmp_path / "pkg-200",
+            generate_workflow(200),
+            tmp_path / "pkg-200",
         )
 
         ratio = bench_200.elapsed_seconds / max(bench_100.elapsed_seconds, 1e-9)
@@ -145,14 +150,17 @@ class TestPackagingScaling:
     def test_packaging_memory_growth_linear(self, tmp_path: Path) -> None:
         """Packager peak memory should grow roughly linearly with node count."""
         bench_100 = _run_packaging(
-            generate_workflow(100), tmp_path / "pkg-mem-100",
+            generate_workflow(100),
+            tmp_path / "pkg-mem-100",
         )
         bench_200 = _run_packaging(
-            generate_workflow(200), tmp_path / "pkg-mem-200",
+            generate_workflow(200),
+            tmp_path / "pkg-mem-200",
         )
 
         mem_ratio = bench_200.peak_memory_bytes / max(
-            bench_100.peak_memory_bytes, 1,
+            bench_100.peak_memory_bytes,
+            1,
         )
         print(
             f"\n[packaging memory] 100-node={bench_100.peak_memory_bytes / 1024:.1f}KB  "
@@ -165,10 +173,12 @@ class TestPackagingScaling:
     def test_output_size_scales_linearly(self, tmp_path: Path) -> None:
         """Generated output file size should scale roughly linearly."""
         bench_100 = _run_packaging(
-            generate_workflow(100), tmp_path / "pkg-size-100",
+            generate_workflow(100),
+            tmp_path / "pkg-size-100",
         )
         bench_200 = _run_packaging(
-            generate_workflow(200), tmp_path / "pkg-size-200",
+            generate_workflow(200),
+            tmp_path / "pkg-size-200",
         )
 
         size_100 = _get_output_size(Path(bench_100.result))
@@ -190,7 +200,9 @@ class TestFullPipelineScaling:
 
     @pytest.mark.parametrize("num_nodes", WORKFLOW_SIZES)
     def test_full_pipeline_completes(
-        self, num_nodes: int, tmp_path: Path,
+        self,
+        num_nodes: int,
+        tmp_path: Path,
     ) -> None:
         """Full pipeline must complete without errors for each size."""
         workflow = generate_workflow(num_nodes)
@@ -251,7 +263,8 @@ class TestFullPipelineScaling:
                 )
                 packager = make_packager()
                 return packager.package(
-                    pkginput, tmp_path / f"ratio-{num_nodes}",
+                    pkginput,
+                    tmp_path / f"ratio-{num_nodes}",
                 )
 
             return run_timed(_run)

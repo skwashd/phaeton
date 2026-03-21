@@ -99,9 +99,7 @@ _UNTRANSLATABLE_GLOBALS: dict[str, str] = {
 }
 
 # Combined list of all known n8n globals for detection.
-_ALL_GLOBALS = (
-    list(_JS_SHIMS) + list(_UNTRANSLATABLE_GLOBALS)
-)
+_ALL_GLOBALS = list(_JS_SHIMS) + list(_UNTRANSLATABLE_GLOBALS)
 
 
 def _sanitize_name(name: str) -> str:
@@ -224,9 +222,7 @@ def _build_warnings(node_name: str, detected: set[str]) -> list[str]:
     warnings: list[str] = []
     for glob in sorted(detected):
         if glob in _UNTRANSLATABLE_GLOBALS:
-            warnings.append(
-                f"Code node '{node_name}': {_UNTRANSLATABLE_GLOBALS[glob]}"
-            )
+            warnings.append(f"Code node '{node_name}': {_UNTRANSLATABLE_GLOBALS[glob]}")
     # Always add a general review note for any remaining n8n patterns.
     warnings.append(
         f"Code node '{node_name}': review handler for n8n-specific "

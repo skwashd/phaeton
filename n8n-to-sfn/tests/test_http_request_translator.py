@@ -57,8 +57,11 @@ class TestHttpRequestTranslatorCanTranslate:
         """Test can_translate returns False for non-httpRequest nodes."""
         node = ClassifiedNode(
             node=N8nNode(  # type: ignore[missing-argument]
-                id="x", name="x", type="n8n-nodes-base.slack",
-                type_version=1, position=[0, 0],  # type: ignore[unknown-argument]
+                id="x",
+                name="x",
+                type="n8n-nodes-base.slack",
+                type_version=1,
+                position=[0, 0],  # type: ignore[unknown-argument]
             ),
             classification=NodeClassification.PICOFUN_API,
         )
@@ -74,7 +77,9 @@ class TestSimpleRequests:
 
     def test_simple_get(self) -> None:
         """Test simple GET request translation."""
-        node = _http_node(params={"url": "https://api.example.com/data", "method": "GET"})
+        node = _http_node(
+            params={"url": "https://api.example.com/data", "method": "GET"}
+        )
         result = self.translator.translate(node, _context())
 
         assert "HTTP Request" in result.states
@@ -95,11 +100,13 @@ class TestSimpleRequests:
 
     def test_post_with_json_body(self) -> None:
         """Test POST request with JSON body."""
-        node = _http_node(params={
-            "url": "https://api.example.com/items",
-            "method": "POST",
-            "jsonBody": '{"name": "test", "value": 42}',
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com/items",
+                "method": "POST",
+                "jsonBody": '{"name": "test", "value": 42}',
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]
@@ -109,10 +116,12 @@ class TestSimpleRequests:
 
     def test_put_method(self) -> None:
         """Test PUT method translation."""
-        node = _http_node(params={
-            "url": "https://api.example.com/items/1",
-            "method": "PUT",
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com/items/1",
+                "method": "PUT",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]
@@ -121,10 +130,12 @@ class TestSimpleRequests:
 
     def test_delete_method(self) -> None:
         """Test DELETE method translation."""
-        node = _http_node(params={
-            "url": "https://api.example.com/items/1",
-            "method": "DELETE",
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com/items/1",
+                "method": "DELETE",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]
@@ -133,10 +144,12 @@ class TestSimpleRequests:
 
     def test_patch_method(self) -> None:
         """Test PATCH method translation."""
-        node = _http_node(params={
-            "url": "https://api.example.com/items/1",
-            "method": "PATCH",
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com/items/1",
+                "method": "PATCH",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]
@@ -153,15 +166,17 @@ class TestHeadersAndQueryParams:
 
     def test_custom_headers(self) -> None:
         """Test custom headers are mapped correctly."""
-        node = _http_node(params={
-            "url": "https://api.example.com",
-            "headerParameters": {
-                "parameters": [
-                    {"name": "Content-Type", "value": "application/json"},
-                    {"name": "X-Custom", "value": "hello"},
-                ],
-            },
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com",
+                "headerParameters": {
+                    "parameters": [
+                        {"name": "Content-Type", "value": "application/json"},
+                        {"name": "X-Custom", "value": "hello"},
+                    ],
+                },
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]
@@ -172,15 +187,17 @@ class TestHeadersAndQueryParams:
 
     def test_query_parameters(self) -> None:
         """Test query parameters are mapped correctly."""
-        node = _http_node(params={
-            "url": "https://api.example.com",
-            "queryParameters": {
-                "parameters": [
-                    {"name": "page", "value": "1"},
-                    {"name": "limit", "value": "50"},
-                ],
-            },
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com",
+                "queryParameters": {
+                    "parameters": [
+                        {"name": "page", "value": "1"},
+                        {"name": "limit", "value": "50"},
+                    ],
+                },
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]
@@ -191,16 +208,18 @@ class TestHeadersAndQueryParams:
 
     def test_body_parameters(self) -> None:
         """Test form-style body parameters are mapped correctly."""
-        node = _http_node(params={
-            "url": "https://api.example.com",
-            "method": "POST",
-            "bodyParameters": {
-                "parameters": [
-                    {"name": "field1", "value": "value1"},
-                    {"name": "field2", "value": "value2"},
-                ],
-            },
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com",
+                "method": "POST",
+                "bodyParameters": {
+                    "parameters": [
+                        {"name": "field1", "value": "value1"},
+                        {"name": "field2", "value": "value2"},
+                    ],
+                },
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]
@@ -341,10 +360,12 @@ class TestNoAuth:
 
     def test_no_auth(self) -> None:
         """Test request without authentication has no credential artifacts."""
-        node = _http_node(params={
-            "url": "https://api.example.com",
-            "authentication": "none",
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com",
+                "authentication": "none",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         assert len(result.credential_artifacts) == 0
@@ -380,11 +401,13 @@ class TestAslValidity:
 
     def test_serialized_state_has_required_fields(self) -> None:
         """Test that serialized state contains required ASL fields."""
-        node = _http_node(params={
-            "url": "https://api.example.com",
-            "method": "POST",
-            "jsonBody": '{"key": "value"}',
-        })
+        node = _http_node(
+            params={
+                "url": "https://api.example.com",
+                "method": "POST",
+                "jsonBody": '{"key": "value"}',
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["HTTP Request"]

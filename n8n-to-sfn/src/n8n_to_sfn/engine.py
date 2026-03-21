@@ -70,7 +70,9 @@ class TranslationEngine:
     def translate(self, analysis: WorkflowAnalysis) -> TranslationOutput:
         """Run the full translation pipeline on an analyzed workflow."""
         ordered_names = self._topological_sort(analysis)
-        context = TranslationContext(analysis=analysis, spec_directory=self._spec_directory)
+        context = TranslationContext(
+            analysis=analysis, spec_directory=self._spec_directory
+        )
 
         all_states: dict[str, Any] = {}
         all_lambdas: list[LambdaArtifact] = []
@@ -94,8 +96,13 @@ class TranslationEngine:
                 continue
 
             self._process_lambda_expressions(
-                cn, context, result, all_states,
-                all_lambdas, all_warnings, entry_state_overrides,
+                cn,
+                context,
+                result,
+                all_states,
+                all_lambdas,
+                all_warnings,
+                entry_state_overrides,
             )
 
             all_lambdas.extend(result.lambda_artifacts)
@@ -121,16 +128,24 @@ class TranslationEngine:
         )
 
         self._apply_map_for_split_in_batches(
-            all_states, analysis, node_state_names,
-            split_in_batches_metadata, all_warnings,
+            all_states,
+            analysis,
+            node_state_names,
+            split_in_batches_metadata,
+            all_warnings,
         )
 
         self._wire_transitions(
-            all_states, analysis, node_state_names, entry_state_overrides,
+            all_states,
+            analysis,
+            node_state_names,
+            entry_state_overrides,
         )
 
         start_at = self._determine_start_at(
-            ordered_names, node_state_names, entry_state_overrides,
+            ordered_names,
+            node_state_names,
+            entry_state_overrides,
         )
         sm = StateMachine(start_at=start_at, states=all_states)  # type: ignore[missing-argument, unknown-argument]
 
@@ -254,9 +269,7 @@ class TranslationEngine:
         sorter = graphlib.TopologicalSorter(graph)
         return list(sorter.static_order())
 
-    def _find_loop_back_edges(
-        self, analysis: WorkflowAnalysis
-    ) -> set[tuple[str, str]]:
+    def _find_loop_back_edges(self, analysis: WorkflowAnalysis) -> set[tuple[str, str]]:
         """Identify back-edges from SplitInBatches loop bodies."""
         sib_names = {
             cn.node.name
@@ -272,9 +285,9 @@ class TranslationEngine:
             if edge.edge_type == "CONNECTION":
                 successors.setdefault(edge.from_node, []).append(edge.to_node)
                 if edge.output_index is not None:
-                    output_successors.setdefault(
-                        edge.from_node, {}
-                    ).setdefault(edge.output_index, []).append(edge.to_node)
+                    output_successors.setdefault(edge.from_node, {}).setdefault(
+                        edge.output_index, []
+                    ).append(edge.to_node)
 
         back_edges: set[tuple[str, str]] = set()
         for sib_name in sib_names:
@@ -315,9 +328,7 @@ class TranslationEngine:
                 )
                 continue
 
-            fork_node = self._find_fork_point(
-                merge_name, incoming, predecessors
-            )
+            fork_node = self._find_fork_point(merge_name, incoming, predecessors)
             if fork_node is None:
                 warnings.append(
                     f"Merge node '{merge_name}': could not determine common "
@@ -337,8 +348,13 @@ class TranslationEngine:
                 continue
 
             self._install_parallel_state(
-                merge_name, fork_node, meta, branches,
-                branch_state_names, all_states, node_state_names,
+                merge_name,
+                fork_node,
+                meta,
+                branches,
+                branch_state_names,
+                all_states,
+                node_state_names,
                 successors,
             )
 
@@ -355,9 +371,7 @@ class TranslationEngine:
         branch_state_names: set[str] = set()
 
         for branch_start in successors.get(fork_node, []):
-            chain = self._collect_branch_chain(
-                branch_start, merge_name, successors
-            )
+            chain = self._collect_branch_chain(branch_start, merge_name, successors)
             if not chain:
                 continue
 
@@ -429,9 +443,7 @@ class TranslationEngine:
         # Remove fork's successors from node_state_names so wiring
         # doesn't attempt to set Next on removed states.
         for branch_start in successors.get(fork_node, []):
-            chain = self._collect_branch_chain(
-                branch_start, merge_name, successors
-            )
+            chain = self._collect_branch_chain(branch_start, merge_name, successors)
             for name in chain:
                 sn = node_state_names.get(name)
                 if sn and sn in branch_state_names:
@@ -481,9 +493,8 @@ class TranslationEngine:
         # Find the first node that appears in all chains
         first_chain_set = set(ancestor_chains[0])
         for ancestor in ancestor_chains[0]:
-            if (
-                ancestor in first_chain_set
-                and all(ancestor in set(chain) for chain in ancestor_chains[1:])
+            if ancestor in first_chain_set and all(
+                ancestor in set(chain) for chain in ancestor_chains[1:]
             ):
                 return ancestor
         return None
@@ -537,8 +548,12 @@ class TranslationEngine:
 
         for sib_name in split_metadata:
             self._process_single_split_in_batches(
-                sib_name, output_successors, successors,
-                all_states, node_state_names, warnings,
+                sib_name,
+                output_successors,
+                successors,
+                all_states,
+                node_state_names,
+                warnings,
             )
 
     def _process_single_split_in_batches(
@@ -567,9 +582,7 @@ class TranslationEngine:
             )
             return
 
-        inner_states = self._build_inner_states(
-            loop_body, node_state_names, all_states
-        )
+        inner_states = self._build_inner_states(loop_body, node_state_names, all_states)
         if not inner_states:
             return
 
@@ -693,7 +706,10 @@ class TranslationEngine:
                 successors.setdefault(edge.from_node, []).append(edge.to_node)
 
         self._apply_next_transitions(
-            all_states, node_state_names, successors, entry_state_overrides,
+            all_states,
+            node_state_names,
+            successors,
+            entry_state_overrides,
         )
         self._apply_end_to_terminal_states(all_states)
 

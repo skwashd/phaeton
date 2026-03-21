@@ -55,12 +55,15 @@ class TestListVersions:
                 tarball_url="https://example.com/1.20.0.tgz",
             ),
         ]
-        with patch(
-            "n8n_release_parser.service.list_versions",
-            wraps=service.list_versions,
-        ), patch(
-            "n8n_release_parser.fetcher.list_versions",
-            return_value=expected,
+        with (
+            patch(
+                "n8n_release_parser.service.list_versions",
+                wraps=service.list_versions,
+            ),
+            patch(
+                "n8n_release_parser.fetcher.list_versions",
+                return_value=expected,
+            ),
         ):
             result = service.list_versions(months=6)
 

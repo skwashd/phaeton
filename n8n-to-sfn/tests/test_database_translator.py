@@ -74,8 +74,11 @@ class TestDatabaseTranslatorCanTranslate:
         """Test can_translate returns False for non-database node types."""
         node = ClassifiedNode(
             node=N8nNode(  # type: ignore[missing-argument]
-                id="x", name="x", type="n8n-nodes-base.httpRequest",
-                type_version=1, position=[0, 0],  # type: ignore[unknown-argument]
+                id="x",
+                name="x",
+                type="n8n-nodes-base.httpRequest",
+                type_version=1,
+                position=[0, 0],  # type: ignore[unknown-argument]
             ),
             classification=NodeClassification.AWS_NATIVE,
         )
@@ -91,9 +94,11 @@ class TestSelectQuery:
 
     def test_raw_select_query(self) -> None:
         """Test raw SQL SELECT query translation."""
-        node = _db_node(params={
-            "query": "SELECT * FROM users WHERE id = :id",
-        })
+        node = _db_node(
+            params={
+                "query": "SELECT * FROM users WHERE id = :id",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         assert "Database Query" in result.states
@@ -104,12 +109,17 @@ class TestSelectQuery:
 
     def test_select_with_parameters(self) -> None:
         """Test SELECT query with parameterized values."""
-        node = _db_node(params={
-            "query": "SELECT * FROM users WHERE id = :id",
-            "parameters": [
-                {"name": "id", "value": {"longValue": "{% $states.input.userId %}"}},
-            ],
-        })
+        node = _db_node(
+            params={
+                "query": "SELECT * FROM users WHERE id = :id",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "value": {"longValue": "{% $states.input.userId %}"},
+                    },
+                ],
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -120,14 +130,16 @@ class TestSelectQuery:
 
     def test_orm_style_select(self) -> None:
         """Test ORM-style SELECT operation builds SQL from parameters."""
-        node = _db_node(params={
-            "operation": "select",
-            "table": "users",
-            "columns": "id, name, email",
-            "where": "active = true",
-            "sort": "name ASC",
-            "limit": "10",
-        })
+        node = _db_node(
+            params={
+                "operation": "select",
+                "table": "users",
+                "columns": "id, name, email",
+                "where": "active = true",
+                "sort": "name ASC",
+                "limit": "10",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -137,10 +149,12 @@ class TestSelectQuery:
 
     def test_orm_select_defaults(self) -> None:
         """Test ORM-style SELECT with default columns (*)."""
-        node = _db_node(params={
-            "operation": "select",
-            "table": "users",
-        })
+        node = _db_node(
+            params={
+                "operation": "select",
+                "table": "users",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -157,28 +171,38 @@ class TestInsertQuery:
 
     def test_raw_insert_query(self) -> None:
         """Test raw SQL INSERT query translation."""
-        node = _db_node(params={
-            "query": "INSERT INTO users (name, email) VALUES (:name, :email)",
-        })
+        node = _db_node(
+            params={
+                "query": "INSERT INTO users (name, email) VALUES (:name, :email)",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
         assert state.arguments is not None
-        assert state.arguments["Sql"] == "INSERT INTO users (name, email) VALUES (:name, :email)"
+        assert (
+            state.arguments["Sql"]
+            == "INSERT INTO users (name, email) VALUES (:name, :email)"
+        )
 
     def test_orm_style_insert(self) -> None:
         """Test ORM-style INSERT operation builds SQL from parameters."""
-        node = _db_node(params={
-            "operation": "insert",
-            "table": "users",
-            "columns": "name, email",
-            "values": ":name, :email",
-        })
+        node = _db_node(
+            params={
+                "operation": "insert",
+                "table": "users",
+                "columns": "name, email",
+                "values": ":name, :email",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
         assert state.arguments is not None
-        assert state.arguments["Sql"] == "INSERT INTO users (name, email) VALUES (:name, :email)"
+        assert (
+            state.arguments["Sql"]
+            == "INSERT INTO users (name, email) VALUES (:name, :email)"
+        )
 
 
 class TestUpdateQuery:
@@ -190,9 +214,11 @@ class TestUpdateQuery:
 
     def test_raw_update_query(self) -> None:
         """Test raw SQL UPDATE query translation."""
-        node = _db_node(params={
-            "query": "UPDATE users SET name = :name WHERE id = :id",
-        })
+        node = _db_node(
+            params={
+                "query": "UPDATE users SET name = :name WHERE id = :id",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -201,17 +227,22 @@ class TestUpdateQuery:
 
     def test_orm_style_update(self) -> None:
         """Test ORM-style UPDATE operation builds SQL from parameters."""
-        node = _db_node(params={
-            "operation": "update",
-            "table": "users",
-            "set": "name = :name, email = :email",
-            "where": "id = :id",
-        })
+        node = _db_node(
+            params={
+                "operation": "update",
+                "table": "users",
+                "set": "name = :name, email = :email",
+                "where": "id = :id",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
         assert state.arguments is not None
-        assert state.arguments["Sql"] == "UPDATE users SET name = :name, email = :email WHERE id = :id"
+        assert (
+            state.arguments["Sql"]
+            == "UPDATE users SET name = :name, email = :email WHERE id = :id"
+        )
 
 
 class TestDeleteQuery:
@@ -223,9 +254,11 @@ class TestDeleteQuery:
 
     def test_raw_delete_query(self) -> None:
         """Test raw SQL DELETE query translation."""
-        node = _db_node(params={
-            "query": "DELETE FROM users WHERE id = :id",
-        })
+        node = _db_node(
+            params={
+                "query": "DELETE FROM users WHERE id = :id",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -234,11 +267,13 @@ class TestDeleteQuery:
 
     def test_orm_style_delete(self) -> None:
         """Test ORM-style DELETE operation builds SQL from parameters."""
-        node = _db_node(params={
-            "operation": "delete",
-            "table": "users",
-            "where": "id = :id",
-        })
+        node = _db_node(
+            params={
+                "operation": "delete",
+                "table": "users",
+                "where": "id = :id",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -255,14 +290,18 @@ class TestBatchStatements:
 
     def test_batch_uses_batch_resource(self) -> None:
         """Test batch operations use batchExecuteStatement resource."""
-        node = _db_node(params={
-            "query": "INSERT INTO users (name) VALUES (:name)",
-            "batch": True,
-        })
+        node = _db_node(
+            params={
+                "query": "INSERT INTO users (name) VALUES (:name)",
+                "batch": True,
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
-        assert state.resource == "arn:aws:states:::aws-sdk:rdsdata:batchExecuteStatement"
+        assert (
+            state.resource == "arn:aws:states:::aws-sdk:rdsdata:batchExecuteStatement"
+        )
 
     def test_batch_with_parameter_sets(self) -> None:
         """Test batch operations map parameters to ParameterSets."""
@@ -270,11 +309,13 @@ class TestBatchStatements:
             [{"name": "name", "value": {"stringValue": "Alice"}}],
             [{"name": "name", "value": {"stringValue": "Bob"}}],
         ]
-        node = _db_node(params={
-            "query": "INSERT INTO users (name) VALUES (:name)",
-            "batch": True,
-            "parameters": parameter_sets,
-        })
+        node = _db_node(
+            params={
+                "query": "INSERT INTO users (name) VALUES (:name)",
+                "batch": True,
+                "parameters": parameter_sets,
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -284,9 +325,11 @@ class TestBatchStatements:
 
     def test_non_batch_uses_execute_resource(self) -> None:
         """Test non-batch operations use executeStatement resource."""
-        node = _db_node(params={
-            "query": "SELECT 1",
-        })
+        node = _db_node(
+            params={
+                "query": "SELECT 1",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
@@ -382,15 +425,20 @@ class TestAslValidity:
 
     def test_serialized_state_has_required_fields(self) -> None:
         """Test that serialized state contains required ASL fields."""
-        node = _db_node(params={
-            "query": "SELECT * FROM users",
-        })
+        node = _db_node(
+            params={
+                "query": "SELECT * FROM users",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
         serialized = state.model_dump(by_alias=True)
         assert serialized["Type"] == "Task"
-        assert serialized["Resource"] == "arn:aws:states:::aws-sdk:rdsdata:executeStatement"
+        assert (
+            serialized["Resource"]
+            == "arn:aws:states:::aws-sdk:rdsdata:executeStatement"
+        )
         assert "Arguments" in serialized
         assert serialized["Arguments"]["Sql"] == "SELECT * FROM users"
         assert serialized["Arguments"]["ResourceArn"] == "${DatabaseClusterArn}"
@@ -399,22 +447,29 @@ class TestAslValidity:
 
     def test_batch_serialized_state(self) -> None:
         """Test that serialized batch state uses correct resource."""
-        node = _db_node(params={
-            "query": "INSERT INTO users (name) VALUES (:name)",
-            "batch": True,
-        })
+        node = _db_node(
+            params={
+                "query": "INSERT INTO users (name) VALUES (:name)",
+                "batch": True,
+            }
+        )
         result = self.translator.translate(node, _context())
 
         state = result.states["Database Query"]
         serialized = state.model_dump(by_alias=True)
-        assert serialized["Resource"] == "arn:aws:states:::aws-sdk:rdsdata:batchExecuteStatement"
+        assert (
+            serialized["Resource"]
+            == "arn:aws:states:::aws-sdk:rdsdata:batchExecuteStatement"
+        )
 
     def test_unsupported_operation_warning(self) -> None:
         """Test that unsupported operations produce a warning."""
-        node = _db_node(params={
-            "operation": "upsert",
-            "table": "users",
-        })
+        node = _db_node(
+            params={
+                "operation": "upsert",
+                "table": "users",
+            }
+        )
         result = self.translator.translate(node, _context())
 
         assert len(result.warnings) == 1

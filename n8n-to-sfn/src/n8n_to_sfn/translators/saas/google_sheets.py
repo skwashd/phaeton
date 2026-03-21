@@ -91,16 +91,18 @@ class GoogleSheetsTranslator(BaseSaaSTranslator):
             sheet_id = params.get("sheetId", 0)
             start_index = params.get("startIndex", 0)
             end_index = params.get("endIndex", 1)
-            body["requests"] = [{
-                "deleteRange": {
-                    "range": {
-                        "sheetId": sheet_id,
-                        "startRowIndex": start_index,
-                        "endRowIndex": end_index,
+            body["requests"] = [
+                {
+                    "deleteRange": {
+                        "range": {
+                            "sheetId": sheet_id,
+                            "startRowIndex": start_index,
+                            "endRowIndex": end_index,
+                        },
+                        "shiftDimension": "ROWS",
                     },
-                    "shiftDimension": "ROWS",
-                },
-            }]
+                }
+            ]
         elif op_key == "spreadsheet:create":
             body["properties"] = {"title": params.get("title", "Untitled")}
         else:

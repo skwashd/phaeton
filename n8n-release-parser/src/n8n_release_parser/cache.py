@@ -102,9 +102,7 @@ class NodeCache:
     # Lookup / mutation
     # ------------------------------------------------------------------
 
-    def get(
-        self, file_path: str, file_hash: str
-    ) -> list[NodeTypeEntry] | None:
+    def get(self, file_path: str, file_hash: str) -> list[NodeTypeEntry] | None:
         """Return cached entries when *file_hash* matches, else ``None``."""
         entry = self._data.get(file_path)
         if entry is None:
@@ -112,16 +110,12 @@ class NodeCache:
         if entry.get("sha256") != file_hash:
             return None
         try:
-            return [
-                NodeTypeEntry.model_validate(e) for e in entry["entries"]
-            ]
-        except (KeyError, TypeError, ValueError):
+            return [NodeTypeEntry.model_validate(e) for e in entry["entries"]]
+        except KeyError, TypeError, ValueError:
             logger.warning("Failed to deserialize cache entry for %s", file_path)
             return None
 
-    def put(
-        self, file_path: str, file_hash: str, entries: list[NodeTypeEntry]
-    ) -> None:
+    def put(self, file_path: str, file_hash: str, entries: list[NodeTypeEntry]) -> None:
         """Store parsed entries for *file_path* with its content hash."""
         self._data[file_path] = {
             "sha256": file_hash,

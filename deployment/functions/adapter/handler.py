@@ -67,7 +67,9 @@ def handler(event: dict[str, Any], context: LambdaContext | None) -> dict[str, A
     try:
         if operation == "analyzer_to_translator":
             return _adapt_analyzer_to_translator(payload)
-        return _adapt_translator_to_packager(payload, event.get("workflow_name", "unnamed"))
+        return _adapt_translator_to_packager(
+            payload, event.get("workflow_name", "unnamed")
+        )
     except Exception as exc:
         logger.exception("Adapter conversion failed", extra={"operation": operation})
         return _error_response(

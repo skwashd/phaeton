@@ -79,4 +79,3 @@ class WorkflowAnalyzer:
             graph,
             cross_refs,
         )
-

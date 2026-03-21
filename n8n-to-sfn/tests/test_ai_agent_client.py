@@ -84,12 +84,21 @@ class TestTranslateNode:
 
     def test_success(self) -> None:
         """Successful Lambda invocation returns TranslationResult with ai_generated metadata."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "states": {"SendEmail": {"Type": "Task", "Resource": "arn:aws:states:::ses:sendEmail"}},
-            "confidence": "HIGH",
-            "explanation": "Mapped to SES",
-            "warnings": [],
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "states": {
+                        "SendEmail": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::ses:sendEmail",
+                        }
+                    },
+                    "confidence": "HIGH",
+                    "explanation": "Mapped to SES",
+                    "warnings": [],
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         node = _make_node(name="Send Email")
         result = client.translate_node(node, _make_context())
@@ -101,13 +110,17 @@ class TestTranslateNode:
 
     def test_error_response(self) -> None:
         """Lambda error response returns TranslationResult with warning."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "error": {
-                "status_code": 500,
-                "error_type": "RuntimeError",
-                "message": "Agent failed",
-            },
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "error": {
+                        "status_code": 500,
+                        "error_type": "RuntimeError",
+                        "message": "Agent failed",
+                    },
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         result = client.translate_node(_make_node(), _make_context())
 
@@ -127,12 +140,16 @@ class TestTranslateNode:
 
     def test_invocation_payload(self) -> None:
         """Lambda is invoked with a flat payload (no operation wrapper)."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "states": {},
-            "confidence": "MEDIUM",
-            "explanation": "",
-            "warnings": [],
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "states": {},
+                    "confidence": "MEDIUM",
+                    "explanation": "",
+                    "warnings": [],
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         node = _make_node(name="My Node", node_type="n8n-nodes-base.custom")
         client.translate_node(node, _make_context())
@@ -146,12 +163,16 @@ class TestTranslateNode:
 
     def test_invokes_correct_function(self) -> None:
         """translate_node invokes the node translator Lambda."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "states": {},
-            "confidence": "LOW",
-            "explanation": "",
-            "warnings": [],
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "states": {},
+                    "confidence": "LOW",
+                    "explanation": "",
+                    "warnings": [],
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         client.translate_node(_make_node(), _make_context())
 
@@ -164,11 +185,15 @@ class TestTranslateExpression:
 
     def test_success(self) -> None:
         """Successful invocation returns the translated expression string."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "translated": "$states.input.name",
-            "confidence": "HIGH",
-            "explanation": "Direct field access",
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "translated": "$states.input.name",
+                    "confidence": "HIGH",
+                    "explanation": "Direct field access",
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         result = client.translate_expression(
             "{{ $json.name }}", _make_node(), _make_context()
@@ -178,13 +203,17 @@ class TestTranslateExpression:
 
     def test_error_returns_original(self) -> None:
         """Lambda error response returns the original expression."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "error": {
-                "status_code": 500,
-                "error_type": "RuntimeError",
-                "message": "Agent failed",
-            },
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "error": {
+                        "status_code": 500,
+                        "error_type": "RuntimeError",
+                        "message": "Agent failed",
+                    },
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         result = client.translate_expression(
             "{{ $json.name }}", _make_node(), _make_context()
@@ -204,9 +233,13 @@ class TestTranslateExpression:
 
     def test_invokes_correct_function(self) -> None:
         """translate_expression invokes the expression translator Lambda."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "translated": "$.input",
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "translated": "$.input",
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         client.translate_expression("{{ $json.x }}", _make_node(), _make_context())
 
@@ -215,9 +248,13 @@ class TestTranslateExpression:
 
     def test_flat_payload(self) -> None:
         """Lambda is invoked with a flat payload (no operation wrapper)."""
-        mock_invoke = MagicMock(return_value=_mock_lambda_response({
-            "translated": "$.input",
-        }))
+        mock_invoke = MagicMock(
+            return_value=_mock_lambda_response(
+                {
+                    "translated": "$.input",
+                }
+            )
+        )
         client = _create_client_with_mock(mock_invoke)
         client.translate_expression("{{ $json.x }}", _make_node(), _make_context())
 

@@ -43,7 +43,8 @@ class TestJsonRoundTrip:
     """TranslationOutput survives JSON serialization across the boundary."""
 
     def test_output_serializes_and_adapter_accepts(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Serialize output to JSON, deserialize, then convert via adapter."""
         json_data = sample_translation_output.model_dump(mode="json")
@@ -52,7 +53,8 @@ class TestJsonRoundTrip:
         assert isinstance(result, PackagerInput)
 
     def test_output_json_string_round_trip(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Verify JSON string serialization fidelity."""
         json_str = sample_translation_output.model_dump_json()
@@ -64,11 +66,13 @@ class TestJsonRoundTrip:
         )
 
     def test_packager_input_is_itself_serializable(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """PackagerInput produced by adapter round-trips through JSON."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         json_data = result.model_dump(mode="json")
         restored = PackagerInput.model_validate(json_data)
@@ -117,58 +121,67 @@ class TestTriggerTypeEnumMapping:
 
     def test_lambda_furl_maps_to_webhook(self) -> None:
         """LAMBDA_FURL maps to WEBHOOK."""
-        assert (
-            map_trigger_type(EngTriggerType.LAMBDA_FURL) == PkgTriggerType.WEBHOOK
-        )
+        assert map_trigger_type(EngTriggerType.LAMBDA_FURL) == PkgTriggerType.WEBHOOK
 
     def test_manual_maps_to_manual(self) -> None:
         """MANUAL maps to MANUAL."""
-        assert (
-            map_trigger_type(EngTriggerType.MANUAL) == PkgTriggerType.MANUAL
-        )
+        assert map_trigger_type(EngTriggerType.MANUAL) == PkgTriggerType.MANUAL
 
 
 class TestLambdaConversion:
     """LambdaArtifact converts to LambdaFunctionSpec with correct types."""
 
     def test_lambda_artifacts_converted(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """All lambda artifacts become lambda function specs."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         assert len(result.lambda_functions) == len(
             sample_translation_output.lambda_artifacts,
         )
 
     def test_function_names_preserved(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Function names pass through unchanged."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
-        orig_names = [a.function_name for a in sample_translation_output.lambda_artifacts]
+        orig_names = [
+            a.function_name for a in sample_translation_output.lambda_artifacts
+        ]
         conv_names = [f.function_name for f in result.lambda_functions]
         assert conv_names == orig_names
 
     def test_function_type_inference_webhook(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Function named 'webhook_handler' infers WEBHOOK_HANDLER type."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         fn_map = {f.function_name: f for f in result.lambda_functions}
-        assert fn_map["webhook_handler"].function_type == LambdaFunctionType.WEBHOOK_HANDLER
+        assert (
+            fn_map["webhook_handler"].function_type
+            == LambdaFunctionType.WEBHOOK_HANDLER
+        )
 
     def test_function_type_inference_picofun(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Function named 'picofun_*' infers PICOFUN_API_CLIENT type."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         fn_map = {f.function_name: f for f in result.lambda_functions}
         assert (
@@ -177,11 +190,13 @@ class TestLambdaConversion:
         )
 
     def test_dependencies_preserved(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Dependencies list passes through unchanged."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         fn_map = {f.function_name: f for f in result.lambda_functions}
         assert fn_map["transform_handler"].dependencies == ["aws-sdk"]
@@ -191,22 +206,26 @@ class TestTriggerConversion:
     """TriggerArtifact converts to TriggerSpec correctly."""
 
     def test_trigger_artifacts_converted(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """All trigger artifacts become trigger specs."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         assert len(result.triggers) == len(
             sample_translation_output.trigger_artifacts,
         )
 
     def test_trigger_types_mapped(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Trigger types use packager enum values."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         trigger_types = {t.trigger_type for t in result.triggers}
         assert PkgTriggerType.SCHEDULE in trigger_types
@@ -214,11 +233,13 @@ class TestTriggerConversion:
         assert PkgTriggerType.MANUAL in trigger_types
 
     def test_associated_lambda_name_set(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Trigger with lambda_artifact gets associated_lambda_name."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         webhook_triggers = [
             t for t in result.triggers if t.trigger_type == PkgTriggerType.WEBHOOK
@@ -231,22 +252,26 @@ class TestCredentialConversion:
     """CredentialArtifact converts to CredentialSpec correctly."""
 
     def test_credentials_converted(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """All credential artifacts become credential specs."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         assert len(result.credentials) == len(
             sample_translation_output.credential_artifacts,
         )
 
     def test_credential_path_normalised(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Credential paths always start with '/'."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         for cred in result.credentials:
             assert cred.parameter_path.startswith("/"), (
@@ -295,20 +320,24 @@ class TestMetadataMapping:
     """Conversion report metadata maps to WorkflowMetadata."""
 
     def test_workflow_name_set(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Workflow name from argument is used."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "my-workflow",
+            sample_translation_output,
+            "my-workflow",
         )
         assert result.metadata.workflow_name == "my-workflow"
 
     def test_n8n_version_from_report(
-        self, sample_translation_output: TranslationOutput,
+        self,
+        sample_translation_output: TranslationOutput,
     ) -> None:
         """Source n8n version comes from conversion_report dict."""
         result = convert_output_to_packager_input(
-            sample_translation_output, "test-workflow",
+            sample_translation_output,
+            "test-workflow",
         )
         assert result.metadata.source_n8n_version == "1.50.0"
 
@@ -328,9 +357,7 @@ class TestSchemaCompatibility:
             "conversion_report",
         ]
         for field in adapter_reads:
-            assert field in props, (
-                f"TranslationOutput missing field {field!r}"
-            )
+            assert field in props, f"TranslationOutput missing field {field!r}"
 
     def test_packager_input_schema_covers_adapter_output(self) -> None:
         """PackagerInput schema matches what the adapter produces."""
@@ -338,6 +365,4 @@ class TestSchemaCompatibility:
         required = schema.get("required", [])
         expected = ["metadata", "state_machine", "conversion_report"]
         for field in expected:
-            assert field in required, (
-                f"PackagerInput missing required field {field!r}"
-            )
+            assert field in required, f"PackagerInput missing required field {field!r}"

@@ -693,7 +693,10 @@ class TestCredentialsMd:
         """Test that CREDENTIALS.md includes OAuth credential sections."""
         writer = CDKWriter()
         writer.write(
-            _complex_input(), _make_iam_policy(), _make_ssm_params(), tmp_path,
+            _complex_input(),
+            _make_iam_policy(),
+            _make_ssm_params(),
+            tmp_path,
         )
         content = (tmp_path / "CREDENTIALS.md").read_text()
         assert "OAuth Credentials" in content
@@ -872,7 +875,7 @@ class TestVpcConfiguration:
         assert "from aws_cdk import aws_ec2 as ec2" in code
         assert "ec2.Vpc.from_lookup" in code
         assert "ec2.Vpc(self" in code
-        assert 'ec2.SecurityGroup(' in code
+        assert "ec2.SecurityGroup(" in code
 
     def test_shared_stack_no_vpc_without_config(self, tmp_path: Path) -> None:
         """Test that shared stack omits VPC constructs when no VPC config."""

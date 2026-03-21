@@ -16,15 +16,9 @@ from tests.e2e.conftest import PipelineResult
 class TestCodeNodePipelineOutput:
     """Verify the pipeline output for a Code-node workflow."""
 
-    def test_asl_definition_is_valid(
-        self, code_node_result: PipelineResult
-    ) -> None:
+    def test_asl_definition_is_valid(self, code_node_result: PipelineResult) -> None:
         """ASL JSON must be structurally valid."""
-        asl_path = (
-            code_node_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
-        )
+        asl_path = code_node_result.output_dir / "statemachine" / "definition.asl.json"
         assert asl_path.exists(), "ASL definition file not found"
         asl = json.loads(asl_path.read_text())
         assert "StartAt" in asl
@@ -42,9 +36,7 @@ class TestCodeNodePipelineOutput:
             source = py_file.read_text()
             ast.parse(source, filename=str(py_file))
 
-    def test_lambda_artifact_generated(
-        self, code_node_result: PipelineResult
-    ) -> None:
+    def test_lambda_artifact_generated(self, code_node_result: PipelineResult) -> None:
         """The Code node must produce at least one Lambda artifact."""
         assert len(code_node_result.boundary_output.lambda_artifacts) > 0, (
             "No Lambda artifacts produced for Code node workflow"
@@ -63,33 +55,19 @@ class TestCodeNodePipelineOutput:
         self, code_node_result: PipelineResult
     ) -> None:
         """The ASL definition must contain a lambda:invoke resource."""
-        asl_path = (
-            code_node_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
-        )
+        asl_path = code_node_result.output_dir / "statemachine" / "definition.asl.json"
         asl_text = asl_path.read_text()
-        assert "lambda" in asl_text.lower(), (
-            "ASL definition does not reference Lambda"
-        )
+        assert "lambda" in asl_text.lower(), "ASL definition does not reference Lambda"
 
-    def test_sns_state_in_asl(
-        self, code_node_result: PipelineResult
-    ) -> None:
+    def test_sns_state_in_asl(self, code_node_result: PipelineResult) -> None:
         """The SNS Publish node must appear as a state in the ASL definition."""
-        asl_path = (
-            code_node_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
-        )
+        asl_path = code_node_result.output_dir / "statemachine" / "definition.asl.json"
         asl = json.loads(asl_path.read_text())
         assert "PublishSNS" in asl["States"], (
             f"PublishSNS state not found in ASL. States: {list(asl['States'].keys())}"
         )
 
-    def test_cdk_app_structure(
-        self, code_node_result: PipelineResult
-    ) -> None:
+    def test_cdk_app_structure(self, code_node_result: PipelineResult) -> None:
         """CDK application must include required files."""
         cdk_dir = code_node_result.output_dir / "cdk"
         assert (cdk_dir / "app.py").exists()
@@ -100,16 +78,13 @@ class TestCodeNodePipelineOutput:
 class TestCodeNodeBoundaryIntegrity:
     """Verify data integrity across adapter boundaries for Code node workflows."""
 
-    def test_all_nodes_classified(
-        self, code_node_result: PipelineResult
-    ) -> None:
+    def test_all_nodes_classified(self, code_node_result: PipelineResult) -> None:
         """Every workflow node must appear in the analyzer report."""
         workflow_node_names = {
             n["name"] for n in code_node_result.workflow_data["nodes"]
         }
         report_node_names = {
-            cn.node.name
-            for cn in code_node_result.report.classified_nodes
+            cn.node.name for cn in code_node_result.report.classified_nodes
         }
         assert workflow_node_names == report_node_names
 
@@ -117,13 +92,9 @@ class TestCodeNodeBoundaryIntegrity:
         self, code_node_result: PipelineResult
     ) -> None:
         """The analyzer-to-translator adapter must preserve all nodes."""
-        report_names = {
-            cn.node.name
-            for cn in code_node_result.report.classified_nodes
-        }
+        report_names = {cn.node.name for cn in code_node_result.report.classified_nodes}
         analysis_names = {
-            cn.node.name
-            for cn in code_node_result.analysis.classified_nodes
+            cn.node.name for cn in code_node_result.analysis.classified_nodes
         }
         assert report_names == analysis_names
 
@@ -132,16 +103,14 @@ class TestCodeNodeBoundaryIntegrity:
     ) -> None:
         """Every Lambda artifact from the translator must appear in packager output."""
         engine_lambda_names = {
-            la.function_name
-            for la in code_node_result.boundary_output.lambda_artifacts
+            la.function_name for la in code_node_result.boundary_output.lambda_artifacts
         }
         lambdas_dir = code_node_result.output_dir / "lambdas"
         if lambdas_dir.exists():
             packaged_dirs = {d.name for d in lambdas_dir.iterdir() if d.is_dir()}
             for name in engine_lambda_names:
                 assert any(
-                    name.replace("-", "_") in d or name in d
-                    for d in packaged_dirs
+                    name.replace("-", "_") in d or name in d for d in packaged_dirs
                 ), f"Lambda '{name}' not found in packager output: {packaged_dirs}"
 
     def test_code_node_classified_correctly(

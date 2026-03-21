@@ -349,24 +349,12 @@ class TestEngineMergeParallel:
                 _merge_node("Merge", "n8n-nodes-base.merge"),
             ],
             dependency_edges=[
-                DependencyEdge(
-                    from_node="Fork", to_node="A", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="Fork", to_node="B", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="Fork", to_node="C", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="A", to_node="Merge", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="B", to_node="Merge", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="C", to_node="Merge", edge_type="CONNECTION"
-                ),
+                DependencyEdge(from_node="Fork", to_node="A", edge_type="CONNECTION"),
+                DependencyEdge(from_node="Fork", to_node="B", edge_type="CONNECTION"),
+                DependencyEdge(from_node="Fork", to_node="C", edge_type="CONNECTION"),
+                DependencyEdge(from_node="A", to_node="Merge", edge_type="CONNECTION"),
+                DependencyEdge(from_node="B", to_node="Merge", edge_type="CONNECTION"),
+                DependencyEdge(from_node="C", to_node="Merge", edge_type="CONNECTION"),
             ],
         )
         engine = TranslationEngine(translators=[MergePassTranslator()])
@@ -375,6 +363,7 @@ class TestEngineMergeParallel:
         fork_state = _sm(output).states["Fork"]
         assert isinstance(fork_state, ParallelState)
         assert len(fork_state.branches) == 3
+
     def test_merge_mode_in_comment(self) -> None:
         """Test merge mode is reflected in the Parallel state comment."""
         analysis = WorkflowAnalysis(
@@ -387,18 +376,10 @@ class TestEngineMergeParallel:
                 ),
             ],
             dependency_edges=[
-                DependencyEdge(
-                    from_node="Fork", to_node="A", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="Fork", to_node="B", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="A", to_node="Merge", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="B", to_node="Merge", edge_type="CONNECTION"
-                ),
+                DependencyEdge(from_node="Fork", to_node="A", edge_type="CONNECTION"),
+                DependencyEdge(from_node="Fork", to_node="B", edge_type="CONNECTION"),
+                DependencyEdge(from_node="A", to_node="Merge", edge_type="CONNECTION"),
+                DependencyEdge(from_node="B", to_node="Merge", edge_type="CONNECTION"),
             ],
         )
         engine = TranslationEngine(translators=[MergePassTranslator()])
@@ -422,24 +403,12 @@ class TestEngineMergeParallel:
                 _merge_node("Merge", "n8n-nodes-base.merge"),
             ],
             dependency_edges=[
-                DependencyEdge(
-                    from_node="Fork", to_node="A1", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="A1", to_node="A2", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="A2", to_node="Merge", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="Fork", to_node="B1", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="B1", to_node="B2", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="B2", to_node="Merge", edge_type="CONNECTION"
-                ),
+                DependencyEdge(from_node="Fork", to_node="A1", edge_type="CONNECTION"),
+                DependencyEdge(from_node="A1", to_node="A2", edge_type="CONNECTION"),
+                DependencyEdge(from_node="A2", to_node="Merge", edge_type="CONNECTION"),
+                DependencyEdge(from_node="Fork", to_node="B1", edge_type="CONNECTION"),
+                DependencyEdge(from_node="B1", to_node="B2", edge_type="CONNECTION"),
+                DependencyEdge(from_node="B2", to_node="Merge", edge_type="CONNECTION"),
             ],
         )
         engine = TranslationEngine(translators=[MergePassTranslator()])
@@ -463,9 +432,7 @@ class TestEngineMergeParallel:
                 _merge_node("Merge", "n8n-nodes-base.merge"),
             ],
             dependency_edges=[
-                DependencyEdge(
-                    from_node="A", to_node="Merge", edge_type="CONNECTION"
-                ),
+                DependencyEdge(from_node="A", to_node="Merge", edge_type="CONNECTION"),
             ],
         )
         engine = TranslationEngine(translators=[MergePassTranslator()])
@@ -484,18 +451,10 @@ class TestEngineMergeParallel:
                 _merge_node("Final"),
             ],
             dependency_edges=[
-                DependencyEdge(
-                    from_node="Fork", to_node="A", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="Fork", to_node="B", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="A", to_node="Merge", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="B", to_node="Merge", edge_type="CONNECTION"
-                ),
+                DependencyEdge(from_node="Fork", to_node="A", edge_type="CONNECTION"),
+                DependencyEdge(from_node="Fork", to_node="B", edge_type="CONNECTION"),
+                DependencyEdge(from_node="A", to_node="Merge", edge_type="CONNECTION"),
+                DependencyEdge(from_node="B", to_node="Merge", edge_type="CONNECTION"),
                 DependencyEdge(
                     from_node="Merge", to_node="Final", edge_type="CONNECTION"
                 ),
@@ -518,18 +477,10 @@ class TestEngineMergeParallel:
                 _merge_node("Merge", "n8n-nodes-base.merge"),
             ],
             dependency_edges=[
-                DependencyEdge(
-                    from_node="Fork", to_node="A", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="Fork", to_node="B", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="A", to_node="Merge", edge_type="CONNECTION"
-                ),
-                DependencyEdge(
-                    from_node="B", to_node="Merge", edge_type="CONNECTION"
-                ),
+                DependencyEdge(from_node="Fork", to_node="A", edge_type="CONNECTION"),
+                DependencyEdge(from_node="Fork", to_node="B", edge_type="CONNECTION"),
+                DependencyEdge(from_node="A", to_node="Merge", edge_type="CONNECTION"),
+                DependencyEdge(from_node="B", to_node="Merge", edge_type="CONNECTION"),
             ],
         )
         engine = TranslationEngine(translators=[MergePassTranslator()])
@@ -604,16 +555,22 @@ class TestEngineSplitInBatches:
             ],
             dependency_edges=[
                 DependencyEdge(
-                    from_node="SIB", to_node="After",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="SIB",
+                    to_node="After",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
                 DependencyEdge(
-                    from_node="SIB", to_node="LoopStep",
-                    edge_type="CONNECTION", output_index=1,
+                    from_node="SIB",
+                    to_node="LoopStep",
+                    edge_type="CONNECTION",
+                    output_index=1,
                 ),
                 DependencyEdge(
-                    from_node="LoopStep", to_node="SIB",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="LoopStep",
+                    to_node="SIB",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
             ],
         )
@@ -653,20 +610,28 @@ class TestEngineSplitInBatches:
             ],
             dependency_edges=[
                 DependencyEdge(
-                    from_node="SIB", to_node="After",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="SIB",
+                    to_node="After",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
                 DependencyEdge(
-                    from_node="SIB", to_node="Step1",
-                    edge_type="CONNECTION", output_index=1,
+                    from_node="SIB",
+                    to_node="Step1",
+                    edge_type="CONNECTION",
+                    output_index=1,
                 ),
                 DependencyEdge(
-                    from_node="Step1", to_node="Step2",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="Step1",
+                    to_node="Step2",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
                 DependencyEdge(
-                    from_node="Step2", to_node="SIB",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="Step2",
+                    to_node="SIB",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
             ],
         )
@@ -695,19 +660,24 @@ class TestEngineSplitInBatches:
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 _sib_node(
-                    "SIB", "n8n-nodes-base.splitInBatches",
+                    "SIB",
+                    "n8n-nodes-base.splitInBatches",
                     params={"batchSize": 50},
                 ),
                 _sib_node("LoopStep"),
             ],
             dependency_edges=[
                 DependencyEdge(
-                    from_node="SIB", to_node="LoopStep",
-                    edge_type="CONNECTION", output_index=1,
+                    from_node="SIB",
+                    to_node="LoopStep",
+                    edge_type="CONNECTION",
+                    output_index=1,
                 ),
                 DependencyEdge(
-                    from_node="LoopStep", to_node="SIB",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="LoopStep",
+                    to_node="SIB",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
             ],
         )
@@ -727,8 +697,10 @@ class TestEngineSplitInBatches:
             ],
             dependency_edges=[
                 DependencyEdge(
-                    from_node="SIB", to_node="After",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="SIB",
+                    to_node="After",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
             ],
         )
@@ -747,16 +719,22 @@ class TestEngineSplitInBatches:
             ],
             dependency_edges=[
                 DependencyEdge(
-                    from_node="SIB", to_node="Final",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="SIB",
+                    to_node="Final",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
                 DependencyEdge(
-                    from_node="SIB", to_node="LoopStep",
-                    edge_type="CONNECTION", output_index=1,
+                    from_node="SIB",
+                    to_node="LoopStep",
+                    edge_type="CONNECTION",
+                    output_index=1,
                 ),
                 DependencyEdge(
-                    from_node="LoopStep", to_node="SIB",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="LoopStep",
+                    to_node="SIB",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
             ],
         )
@@ -777,16 +755,22 @@ class TestEngineSplitInBatches:
             ],
             dependency_edges=[
                 DependencyEdge(
-                    from_node="SIB", to_node="Done",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="SIB",
+                    to_node="Done",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
                 DependencyEdge(
-                    from_node="SIB", to_node="Process",
-                    edge_type="CONNECTION", output_index=1,
+                    from_node="SIB",
+                    to_node="Process",
+                    edge_type="CONNECTION",
+                    output_index=1,
                 ),
                 DependencyEdge(
-                    from_node="Process", to_node="SIB",
-                    edge_type="CONNECTION", output_index=0,
+                    from_node="Process",
+                    to_node="SIB",
+                    edge_type="CONNECTION",
+                    output_index=0,
                 ),
             ],
         )
@@ -895,9 +879,7 @@ class TestEngineOutputModel:
                 _node("B"),
             ],
             dependency_edges=[
-                DependencyEdge(
-                    from_node="slack1", to_node="B", edge_type="CONNECTION"
-                ),
+                DependencyEdge(from_node="slack1", to_node="B", edge_type="CONNECTION"),
             ],
         )
         engine = TranslationEngine(translators=[CredentialTranslator()])

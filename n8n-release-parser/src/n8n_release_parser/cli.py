@@ -32,9 +32,7 @@ def _callback(
 
 @app.command()
 def fetch_releases(
-    months: Annotated[
-        int, typer.Option(help="Months of history to fetch.")
-    ] = 12,
+    months: Annotated[int, typer.Option(help="Months of history to fetch.")] = 12,
     cache_dir: Annotated[
         Path, typer.Option(help="Directory for cached downloads.")
     ] = Path(".n8n-cache"),

@@ -69,7 +69,11 @@ class Packager:
         ssm_params = self._step_generate_ssm(input_data)
         iam_policy = self._step_generate_iam(input_data, ssm_params)
         webhook_warnings = self._step_write_cdk(
-            input_data, iam_policy, ssm_params, output_dir, picofun_output,
+            input_data,
+            iam_policy,
+            ssm_params,
+            output_dir,
+            picofun_output,
         )
         if webhook_warnings:
             updated_report = input_data.conversion_report.model_copy(
@@ -176,7 +180,10 @@ class Packager:
 
         """
         _, warnings = self._cdk_writer.write(
-            input_data, iam_policy, ssm_params, output_dir,
+            input_data,
+            iam_policy,
+            ssm_params,
+            output_dir,
             picofun_output=picofun_output,
         )
         for w in warnings:

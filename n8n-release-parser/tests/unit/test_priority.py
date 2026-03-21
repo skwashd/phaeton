@@ -180,7 +180,9 @@ class TestPriorityCoverageReport:
         assert isinstance(breakdown, dict)
         assert breakdown["core_flow_control"] == 1  # type: ignore[invalid-argument-type]
         assert breakdown["aws_service"] == 1  # type: ignore[invalid-argument-type]
-        assert breakdown["top_50"] == 2  # if + slack  # type: ignore[invalid-argument-type]
+        assert (
+            breakdown["top_50"] == 2
+        )  # if + slack  # type: ignore[invalid-argument-type]
 
 
 class TestRegistryCompleteness:

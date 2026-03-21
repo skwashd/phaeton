@@ -98,10 +98,12 @@ class OrchestrationStack(cdk.Stack):
             self,
             "AdaptForTranslation",
             lambda_function=adapter_function,
-            payload=sfn.TaskInput.from_object({
-                "operation": "analyzer_to_translator",
-                "payload.$": "$.service_data",
-            }),
+            payload=sfn.TaskInput.from_object(
+                {
+                    "operation": "analyzer_to_translator",
+                    "payload.$": "$.service_data",
+                }
+            ),
             result_path="$.lambda_result",
             retry_on_service_exceptions=True,
         )
@@ -141,11 +143,13 @@ class OrchestrationStack(cdk.Stack):
             self,
             "AdaptForPackaging",
             lambda_function=adapter_function,
-            payload=sfn.TaskInput.from_object({
-                "operation": "translator_to_packager",
-                "payload.$": "$.service_data",
-                "workflow_name.$": "$.workflow_name",
-            }),
+            payload=sfn.TaskInput.from_object(
+                {
+                    "operation": "translator_to_packager",
+                    "payload.$": "$.service_data",
+                    "workflow_name.$": "$.workflow_name",
+                }
+            ),
             result_path="$.lambda_result",
             retry_on_service_exceptions=True,
         )
@@ -173,8 +177,7 @@ class OrchestrationStack(cdk.Stack):
 
         # Chain all steps
         definition = (
-            prepare_input
-            .next(analyze)
+            prepare_input.next(analyze)
             .next(reshape_after_analyze)
             .next(adapt_for_translation)
             .next(reshape_after_adapt1)

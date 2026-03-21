@@ -20,7 +20,9 @@ def translate(
     ],
     output_path: Annotated[
         Path,
-        typer.Option("--output", "-o", help="Path to write the TranslationOutput JSON."),
+        typer.Option(
+            "--output", "-o", help="Path to write the TranslationOutput JSON."
+        ),
     ] = Path("translation_output.json"),
 ) -> None:
     """Read a WorkflowAnalysis JSON file, translate it, and write the output."""

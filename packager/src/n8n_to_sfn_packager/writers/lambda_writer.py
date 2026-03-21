@@ -76,9 +76,7 @@ def analyze_shared_dependencies(
             continue
 
         layer_name = f"{runtime.value}-shared"
-        func_names = sorted(
-            {fn for dep in shared_deps for fn in dep_to_funcs[dep]}
-        )
+        func_names = sorted({fn for dep in shared_deps for fn in dep_to_funcs[dep]})
 
         layers.append(
             LayerSpec(
@@ -175,9 +173,7 @@ class LambdaWriter:
 
             deps_lines = ""
             if layer.dependencies:
-                formatted = ",\n".join(
-                    f'    "{dep}"' for dep in layer.dependencies
-                )
+                formatted = ",\n".join(f'    "{dep}"' for dep in layer.dependencies)
                 deps_lines = f"\n{formatted},\n"
 
             pyproject = textwrap.dedent(f"""\

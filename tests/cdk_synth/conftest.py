@@ -87,9 +87,7 @@ def _synth_generated_stacks(output_dir: Path) -> tuple[Template, Template]:
 
         app = cdk.App(context=_NO_BUNDLING_CONTEXT)
         shared = shared_stack_cls(app, "TestShared")
-        workflow = workflow_stack_cls(
-            app, "TestWorkflow", shared_stack=shared
-        )
+        workflow = workflow_stack_cls(app, "TestWorkflow", shared_stack=shared)
 
         return Template.from_stack(workflow), Template.from_stack(shared)
     finally:

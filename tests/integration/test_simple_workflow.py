@@ -22,6 +22,7 @@ import json
 from pathlib import Path
 
 import pytest
+from types_boto3_stepfunctions.client import SFNClient
 
 pytestmark = pytest.mark.integration
 
@@ -112,7 +113,7 @@ class TestDeployAndExecute:
     def test_state_machine_executes(
         self,
         deployed_stack: dict[str, str],
-        sfn_client: object,
+        sfn_client: SFNClient,
     ) -> None:
         """The state machine must execute successfully with test input."""
         from tests.integration.conftest import _wait_for_execution
@@ -143,7 +144,7 @@ class TestDeployAndExecute:
     def test_lambda_executes_without_errors(
         self,
         deployed_stack: dict[str, str],
-        sfn_client: object,
+        sfn_client: SFNClient,
     ) -> None:
         """Lambda functions invoked by the state machine must not error."""
         from tests.integration.conftest import _wait_for_execution
@@ -178,7 +179,7 @@ class TestDeployAndExecute:
 
 def _find_state_machine_arn(
     stack_outputs: dict[str, str],
-    sfn_client: object,
+    sfn_client: SFNClient,
 ) -> str | None:
     """
     Locate the state machine ARN from stack outputs or by listing.

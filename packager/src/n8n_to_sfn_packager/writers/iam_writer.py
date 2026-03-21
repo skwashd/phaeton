@@ -223,14 +223,12 @@ class IAMPolicyGenerator:
                     sdk_idx = parts.index("aws-sdk")
                     service = parts[sdk_idx + 1]
                     action = parts[sdk_idx + 2] if len(parts) > sdk_idx + 2 else ""
-                except (ValueError, IndexError):
+                except ValueError, IndexError:
                     continue
 
                 iam_action = sdk_action_to_iam(service, action)
                 svc = service.lower()
-                resource_arn = _SERVICE_ARN_PATTERNS.get(
-                    svc, f"arn:aws:{svc}:*:*:*"
-                )
+                resource_arn = _SERVICE_ARN_PATTERNS.get(svc, f"arn:aws:{svc}:*:*:*")
                 if iam_action not in actions:
                     actions[iam_action] = set()
                 actions[iam_action].add(resource_arn)

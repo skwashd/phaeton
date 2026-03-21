@@ -136,9 +136,7 @@ class BaseSaaSTranslator(BaseTranslator):
             metadata={"saas_service": self.node_type, "operation": op_key},
         )
 
-    def _resolve_endpoint(
-        self, template: str, params: dict[str, Any]
-    ) -> str:
+    def _resolve_endpoint(self, template: str, params: dict[str, Any]) -> str:
         """Resolve placeholders in endpoint templates from node parameters."""
         result = template
         for key, value in params.items():

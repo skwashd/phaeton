@@ -22,9 +22,7 @@ class TestSimpleDynamoDBPipelineOutput:
     ) -> None:
         """ASL JSON must contain StartAt, States, and QueryLanguage."""
         asl_path = (
-            simple_dynamodb_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
+            simple_dynamodb_result.output_dir / "statemachine" / "definition.asl.json"
         )
         assert asl_path.exists(), "ASL definition file not found"
         asl = json.loads(asl_path.read_text())
@@ -43,9 +41,7 @@ class TestSimpleDynamoDBPipelineOutput:
             source = py_file.read_text()
             ast.parse(source, filename=str(py_file))
 
-    def test_cdk_app_structure(
-        self, simple_dynamodb_result: PipelineResult
-    ) -> None:
+    def test_cdk_app_structure(self, simple_dynamodb_result: PipelineResult) -> None:
         """CDK application must include app.py, cdk.json, and stack modules."""
         cdk_dir = simple_dynamodb_result.output_dir / "cdk"
         assert (cdk_dir / "app.py").exists(), "app.py not found"
@@ -60,10 +56,7 @@ class TestSimpleDynamoDBPipelineOutput:
     ) -> None:
         """IAM policy in the stack must reference DynamoDB actions."""
         stack_path = (
-            simple_dynamodb_result.output_dir
-            / "cdk"
-            / "stacks"
-            / "workflow_stack.py"
+            simple_dynamodb_result.output_dir / "cdk" / "stacks" / "workflow_stack.py"
         )
         assert stack_path.exists(), "workflow_stack.py not found"
         stack_code = stack_path.read_text()
@@ -76,9 +69,7 @@ class TestSimpleDynamoDBPipelineOutput:
     ) -> None:
         """Pipeline must emit a conversion report."""
         report_path = (
-            simple_dynamodb_result.output_dir
-            / "reports"
-            / "conversion_report.json"
+            simple_dynamodb_result.output_dir / "reports" / "conversion_report.json"
         )
         assert report_path.exists(), "reports/conversion_report.json not found"
         report = json.loads(report_path.read_text())
@@ -105,8 +96,7 @@ class TestSimpleDynamoDBBoundaryIntegrity:
             n["name"] for n in simple_dynamodb_result.workflow_data["nodes"]
         }
         report_node_names = {
-            cn.node.name
-            for cn in simple_dynamodb_result.report.classified_nodes
+            cn.node.name for cn in simple_dynamodb_result.report.classified_nodes
         }
         assert workflow_node_names == report_node_names, (
             f"Analyzer missed nodes: {workflow_node_names - report_node_names}"
@@ -117,12 +107,10 @@ class TestSimpleDynamoDBBoundaryIntegrity:
     ) -> None:
         """The analyzer-to-translator adapter must preserve all classified nodes."""
         report_names = {
-            cn.node.name
-            for cn in simple_dynamodb_result.report.classified_nodes
+            cn.node.name for cn in simple_dynamodb_result.report.classified_nodes
         }
         analysis_names = {
-            cn.node.name
-            for cn in simple_dynamodb_result.analysis.classified_nodes
+            cn.node.name for cn in simple_dynamodb_result.analysis.classified_nodes
         }
         assert report_names == analysis_names, (
             f"Adapter lost nodes: {report_names - analysis_names}"
@@ -133,9 +121,7 @@ class TestSimpleDynamoDBBoundaryIntegrity:
     ) -> None:
         """Every non-trigger node from the analysis must appear as an ASL state."""
         asl_path = (
-            simple_dynamodb_result.output_dir
-            / "statemachine"
-            / "definition.asl.json"
+            simple_dynamodb_result.output_dir / "statemachine" / "definition.asl.json"
         )
         asl = json.loads(asl_path.read_text())
         state_names = set(asl["States"].keys())

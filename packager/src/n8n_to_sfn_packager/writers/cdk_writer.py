@@ -674,8 +674,7 @@ class CDKWriter:
         vpc_lines = ""
         if input_data.vpc_config:
             vpc_lines = (
-                "            vpc=vpc,\n"
-                "            security_groups=[lambda_sg],\n"
+                "            vpc=vpc,\n            security_groups=[lambda_sg],\n"
             )
 
         parts.append(

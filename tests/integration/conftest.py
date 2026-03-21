@@ -40,6 +40,7 @@ from phaeton_models.adapters.translator_to_packager import (
 from phaeton_models.translator_output import (
     TranslationOutput as BoundaryTranslationOutput,
 )
+from types_boto3_stepfunctions.client import SFNClient
 from workflow_analyzer.analyzer import WorkflowAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -185,12 +186,12 @@ def _cdk_destroy(cdk_dir: Path) -> None:
             capture_output=True,
             text=True,
         )
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+    except subprocess.CalledProcessError, subprocess.TimeoutExpired:
         logger.exception("CDK destroy failed - manual cleanup may be required")
 
 
 def _wait_for_execution(
-    sfn_client: object,
+    sfn_client: SFNClient,
     execution_arn: str,
     *,
     timeout: int = _SFN_EXECUTION_TIMEOUT,
@@ -233,7 +234,7 @@ def aws_region() -> str:
 
 
 @pytest.fixture(scope="session")
-def sfn_client(aws_region: str) -> object:
+def sfn_client(aws_region: str) -> SFNClient:
     """Return a boto3 Step Functions client."""
     return boto3.client("stepfunctions", region_name=aws_region)
 

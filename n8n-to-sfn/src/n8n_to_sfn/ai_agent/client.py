@@ -70,7 +70,8 @@ class AIAgentClient:
                 "target_state_type": "Task",
             }
             response = self._invoke(
-                self._node_translator_function_name, payload,
+                self._node_translator_function_name,
+                payload,
             )
         except Exception:
             logger.exception("Failed to invoke AI agent for node: %s", node.node.name)
@@ -128,7 +129,8 @@ class AIAgentClient:
                 "workflow_context": _format_context(context),
             }
             response = self._invoke(
-                self._expression_translator_function_name, payload,
+                self._expression_translator_function_name,
+                payload,
             )
         except Exception:
             logger.exception("Failed to invoke AI agent for expression: %s", expr)
@@ -140,7 +142,9 @@ class AIAgentClient:
         return response.get("translated", expr)
 
     def _invoke(
-        self, function_name: str, payload: dict[str, Any],
+        self,
+        function_name: str,
+        payload: dict[str, Any],
     ) -> dict[str, Any]:
         """Invoke the Lambda function and return the parsed response."""
         response = self._lambda.invoke(

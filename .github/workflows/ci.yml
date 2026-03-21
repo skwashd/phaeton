@@ -19,7 +19,9 @@ jobs:
           - n8n-release-parser
           - shared/phaeton-models
           - deployment
-          - ai-agent
+          - node-translator
+          - expression-translator
+          - spec-registry
     defaults:
       run:
         working-directory: ${{ matrix.component }}
@@ -44,6 +46,10 @@ jobs:
       - name: Install Dependencies
         id: install-deps
         run: uv sync --dev
+
+      - name: Verify Formatting
+        id: format-check
+        run: uv run ruff format --check .
 
       - name: Lint With Ruff
         id: lint

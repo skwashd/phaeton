@@ -41,6 +41,7 @@ _MAX_SCALING_RATIO = 3.5
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _run_analysis(workflow_data: dict[str, Any]) -> BenchmarkResult:
     """Benchmark the analyzer stage on *workflow_data*."""
     analyzer = make_analyzer()
@@ -113,7 +114,8 @@ class TestAnalyzerScaling:
         bench_200 = _run_analysis(generate_workflow(200))
 
         mem_ratio = bench_200.peak_memory_bytes / max(
-            bench_100.peak_memory_bytes, 1,
+            bench_100.peak_memory_bytes,
+            1,
         )
         print(
             f"\n[analyzer memory] 100-node={bench_100.peak_memory_bytes / 1024:.1f}KB  "
@@ -175,7 +177,8 @@ class TestTranslationEngineScaling:
         bench_200 = _run_translation(generate_workflow(200))
 
         mem_ratio = bench_200.peak_memory_bytes / max(
-            bench_100.peak_memory_bytes, 1,
+            bench_100.peak_memory_bytes,
+            1,
         )
         print(
             f"\n[translation memory] 100-node={bench_100.peak_memory_bytes / 1024:.1f}KB  "

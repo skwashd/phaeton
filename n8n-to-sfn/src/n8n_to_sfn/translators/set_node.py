@@ -146,9 +146,7 @@ class SetNodeTranslator(BaseTranslator):
         return _build_manual_output(assignments, include_input)
 
     @staticmethod
-    def _translate_raw_mode(
-        params: dict[str, Any], warnings: list[str]
-    ) -> str:
+    def _translate_raw_mode(params: dict[str, Any], warnings: list[str]) -> str:
         """Translate raw JSON expression mode."""
         json_output = params.get("jsonOutput", "")
         if not json_output:

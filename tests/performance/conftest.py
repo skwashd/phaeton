@@ -146,7 +146,9 @@ class BenchmarkResult:
     result: Any
 
 
-def run_timed(func: Callable[..., object], *args: object, **kwargs: object) -> BenchmarkResult:
+def run_timed(
+    func: Callable[..., object], *args: object, **kwargs: object
+) -> BenchmarkResult:
     """
     Execute *func* while measuring wall-clock time and peak memory.
 
@@ -173,6 +175,7 @@ def run_timed(func: Callable[..., object], *args: object, **kwargs: object) -> B
 # ---------------------------------------------------------------------------
 # Shared pipeline-component factories (avoid repeating imports everywhere)
 # ---------------------------------------------------------------------------
+
 
 def make_analyzer() -> WorkflowAnalyzer:
     """Create a fresh ``WorkflowAnalyzer`` instance."""

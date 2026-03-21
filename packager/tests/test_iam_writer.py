@@ -119,9 +119,7 @@ class TestSdkResourceArns:
             },
         }
         policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
-        s3_stmt = next(
-            s for s in policy["Statement"] if "s3:PutObject" in s["Action"]
-        )
+        s3_stmt = next(s for s in policy["Statement"] if "s3:PutObject" in s["Action"])
         assert s3_stmt["Resource"] == ["arn:aws:s3:::*"]
 
     def test_dynamodb_arn_pattern(self) -> None:
@@ -176,9 +174,7 @@ class TestSdkResourceArns:
             },
         }
         policy = gen.generate(asl, [], [], "kms-key", "log-group", [])
-        sns_stmt = next(
-            s for s in policy["Statement"] if "sns:Publish" in s["Action"]
-        )
+        sns_stmt = next(s for s in policy["Statement"] if "sns:Publish" in s["Action"])
         assert sns_stmt["Resource"] == ["arn:aws:sns:*:*:*"]
 
     def test_unknown_service_fallback(self) -> None:

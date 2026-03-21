@@ -98,7 +98,11 @@ class HttpRequestTranslator(BaseTranslator):
 
         if auth_type != "none":
             cred_artifacts, _auth_config = self._build_auth(
-                node, context, auth_type, arguments, warnings,
+                node,
+                context,
+                auth_type,
+                arguments,
+                warnings,
             )
             credential_artifacts.extend(cred_artifacts)
 
@@ -175,11 +179,17 @@ class HttpRequestTranslator(BaseTranslator):
 
         if auth_type == "genericCredentialType":
             credential_artifacts, auth_config = self._build_generic_auth(
-                node, context, arguments, warnings,
+                node,
+                context,
+                arguments,
+                warnings,
             )
         elif auth_type == "predefinedCredentialType":
             credential_artifacts, auth_config = self._build_predefined_auth(
-                node, context, arguments, warnings,
+                node,
+                context,
+                arguments,
+                warnings,
             )
 
         return credential_artifacts, auth_config
@@ -197,7 +207,9 @@ class HttpRequestTranslator(BaseTranslator):
 
         if generic_type == "httpHeaderAuth":
             return self._build_bearer_or_header_auth(
-                node, context, arguments,
+                node,
+                context,
+                arguments,
             )
         if generic_type == "httpBasicAuth":
             return self._build_basic_auth(node, context, arguments)

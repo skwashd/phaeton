@@ -89,9 +89,7 @@ class TestTranslateExpression:
         mock_agent.assert_called_once()
 
     @patch("phaeton_expression_translator.agent._get_agent")
-    def test_error_returns_original_expression(
-        self, mock_get_agent: MagicMock
-    ) -> None:
+    def test_error_returns_original_expression(self, mock_get_agent: MagicMock) -> None:
         """Agent error returns the original expression unchanged."""
         mock_agent = MagicMock()
         mock_agent.side_effect = RuntimeError("Bedrock error")
@@ -282,9 +280,7 @@ class TestBoundaryMarkers:
         """EXPRESSION_PROMPT_TEMPLATE uses {tag_suffix} placeholders in boundary tags."""
         assert "<user-provided-expression-{tag_suffix}>" in EXPRESSION_PROMPT_TEMPLATE
         assert "</user-provided-expression-{tag_suffix}>" in EXPRESSION_PROMPT_TEMPLATE
-        assert (
-            "<user-provided-node-context-{tag_suffix}>" in EXPRESSION_PROMPT_TEMPLATE
-        )
+        assert "<user-provided-node-context-{tag_suffix}>" in EXPRESSION_PROMPT_TEMPLATE
         assert (
             "</user-provided-node-context-{tag_suffix}>" in EXPRESSION_PROMPT_TEMPLATE
         )

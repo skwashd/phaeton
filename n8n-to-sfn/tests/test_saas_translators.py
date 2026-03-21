@@ -94,7 +94,9 @@ class TestSlackMessagePost:
         state = result.states["Post Slack Message"]
         assert state.resource == "arn:aws:states:::http:invoke"
         assert state.arguments is not None
-        assert state.arguments["ApiEndpoint"] == "https://slack.com/api/chat.postMessage"
+        assert (
+            state.arguments["ApiEndpoint"] == "https://slack.com/api/chat.postMessage"
+        )
         assert state.arguments["Method"] == "POST"
         assert state.arguments["RequestBody"]["channel"] == "C12345"
         assert state.arguments["RequestBody"]["text"] == "Hello from Step Functions!"
@@ -103,7 +105,12 @@ class TestSlackMessagePost:
         """Test posting a message creates OAuth2 credential artifact."""
         node = _saas_node(
             node_type="n8n-nodes-base.slack",
-            params={"resource": "message", "operation": "post", "channel": "C1", "text": "hi"},
+            params={
+                "resource": "message",
+                "operation": "post",
+                "channel": "C1",
+                "text": "hi",
+            },
         )
         result = self.translator.translate(node, _context())
 
@@ -173,7 +180,9 @@ class TestSlackChannelOperations:
         result = self.translator.translate(node, _context())
 
         state = result.states["SaaS Node"]
-        assert state.arguments["ApiEndpoint"] == "https://slack.com/api/conversations.info"
+        assert (
+            state.arguments["ApiEndpoint"] == "https://slack.com/api/conversations.info"
+        )
         assert state.arguments["Method"] == "GET"
 
     def test_get_all_channels(self) -> None:
@@ -185,7 +194,9 @@ class TestSlackChannelOperations:
         result = self.translator.translate(node, _context())
 
         state = result.states["SaaS Node"]
-        assert state.arguments["ApiEndpoint"] == "https://slack.com/api/conversations.list"
+        assert (
+            state.arguments["ApiEndpoint"] == "https://slack.com/api/conversations.list"
+        )
 
 
 class TestSlackUnsupportedOperation:
@@ -255,7 +266,10 @@ class TestGmailMessageSend:
 
         assert "Send Email" in result.states
         state = result.states["Send Email"]
-        assert state.arguments["ApiEndpoint"] == "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+        assert (
+            state.arguments["ApiEndpoint"]
+            == "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
+        )
         assert state.arguments["Method"] == "POST"
         assert "user@example.com" in state.arguments["RequestBody"]["raw"]
         assert "Test Subject" in state.arguments["RequestBody"]["raw"]
@@ -264,7 +278,12 @@ class TestGmailMessageSend:
         """Test Gmail send creates OAuth2 credential artifact."""
         node = _saas_node(
             node_type="n8n-nodes-base.gmail",
-            params={"resource": "message", "operation": "send", "to": "a@b.com", "subject": "s"},
+            params={
+                "resource": "message",
+                "operation": "send",
+                "to": "a@b.com",
+                "subject": "s",
+            },
         )
         result = self.translator.translate(node, _context())
 
@@ -394,7 +413,12 @@ class TestGoogleSheetsAppend:
         """Test Google Sheets creates OAuth2 credential artifact."""
         node = _saas_node(
             node_type="n8n-nodes-base.googleSheets",
-            params={"resource": "sheet", "operation": "read", "spreadsheetId": "x", "range": "A1"},
+            params={
+                "resource": "sheet",
+                "operation": "read",
+                "spreadsheetId": "x",
+                "range": "A1",
+            },
         )
         result = self.translator.translate(node, _context())
 
@@ -664,7 +688,12 @@ class TestAirtableRecordCreate:
         """Test Airtable creates API key credential artifact."""
         node = _saas_node(
             node_type="n8n-nodes-base.airtable",
-            params={"resource": "record", "operation": "create", "baseId": "x", "tableId": "t"},
+            params={
+                "resource": "record",
+                "operation": "create",
+                "baseId": "x",
+                "tableId": "t",
+            },
         )
         result = self.translator.translate(node, _context())
 
@@ -792,7 +821,9 @@ class TestRetryAndErrorHandling:
     def test_default_retry_present(self) -> None:
         """Test default retry configuration is present for all SaaS translators."""
         for node_type, translator in self.translators:
-            node = _saas_node(node_type=node_type, params={"resource": "x", "operation": "y"})
+            node = _saas_node(
+                node_type=node_type, params={"resource": "x", "operation": "y"}
+            )
             result = translator.translate(node, _context())
 
             state = result.states["SaaS Node"]
@@ -812,7 +843,12 @@ class TestAslValidity:
         """Test that serialized state contains required ASL fields."""
         node = _saas_node(
             node_type="n8n-nodes-base.slack",
-            params={"resource": "message", "operation": "post", "channel": "C1", "text": "hi"},
+            params={
+                "resource": "message",
+                "operation": "post",
+                "channel": "C1",
+                "text": "hi",
+            },
         )
         result = self.translator.translate(node, _context())
 
@@ -868,7 +904,12 @@ class TestAuthorizationHeaders:
         translator = AirtableTranslator()
         node = _saas_node(
             node_type="n8n-nodes-base.airtable",
-            params={"resource": "record", "operation": "getAll", "baseId": "x", "tableId": "t"},
+            params={
+                "resource": "record",
+                "operation": "getAll",
+                "baseId": "x",
+                "tableId": "t",
+            },
         )
         result = translator.translate(node, _context())
 

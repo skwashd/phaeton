@@ -14,9 +14,7 @@ from n8n_to_sfn.translators.base import TranslationContext
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 
 
-def _loop_node(
-    name: str, params: dict | None = None
-) -> ClassifiedNode:
+def _loop_node(name: str, params: dict | None = None) -> ClassifiedNode:
     """Create a Loop classified node for testing."""
     return ClassifiedNode(
         node=N8nNode(  # type: ignore[missing-argument]

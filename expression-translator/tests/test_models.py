@@ -95,9 +95,7 @@ class TestExpressionTranslationResponse:
     def test_confidence_enum_values(self) -> None:
         """All Confidence enum values can be used in a response."""
         for level in Confidence:
-            response = ExpressionTranslationResponse(
-                translated="$.x", confidence=level
-            )
+            response = ExpressionTranslationResponse(translated="$.x", confidence=level)
             assert response.confidence == level
 
     def test_json_serialization_confidence(self) -> None:
