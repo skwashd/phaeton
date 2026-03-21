@@ -9,3 +9,4 @@ TASK-0010-create-picofun-writer-packager.md
 TASK-0018-adapter-tests-spec-mapping-passthrough.md
 TASK-0006-rewrite-picofun-translator.md
 TASK-0014-unit-tests-operation-mapper.md
+TASK-0015-unit-tests-spec-fetcher.md
