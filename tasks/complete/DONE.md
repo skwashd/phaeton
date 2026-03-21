@@ -14,3 +14,4 @@ TASK-0013-unit-tests-picofun-bridge.md
 TASK-0011-integrate-picofun-writer-pipeline.md
 TASK-0017-unit-tests-picofun-writer.md
 TASK-0007-wire-spec-directory-engine-handler.md
+TASK-0016-update-picofun-translator-tests.md
