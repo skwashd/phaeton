@@ -10,11 +10,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from n8n_to_sfn_packager.models.inputs import PackagerInput
+from n8n_to_sfn_packager.models.inputs import LambdaFunctionType, PackagerInput
 from n8n_to_sfn_packager.writers.asl_writer import ASLWriter
 from n8n_to_sfn_packager.writers.cdk_writer import CDKWriter
 from n8n_to_sfn_packager.writers.iam_writer import IAMPolicyGenerator
 from n8n_to_sfn_packager.writers.lambda_writer import LambdaWriter
+from n8n_to_sfn_packager.writers.picofun_writer import PicoFunOutput, PicoFunWriter
 from n8n_to_sfn_packager.writers.report_writer import ReportWriter
 from n8n_to_sfn_packager.writers.ssm_writer import SSMWriter
 
@@ -40,6 +41,7 @@ class Packager:
         self._lambda_writer = LambdaWriter()
         self._ssm_writer = SSMWriter()
         self._iam_generator = IAMPolicyGenerator()
+        self._picofun_writer = PicoFunWriter()
         self._cdk_writer = CDKWriter()
         self._report_writer = ReportWriter()
 
@@ -63,6 +65,7 @@ class Packager:
         self._step_validate_asl(input_data)
         self._step_write_asl(input_data, output_dir)
         self._step_write_lambdas(input_data, output_dir)
+        self._step_write_picofun(input_data, output_dir)
         ssm_params = self._step_generate_ssm(input_data)
         iam_policy = self._step_generate_iam(input_data, ssm_params)
         webhook_warnings = self._step_write_cdk(
@@ -107,6 +110,27 @@ class Packager:
         except Exception as e:
             msg = f"Failed to write Lambda functions: {e}"
             raise PackagerError(msg) from e
+
+    def _step_write_picofun(
+        self,
+        input_data: PackagerInput,
+        output_dir: Path,
+    ) -> PicoFunOutput | None:
+        """Generate PicoFun layer and CDK construct if PicoFun functions exist."""
+        picofun_functions = [
+            f
+            for f in input_data.lambda_functions
+            if f.function_type == LambdaFunctionType.PICOFUN_API_CLIENT
+        ]
+        if not picofun_functions:
+            return None
+        result = self._picofun_writer.write(
+            picofun_functions=picofun_functions,
+            namespace=input_data.metadata.workflow_name,
+            output_dir=output_dir,
+        )
+        logger.info("Wrote PicoFun artifacts: %s", result.layer_dir)
+        return result
 
     def _step_generate_ssm(self, input_data: PackagerInput) -> list:
         """Generate SSM parameter definitions."""

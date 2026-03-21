@@ -11,3 +11,4 @@ TASK-0006-rewrite-picofun-translator.md
 TASK-0014-unit-tests-operation-mapper.md
 TASK-0015-unit-tests-spec-fetcher.md
 TASK-0013-unit-tests-picofun-bridge.md
+TASK-0011-integrate-picofun-writer-pipeline.md
