@@ -358,6 +358,69 @@ def test_no_expressions() -> None:
     assert result.classified_nodes[0].expressions == []
 
 
+def test_node_spec_mappings_populates_fields() -> None:
+    """When node_spec_mappings is provided, api_spec and operation_mappings are set."""
+    node = ClassifiedNode(
+        node=_make_node("Slack", "n8n-nodes-base.slack"),
+        category=NodeCategory.AWS_NATIVE,
+        translation_strategy="direct",
+    )
+    report = _make_report(classified_nodes=[node])
+    mappings = {
+        "n8n-nodes-base.slack": {
+            "api_spec": "slack.json",
+            "operation_mappings": {"chat:postMessage": "POST /chat.postMessage"},
+        },
+    }
+    result = convert_report_to_analysis(report, node_spec_mappings=mappings)
+
+    assert result.classified_nodes[0].api_spec == "slack.json"
+    assert result.classified_nodes[0].operation_mappings == {
+        "chat:postMessage": "POST /chat.postMessage",
+    }
+
+
+def test_node_spec_mappings_none_leaves_defaults() -> None:
+    """When node_spec_mappings is None, api_spec and operation_mappings remain None."""
+    node = ClassifiedNode(
+        node=_make_node("SetNode", "n8n-nodes-base.set"),
+        category=NodeCategory.AWS_NATIVE,
+        translation_strategy="direct",
+    )
+    report = _make_report(classified_nodes=[node])
+    result = convert_report_to_analysis(report, node_spec_mappings=None)
+
+    assert result.classified_nodes[0].api_spec is None
+    assert result.classified_nodes[0].operation_mappings is None
+
+
+def test_node_spec_mappings_partial_match() -> None:
+    """Only nodes whose type appears in node_spec_mappings get populated."""
+    node_a = ClassifiedNode(
+        node=_make_node("Slack", "n8n-nodes-base.slack"),
+        category=NodeCategory.AWS_NATIVE,
+        translation_strategy="direct",
+    )
+    node_b = ClassifiedNode(
+        node=_make_node("SetNode", "n8n-nodes-base.set"),
+        category=NodeCategory.AWS_NATIVE,
+        translation_strategy="direct",
+    )
+    report = _make_report(classified_nodes=[node_a, node_b])
+    mappings = {
+        "n8n-nodes-base.slack": {
+            "api_spec": "slack.json",
+            "operation_mappings": {"chat:postMessage": "POST /chat.postMessage"},
+        },
+    }
+    result = convert_report_to_analysis(report, node_spec_mappings=mappings)
+
+    assert result.classified_nodes[0].api_spec == "slack.json"
+    assert result.classified_nodes[0].operation_mappings is not None
+    assert result.classified_nodes[1].api_spec is None
+    assert result.classified_nodes[1].operation_mappings is None
+
+
 def test_round_trip_pydantic_validation() -> None:
     """A fully populated report converts to a valid WorkflowAnalysis."""
     nodes = [

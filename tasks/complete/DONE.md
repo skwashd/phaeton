@@ -1,3 +1,4 @@
 TASK-0001-add-picofun-dep-n8n-to-sfn.md
 TASK-0002-add-spec-directory-translation-context.md
 TASK-0009-add-picofun-dep-packager.md
+TASK-0008-populate-api-spec-operation-mappings-adapter.md

@@ -52,7 +52,10 @@ _EDGE_TYPE_MAP: dict[str, str] = {
 }
 
 
-def convert_report_to_analysis(report: ConversionReport) -> WorkflowAnalysis:
+def convert_report_to_analysis(
+    report: ConversionReport,
+    node_spec_mappings: dict[str, dict[str, Any]] | None = None,
+) -> WorkflowAnalysis:
     """
     Convert a ``ConversionReport`` into a ``WorkflowAnalysis``.
 
@@ -64,6 +67,9 @@ def convert_report_to_analysis(report: ConversionReport) -> WorkflowAnalysis:
     ----------
     report:
         The conversion feasibility report produced by the workflow analyzer.
+    node_spec_mappings:
+        Optional mapping of node type to spec data. Each value is a dict with
+        ``api_spec`` (str) and ``operation_mappings`` (dict) keys.
 
     Returns
     -------
@@ -73,7 +79,7 @@ def convert_report_to_analysis(report: ConversionReport) -> WorkflowAnalysis:
     """
     expressions_by_node = _group_expressions_by_node(report.classified_expressions)
     classified_nodes = [
-        _convert_node(cn, expressions_by_node.get(cn.node.name, []))
+        _convert_node(cn, expressions_by_node.get(cn.node.name, []), node_spec_mappings)
         for cn in report.classified_nodes
     ]
     dependency_edges = _parse_dependency_edges(report.graph_metadata)
@@ -95,14 +101,18 @@ def convert_report_to_analysis(report: ConversionReport) -> WorkflowAnalysis:
 def _convert_node(
     cn: AnalyzerClassifiedNode,
     expressions: list[AnalyzerClassifiedExpression],
+    node_spec_mappings: dict[str, dict[str, Any]] | None = None,
 ) -> SfnClassifiedNode:
     """Map an analyzer ``ClassifiedNode`` to the translator format."""
     classification = NodeClassification(cn.category.value)
     converted_expressions = [_convert_expression(expr) for expr in expressions]
+    spec_data = node_spec_mappings.get(cn.node.type, {}) if node_spec_mappings else {}
     return SfnClassifiedNode(
         node=cn.node,
         classification=classification,
         expressions=converted_expressions,
+        api_spec=spec_data.get("api_spec"),
+        operation_mappings=spec_data.get("operation_mappings"),
     )
 
 
