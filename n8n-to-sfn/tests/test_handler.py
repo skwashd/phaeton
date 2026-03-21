@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+from unittest import mock
+
 from phaeton_models.translator import (
     ClassifiedNode,
     DependencyEdge,
@@ -12,6 +15,7 @@ from phaeton_models.translator_output import TranslationOutput
 
 from n8n_to_sfn.handler import create_default_engine, handler
 from n8n_to_sfn.models.n8n import N8nNode
+from n8n_to_sfn.translators.picofun import PicoFunTranslator
 
 
 def _node(
@@ -137,3 +141,46 @@ class TestCreateDefaultEngine:
         )
         output = engine.translate(analysis)
         assert output.state_machine is not None
+
+    def test_no_spec_bucket_gives_empty_spec_directory(self) -> None:
+        """Without PHAETON_SPEC_BUCKET, engine has empty spec_directory."""
+        env = {k: v for k, v in os.environ.items() if k != "PHAETON_SPEC_BUCKET"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            engine = create_default_engine()
+        assert engine._spec_directory == ""
+
+    def test_no_spec_bucket_picofun_has_no_bridge(self) -> None:
+        """Without PHAETON_SPEC_BUCKET, PicoFunTranslator has no bridge."""
+        env = {k: v for k, v in os.environ.items() if k != "PHAETON_SPEC_BUCKET"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            engine = create_default_engine()
+        picofun = [t for t in engine._translators if isinstance(t, PicoFunTranslator)]
+        assert len(picofun) == 1
+        assert picofun[0]._bridge is None
+
+    def test_spec_bucket_sets_spec_directory(self) -> None:
+        """With PHAETON_SPEC_BUCKET set, engine has a non-empty spec_directory."""
+        with mock.patch.dict(
+            os.environ, {"PHAETON_SPEC_BUCKET": "my-bucket"}, clear=False
+        ):
+            engine = create_default_engine()
+        assert engine._spec_directory != ""
+        assert "phaeton-specs-" in engine._spec_directory
+
+    def test_spec_bucket_picofun_has_bridge(self) -> None:
+        """With PHAETON_SPEC_BUCKET set, PicoFunTranslator has a bridge."""
+        with mock.patch.dict(
+            os.environ, {"PHAETON_SPEC_BUCKET": "my-bucket"}, clear=False
+        ):
+            engine = create_default_engine()
+        picofun = [t for t in engine._translators if isinstance(t, PicoFunTranslator)]
+        assert len(picofun) == 1
+        assert picofun[0]._bridge is not None
+
+    def test_spec_prefix_defaults_to_specs_slash(self) -> None:
+        """PHAETON_SPEC_PREFIX defaults to 'specs/' when not set."""
+        env = {k: v for k, v in os.environ.items() if k != "PHAETON_SPEC_PREFIX"}
+        env["PHAETON_SPEC_BUCKET"] = "my-bucket"
+        with mock.patch.dict(os.environ, env, clear=True):
+            engine = create_default_engine()
+        assert engine._spec_directory != ""

@@ -908,3 +908,77 @@ class TestEngineOutputModel:
         assert restored.state_machine == output.state_machine
         assert len(restored.credential_artifacts) == len(output.credential_artifacts)
         assert restored.warnings == output.warnings
+
+
+class TestEngineSpecDirectory:
+    """Tests for spec_directory pass-through."""
+
+    def test_spec_directory_defaults_to_empty(self) -> None:
+        """Engine defaults spec_directory to empty string."""
+        engine = TranslationEngine(translators=[AllPassTranslator()])
+        assert engine._spec_directory == ""
+
+    def test_spec_directory_stored(self) -> None:
+        """Engine stores provided spec_directory."""
+        engine = TranslationEngine(
+            translators=[AllPassTranslator()], spec_directory="/tmp/specs"
+        )
+        assert engine._spec_directory == "/tmp/specs"
+
+    def test_spec_directory_passed_to_context(self) -> None:
+        """Engine passes spec_directory through to TranslationContext."""
+        captured_contexts: list[TranslationContext] = []
+
+        class CapturingTranslator(BaseTranslator):
+            """Translator that captures the context it receives."""
+
+            def can_translate(self, node: ClassifiedNode) -> bool:
+                """Accept all nodes."""
+                return True
+
+            def translate(
+                self, node: ClassifiedNode, context: TranslationContext
+            ) -> TranslationResult:
+                """Capture context and return a Pass state."""
+                captured_contexts.append(context)
+                return TranslationResult(states={node.node.name: PassState()})
+
+        analysis = WorkflowAnalysis(
+            classified_nodes=[_node("A")],
+            dependency_edges=[],
+        )
+        engine = TranslationEngine(
+            translators=[CapturingTranslator()], spec_directory="/tmp/my-specs"
+        )
+        engine.translate(analysis)
+
+        assert len(captured_contexts) == 1
+        assert captured_contexts[0].spec_directory == "/tmp/my-specs"
+
+    def test_spec_directory_empty_by_default_in_context(self) -> None:
+        """Engine with no spec_directory passes empty string to context."""
+        captured_contexts: list[TranslationContext] = []
+
+        class CapturingTranslator(BaseTranslator):
+            """Translator that captures the context it receives."""
+
+            def can_translate(self, node: ClassifiedNode) -> bool:
+                """Accept all nodes."""
+                return True
+
+            def translate(
+                self, node: ClassifiedNode, context: TranslationContext
+            ) -> TranslationResult:
+                """Capture context and return a Pass state."""
+                captured_contexts.append(context)
+                return TranslationResult(states={node.node.name: PassState()})
+
+        analysis = WorkflowAnalysis(
+            classified_nodes=[_node("A")],
+            dependency_edges=[],
+        )
+        engine = TranslationEngine(translators=[CapturingTranslator()])
+        engine.translate(analysis)
+
+        assert len(captured_contexts) == 1
+        assert captured_contexts[0].spec_directory == ""

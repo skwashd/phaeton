@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import traceback
 from typing import Any
 
@@ -21,12 +22,14 @@ from n8n_to_sfn.translators.database import DatabaseTranslator
 from n8n_to_sfn.translators.flow_control import FlowControlTranslator
 from n8n_to_sfn.translators.http_request import HttpRequestTranslator
 from n8n_to_sfn.translators.picofun import PicoFunTranslator
+from n8n_to_sfn.translators.picofun_bridge import PicoFunBridge
 from n8n_to_sfn.translators.saas.airtable import AirtableTranslator
 from n8n_to_sfn.translators.saas.gmail import GmailTranslator
 from n8n_to_sfn.translators.saas.google_sheets import GoogleSheetsTranslator
 from n8n_to_sfn.translators.saas.notion import NotionTranslator
 from n8n_to_sfn.translators.saas.slack import SlackTranslator
 from n8n_to_sfn.translators.set_node import SetNodeTranslator
+from n8n_to_sfn.translators.spec_fetcher import SpecFetcher
 from n8n_to_sfn.translators.triggers import TriggerTranslator
 
 logger = Logger(service="n8n-to-sfn")
@@ -44,6 +47,18 @@ def create_default_engine() -> TranslationEngine:
             node_translator_function_name=node_translator_function,
             expression_translator_function_name=expression_translator_function,
         )
+
+    spec_bucket = os.environ.get("PHAETON_SPEC_BUCKET", "")
+    spec_prefix = os.environ.get("PHAETON_SPEC_PREFIX", "specs/")
+    spec_directory = ""
+
+    if spec_bucket:
+        cache_dir = tempfile.mkdtemp(prefix="phaeton-specs-")
+        SpecFetcher(bucket=spec_bucket, prefix=spec_prefix, cache_dir=cache_dir)
+        spec_directory = cache_dir
+
+    bridge = PicoFunBridge(spec_directory=spec_directory) if spec_directory else None
+
     return TranslationEngine(
         translators=[
             FlowControlTranslator(),
@@ -58,9 +73,10 @@ def create_default_engine() -> TranslationEngine:
             GoogleSheetsTranslator(),
             NotionTranslator(),
             AirtableTranslator(),
-            PicoFunTranslator(),
+            PicoFunTranslator(bridge=bridge),
         ],
         ai_agent=ai_agent,
+        spec_directory=spec_directory,
     )
 
 

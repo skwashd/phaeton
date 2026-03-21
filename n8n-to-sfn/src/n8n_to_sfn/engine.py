@@ -60,15 +60,17 @@ class TranslationEngine:
         self,
         translators: list[BaseTranslator],
         ai_agent: AIAgentProtocol | None = None,
+        spec_directory: str = "",
     ) -> None:
         """Initialize with a list of translators and optional AI agent fallback."""
         self._translators = translators
         self._ai_agent = ai_agent
+        self._spec_directory = spec_directory
 
     def translate(self, analysis: WorkflowAnalysis) -> TranslationOutput:
         """Run the full translation pipeline on an analyzed workflow."""
         ordered_names = self._topological_sort(analysis)
-        context = TranslationContext(analysis=analysis)
+        context = TranslationContext(analysis=analysis, spec_directory=self._spec_directory)
 
         all_states: dict[str, Any] = {}
         all_lambdas: list[LambdaArtifact] = []
