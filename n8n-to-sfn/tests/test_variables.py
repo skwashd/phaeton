@@ -22,8 +22,8 @@ def _node(
         id=name,
         name=name,
         type="n8n-nodes-base.set",
-        type_version=1,
-        position=[0, 0],  # type: ignore[unknown-argument]
+        type_version=1,  # type: ignore[unknown-argument]
+        position=[0, 0],
     )
 
 

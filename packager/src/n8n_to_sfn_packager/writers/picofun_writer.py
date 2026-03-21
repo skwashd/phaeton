@@ -72,11 +72,11 @@ class PicoFunWriter:
         picofun_dir.mkdir(parents=True, exist_ok=True)
 
         config = _create_config(picofun_dir)
-        Layer(config).prepare()
+        Layer(config).prepare()  # type: ignore[invalid-argument-type]
         layer_dir = picofun_dir / "layer"
 
         lambda_names = [spec.function_name for spec in picofun_functions]
-        template = Template(config.template_path)
+        template = Template(str(config.template_path))
 
         from picofun.terraform_generator import TerraformGenerator
 

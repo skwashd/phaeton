@@ -60,8 +60,8 @@ class TestHttpRequestTranslatorCanTranslate:
                 id="x",
                 name="x",
                 type="n8n-nodes-base.slack",
-                type_version=1,
-                position=[0, 0],  # type: ignore[unknown-argument]
+                type_version=1,  # type: ignore[unknown-argument]
+                position=[0, 0],
             ),
             classification=NodeClassification.PICOFUN_API,
         )

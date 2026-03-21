@@ -151,7 +151,7 @@ class PicoFunBridge:
 
         """
         config = _create_config()
-        template = Template(config.template_path)
+        template = Template(str(config.template_path))
         generator = LambdaGenerator(template, namespace, config)
         return generator.render(
             base_url, endpoint.method, endpoint.path, endpoint.details

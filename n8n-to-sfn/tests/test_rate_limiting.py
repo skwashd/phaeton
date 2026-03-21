@@ -158,9 +158,9 @@ class TestRetryBackoffConfig:
                 type="n8n-nodes-base.awsS3",
                 type_version=1,  # type: ignore[unknown-argument]
                 position=[0, 0],
-                retry_on_fail=True,  # type: ignore[unknown-argument]
-                max_tries=5,  # type: ignore[unknown-argument]
-                wait_between_tries=3000,  # type: ignore[unknown-argument]
+                retry_on_fail=True,
+                max_tries=5,
+                wait_between_tries=3000,
             ),
             classification=NodeClassification.AWS_NATIVE,
         )
