@@ -18,17 +18,17 @@ def _node_with_error_settings(
 ) -> ClassifiedNode:
     """Create a classified node with error handling settings."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id="TestNode",
             name="TestNode",
             type="n8n-nodes-base.set",
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters={},
-            continueOnFail=continue_on_fail,  # type: ignore[unknown-argument]
-            retryOnFail=retry_on_fail,  # type: ignore[unknown-argument]
-            maxTries=max_tries,  # type: ignore[unknown-argument]
-            waitBetweenTries=wait_between_tries,  # type: ignore[unknown-argument]
+            continue_on_fail=continue_on_fail,
+            retry_on_fail=retry_on_fail,
+            max_tries=max_tries,
+            wait_between_tries=wait_between_tries,
         ),
         classification=NodeClassification.FLOW_CONTROL,
     )
@@ -80,8 +80,8 @@ class TestBuildErrorHandling:
     def test_default_retry_used_when_no_explicit_retry(self) -> None:
         """Test default retry is used when no explicit retry."""
         node = _node_with_error_settings()
-        default = RetryConfig(  # type: ignore[missing-argument]
-            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+        default = RetryConfig(
+            error_equals=["States.TaskFailed"],
             max_attempts=2,
             interval_seconds=5,
         )
@@ -93,8 +93,8 @@ class TestBuildErrorHandling:
     def test_explicit_retry_overrides_default(self) -> None:
         """Test explicit retry overrides default retry."""
         node = _node_with_error_settings(retry_on_fail=True, max_tries=10)
-        default = RetryConfig(  # type: ignore[missing-argument]
-            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+        default = RetryConfig(
+            error_equals=["States.TaskFailed"],
             max_attempts=2,
             interval_seconds=5,
         )
@@ -120,7 +120,7 @@ class TestApplyErrorHandling:
 
     def test_applies_retry_to_task_state(self) -> None:
         """Test retry is applied to task state."""
-        state = TaskState(resource="arn:aws:states:::lambda:invoke")  # type: ignore[missing-argument, unknown-argument]
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
         node = _node_with_error_settings(retry_on_fail=True, max_tries=4)
         result = apply_error_handling(state, node)
         assert result.retry is not None
@@ -129,7 +129,7 @@ class TestApplyErrorHandling:
 
     def test_applies_catch_to_task_state(self) -> None:
         """Test catch is applied to task state."""
-        state = TaskState(resource="arn:aws:states:::lambda:invoke")  # type: ignore[missing-argument, unknown-argument]
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
         node = _node_with_error_settings(continue_on_fail=True)
         result = apply_error_handling(state, node, next_state_name="HandleError")
         assert result.catch is not None
@@ -138,7 +138,7 @@ class TestApplyErrorHandling:
 
     def test_no_modification_when_no_settings(self) -> None:
         """Test no modification when no error settings."""
-        state = TaskState(resource="arn:aws:states:::lambda:invoke")  # type: ignore[missing-argument, unknown-argument]
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
         node = _node_with_error_settings()
         result = apply_error_handling(state, node)
         assert result.retry is None
@@ -146,10 +146,10 @@ class TestApplyErrorHandling:
 
     def test_default_retry_applied_to_state(self) -> None:
         """Test default retry is applied to state."""
-        state = TaskState(resource="arn:aws:states:::lambda:invoke")  # type: ignore[missing-argument, unknown-argument]
+        state = TaskState(resource="arn:aws:states:::lambda:invoke")
         node = _node_with_error_settings()
-        default = RetryConfig(  # type: ignore[missing-argument]
-            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+        default = RetryConfig(
+            error_equals=["States.TaskFailed"],
             max_attempts=3,
             interval_seconds=2,
             backoff_rate=2.0,

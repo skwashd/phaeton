@@ -19,11 +19,11 @@ def _set_node(
 ) -> ClassifiedNode:
     """Create a Set classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type="n8n-nodes-base.set",
-            type_version=3,  # type: ignore[unknown-argument]
+            type_version=3,
             position=[0, 0],
             parameters=params or {},
         ),
@@ -54,11 +54,11 @@ class TestSetNodeCanTranslate:
     def test_cannot_translate_other_node(self) -> None:
         """Test can_translate returns False for non-set nodes."""
         node = ClassifiedNode(
-            node=N8nNode(  # type: ignore[missing-argument]
+            node=N8nNode(
                 id="x",
                 name="x",
                 type="n8n-nodes-base.httpRequest",
-                type_version=1,  # type: ignore[unknown-argument]
+                type_version=1,
                 position=[0, 0],
             ),
             classification=NodeClassification.PICOFUN_API,

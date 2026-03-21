@@ -23,8 +23,8 @@ from n8n_to_sfn.translators.base import (
     apply_error_handling,
 )
 
-_DEFAULT_RETRY = RetryConfig(  # type: ignore[missing-argument]
-    error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+_DEFAULT_RETRY = RetryConfig(
+    error_equals=["States.TaskFailed"],
     interval_seconds=2,
     max_attempts=3,
     backoff_rate=2.0,
@@ -121,8 +121,8 @@ class BaseSaaSTranslator(BaseTranslator):
 
         credential_artifacts = self._build_credential_artifacts(context)
 
-        state = TaskState(  # type: ignore[missing-argument]
-            resource="arn:aws:states:::http:invoke",  # type: ignore[unknown-argument]
+        state = TaskState(
+            resource="arn:aws:states:::http:invoke",
             arguments=arguments,
             end=True,
             retry=[_DEFAULT_RETRY],

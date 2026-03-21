@@ -26,7 +26,7 @@ def _make_node(name: str, node_type: str = "n8n-nodes-base.set") -> N8nNode:
         id=name,
         name=name,
         type=node_type,
-        typeVersion=1,
+        type_version=1,
         position=[0.0, 0.0],
     )
 

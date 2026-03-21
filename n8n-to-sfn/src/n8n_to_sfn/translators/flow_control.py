@@ -264,8 +264,8 @@ def _translate_if(
     if true_state:
         choices.append(ChoiceRule(condition=condition, next=true_state))
 
-    state = ChoiceState(  # type: ignore[missing-argument]
-        choices=choices,  # type: ignore[unknown-argument]
+    state = ChoiceState(
+        choices=choices,
         default=false_state,
         comment=f"IF: {node.node.name}",
     )
@@ -283,8 +283,8 @@ def _translate_switch(
         rules = [ChoiceRule(condition="true", next=default_state or node.node.name)]
         default_state = None
 
-    state = ChoiceState(  # type: ignore[missing-argument]
-        choices=rules,  # type: ignore[unknown-argument]
+    state = ChoiceState(
+        choices=rules,
         default=default_state,
         comment=f"Switch: {node.node.name}",
     )
@@ -304,7 +304,7 @@ def _translate_split_in_batches(
     """
     batch_size = int(node.node.parameters.get("batchSize", 10))
 
-    processor_config = ProcessorConfig(mode="INLINE")  # type: ignore[missing-argument, unknown-argument]
+    processor_config = ProcessorConfig(mode="INLINE")
     placeholder_name = f"{node.node.name}_Item"
     item_processor = ItemProcessor(
         processor_config=processor_config,
@@ -370,7 +370,7 @@ def _translate_loop_count(
     params = node.node.parameters
     loop_count = int(params.get("loopCount", 10))
 
-    processor_config = ProcessorConfig(mode="INLINE")  # type: ignore[missing-argument, unknown-argument]
+    processor_config = ProcessorConfig(mode="INLINE")
     placeholder_name = f"{node.node.name}_Item"
     item_processor = ItemProcessor(
         processor_config=processor_config,
@@ -413,8 +413,8 @@ def _translate_loop_condition(
     if loop_body:
         choices.append(ChoiceRule(condition=condition, next=loop_body))
 
-    state = ChoiceState(  # type: ignore[missing-argument]
-        choices=choices,  # type: ignore[unknown-argument]
+    state = ChoiceState(
+        choices=choices,
         default=exit_name,
         comment=f"Loop (condition): {node.node.name}",
     )
@@ -546,8 +546,8 @@ def _translate_wait_callback(node: ClassifiedNode, resume: str) -> TranslationRe
         callback_config["formDescription"] = params.get("formDescription", "")
 
     # --- ASL callback Task state ---------------------------------------------
-    state = TaskState(  # type: ignore[missing-argument]
-        resource=_CALLBACK_RESOURCE,  # type: ignore[unknown-argument]
+    state = TaskState(
+        resource=_CALLBACK_RESOURCE,
         arguments={
             "FunctionName": f"${{{safe_name}_{handler_kind}_handler}}",
             "Payload": {
@@ -698,8 +698,8 @@ def _translate_execute_workflow(
             "{% $states.context.sub_workflow_arns['" + wf_id_value + "'] %}"
         )
 
-    state = TaskState(  # type: ignore[missing-argument]
-        resource=_EXECUTE_WORKFLOW_RESOURCE,  # type: ignore[unknown-argument]
+    state = TaskState(
+        resource=_EXECUTE_WORKFLOW_RESOURCE,
         arguments=arguments,
         comment=f"Execute Workflow: {node.node.name}",
     )

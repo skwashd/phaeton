@@ -18,11 +18,11 @@ def _node(
     name: str, classification: NodeClassification = NodeClassification.FLOW_CONTROL
 ) -> N8nNode:
     """Create an N8nNode for testing."""
-    return N8nNode(  # type: ignore[missing-argument]
+    return N8nNode(
         id=name,
         name=name,
         type="n8n-nodes-base.set",
-        type_version=1,  # type: ignore[unknown-argument]
+        type_version=1,
         position=[0, 0],
     )
 

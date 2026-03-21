@@ -33,13 +33,29 @@ class RetryConfig(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    error_equals: list[str] = Field(alias="ErrorEquals")
-    interval_seconds: int | None = Field(default=None, alias="IntervalSeconds")
-    max_attempts: int | None = Field(default=None, alias="MaxAttempts")
-    backoff_rate: float | None = Field(default=None, alias="BackoffRate")
-    max_delay_seconds: int | None = Field(default=None, alias="MaxDelaySeconds")
+    error_equals: list[str] = Field(
+        validation_alias="ErrorEquals", serialization_alias="ErrorEquals"
+    )
+    interval_seconds: int | None = Field(
+        default=None,
+        validation_alias="IntervalSeconds",
+        serialization_alias="IntervalSeconds",
+    )
+    max_attempts: int | None = Field(
+        default=None, validation_alias="MaxAttempts", serialization_alias="MaxAttempts"
+    )
+    backoff_rate: float | None = Field(
+        default=None, validation_alias="BackoffRate", serialization_alias="BackoffRate"
+    )
+    max_delay_seconds: int | None = Field(
+        default=None,
+        validation_alias="MaxDelaySeconds",
+        serialization_alias="MaxDelaySeconds",
+    )
     jitter_strategy: Literal["FULL", "NONE"] | None = Field(
-        default=None, alias="JitterStrategy"
+        default=None,
+        validation_alias="JitterStrategy",
+        serialization_alias="JitterStrategy",
     )
 
     @model_serializer
@@ -72,10 +88,16 @@ class CatchConfig(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    error_equals: list[str] = Field(alias="ErrorEquals")
-    next: str = Field(alias="Next")
-    result_path: str | None = Field(default=None, alias="ResultPath")
-    comment: str | None = Field(default=None, alias="Comment")
+    error_equals: list[str] = Field(
+        validation_alias="ErrorEquals", serialization_alias="ErrorEquals"
+    )
+    next: str = Field(validation_alias="Next", serialization_alias="Next")
+    result_path: str | None = Field(
+        default=None, validation_alias="ResultPath", serialization_alias="ResultPath"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -109,32 +131,76 @@ class ChoiceRule(BaseModel):
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     # JSONata mode
-    condition: str | None = Field(default=None, alias="Condition")
+    condition: str | None = Field(
+        default=None, validation_alias="Condition", serialization_alias="Condition"
+    )
 
     # Routing
-    next: str | None = Field(default=None, alias="Next")
+    next: str | None = Field(
+        default=None, validation_alias="Next", serialization_alias="Next"
+    )
 
     # Logical operators
-    and_: list[ChoiceRule] | None = Field(default=None, alias="And")
-    or_: list[ChoiceRule] | None = Field(default=None, alias="Or")
-    not_: ChoiceRule | None = Field(default=None, alias="Not")
+    and_: list[ChoiceRule] | None = Field(
+        default=None, validation_alias="And", serialization_alias="And"
+    )
+    or_: list[ChoiceRule] | None = Field(
+        default=None, validation_alias="Or", serialization_alias="Or"
+    )
+    not_: ChoiceRule | None = Field(
+        default=None, validation_alias="Not", serialization_alias="Not"
+    )
 
     # JSONPath variable
-    variable: str | None = Field(default=None, alias="Variable")
+    variable: str | None = Field(
+        default=None, validation_alias="Variable", serialization_alias="Variable"
+    )
 
     # Comparison operators (subset for common use)
-    boolean_equals: bool | None = Field(default=None, alias="BooleanEquals")
-    string_equals: str | None = Field(default=None, alias="StringEquals")
-    numeric_equals: float | None = Field(default=None, alias="NumericEquals")
-    numeric_greater_than: float | None = Field(default=None, alias="NumericGreaterThan")
-    numeric_less_than: float | None = Field(default=None, alias="NumericLessThan")
-    is_present: bool | None = Field(default=None, alias="IsPresent")
-    is_null: bool | None = Field(default=None, alias="IsNull")
-    string_matches: str | None = Field(default=None, alias="StringMatches")
+    boolean_equals: bool | None = Field(
+        default=None,
+        validation_alias="BooleanEquals",
+        serialization_alias="BooleanEquals",
+    )
+    string_equals: str | None = Field(
+        default=None,
+        validation_alias="StringEquals",
+        serialization_alias="StringEquals",
+    )
+    numeric_equals: float | None = Field(
+        default=None,
+        validation_alias="NumericEquals",
+        serialization_alias="NumericEquals",
+    )
+    numeric_greater_than: float | None = Field(
+        default=None,
+        validation_alias="NumericGreaterThan",
+        serialization_alias="NumericGreaterThan",
+    )
+    numeric_less_than: float | None = Field(
+        default=None,
+        validation_alias="NumericLessThan",
+        serialization_alias="NumericLessThan",
+    )
+    is_present: bool | None = Field(
+        default=None, validation_alias="IsPresent", serialization_alias="IsPresent"
+    )
+    is_null: bool | None = Field(
+        default=None, validation_alias="IsNull", serialization_alias="IsNull"
+    )
+    string_matches: str | None = Field(
+        default=None,
+        validation_alias="StringMatches",
+        serialization_alias="StringMatches",
+    )
 
     # Variable assignment
-    assign: dict[str, Any] | None = Field(default=None, alias="Assign")
-    comment: str | None = Field(default=None, alias="Comment")
+    assign: dict[str, Any] | None = Field(
+        default=None, validation_alias="Assign", serialization_alias="Assign"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -183,9 +249,13 @@ class ProcessorConfig(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    mode: Literal["INLINE", "DISTRIBUTED"] = Field(alias="Mode")
+    mode: Literal["INLINE", "DISTRIBUTED"] = Field(
+        validation_alias="Mode", serialization_alias="Mode"
+    )
     execution_type: Literal["STANDARD", "EXPRESS"] | None = Field(
-        default=None, alias="ExecutionType"
+        default=None,
+        validation_alias="ExecutionType",
+        serialization_alias="ExecutionType",
     )
 
     @model_serializer
@@ -212,10 +282,16 @@ class ItemProcessor(BaseModel):
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
     processor_config: ProcessorConfig | None = Field(
-        default=None, alias="ProcessorConfig"
+        default=None,
+        validation_alias="ProcessorConfig",
+        serialization_alias="ProcessorConfig",
     )
-    start_at: str | None = Field(default=None, alias="StartAt")
-    states: dict[str, Any] | None = Field(default=None, alias="States")
+    start_at: str | None = Field(
+        default=None, validation_alias="StartAt", serialization_alias="StartAt"
+    )
+    states: dict[str, Any] | None = Field(
+        default=None, validation_alias="States", serialization_alias="States"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -284,24 +360,64 @@ class TaskState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Task"] = Field(default="Task", alias="Type")
-    resource: str = Field(alias="Resource")
-    next: str | None = Field(default=None, alias="Next")
-    end: bool | None = Field(default=None, alias="End")
-    comment: str | None = Field(default=None, alias="Comment")
-    input_path: str | None = Field(default=None, alias="InputPath")
-    output_path: str | None = Field(default=None, alias="OutputPath")
-    result_path: str | None = Field(default=None, alias="ResultPath")
-    parameters: dict[str, Any] | None = Field(default=None, alias="Parameters")
-    arguments: dict[str, Any] | None = Field(default=None, alias="Arguments")
-    output: str | None = Field(default=None, alias="Output")
-    assign: dict[str, Any] | None = Field(default=None, alias="Assign")
-    retry: list[RetryConfig] | None = Field(default=None, alias="Retry")
-    catch: list[CatchConfig] | None = Field(default=None, alias="Catch")
-    timeout_seconds: int | None = Field(default=None, alias="TimeoutSeconds")
-    heartbeat_seconds: int | None = Field(default=None, alias="HeartbeatSeconds")
-    credentials: dict[str, Any] | None = Field(default=None, alias="Credentials")
-    result_selector: dict[str, Any] | None = Field(default=None, alias="ResultSelector")
+    type: Literal["Task"] = Field(
+        default="Task", validation_alias="Type", serialization_alias="Type"
+    )
+    resource: str = Field(validation_alias="Resource", serialization_alias="Resource")
+    next: str | None = Field(
+        default=None, validation_alias="Next", serialization_alias="Next"
+    )
+    end: bool | None = Field(
+        default=None, validation_alias="End", serialization_alias="End"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    input_path: str | None = Field(
+        default=None, validation_alias="InputPath", serialization_alias="InputPath"
+    )
+    output_path: str | None = Field(
+        default=None, validation_alias="OutputPath", serialization_alias="OutputPath"
+    )
+    result_path: str | None = Field(
+        default=None, validation_alias="ResultPath", serialization_alias="ResultPath"
+    )
+    parameters: dict[str, Any] | None = Field(
+        default=None, validation_alias="Parameters", serialization_alias="Parameters"
+    )
+    arguments: dict[str, Any] | None = Field(
+        default=None, validation_alias="Arguments", serialization_alias="Arguments"
+    )
+    output: str | None = Field(
+        default=None, validation_alias="Output", serialization_alias="Output"
+    )
+    assign: dict[str, Any] | None = Field(
+        default=None, validation_alias="Assign", serialization_alias="Assign"
+    )
+    retry: list[RetryConfig] | None = Field(
+        default=None, validation_alias="Retry", serialization_alias="Retry"
+    )
+    catch: list[CatchConfig] | None = Field(
+        default=None, validation_alias="Catch", serialization_alias="Catch"
+    )
+    timeout_seconds: int | None = Field(
+        default=None,
+        validation_alias="TimeoutSeconds",
+        serialization_alias="TimeoutSeconds",
+    )
+    heartbeat_seconds: int | None = Field(
+        default=None,
+        validation_alias="HeartbeatSeconds",
+        serialization_alias="HeartbeatSeconds",
+    )
+    credentials: dict[str, Any] | None = Field(
+        default=None, validation_alias="Credentials", serialization_alias="Credentials"
+    )
+    result_selector: dict[str, Any] | None = Field(
+        default=None,
+        validation_alias="ResultSelector",
+        serialization_alias="ResultSelector",
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -345,18 +461,42 @@ class PassState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Pass"] = Field(default="Pass", alias="Type")
-    next: str | None = Field(default=None, alias="Next")
-    end: bool | None = Field(default=None, alias="End")
-    comment: str | None = Field(default=None, alias="Comment")
-    input_path: str | None = Field(default=None, alias="InputPath")
-    output_path: str | None = Field(default=None, alias="OutputPath")
-    result_path: str | None = Field(default=None, alias="ResultPath")
-    result: Any | None = Field(default=None, alias="Result")
-    parameters: dict[str, Any] | None = Field(default=None, alias="Parameters")
-    output: str | None = Field(default=None, alias="Output")
-    arguments: dict[str, Any] | None = Field(default=None, alias="Arguments")
-    assign: dict[str, Any] | None = Field(default=None, alias="Assign")
+    type: Literal["Pass"] = Field(
+        default="Pass", validation_alias="Type", serialization_alias="Type"
+    )
+    next: str | None = Field(
+        default=None, validation_alias="Next", serialization_alias="Next"
+    )
+    end: bool | None = Field(
+        default=None, validation_alias="End", serialization_alias="End"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    input_path: str | None = Field(
+        default=None, validation_alias="InputPath", serialization_alias="InputPath"
+    )
+    output_path: str | None = Field(
+        default=None, validation_alias="OutputPath", serialization_alias="OutputPath"
+    )
+    result_path: str | None = Field(
+        default=None, validation_alias="ResultPath", serialization_alias="ResultPath"
+    )
+    result: Any | None = Field(
+        default=None, validation_alias="Result", serialization_alias="Result"
+    )
+    parameters: dict[str, Any] | None = Field(
+        default=None, validation_alias="Parameters", serialization_alias="Parameters"
+    )
+    output: str | None = Field(
+        default=None, validation_alias="Output", serialization_alias="Output"
+    )
+    arguments: dict[str, Any] | None = Field(
+        default=None, validation_alias="Arguments", serialization_alias="Arguments"
+    )
+    assign: dict[str, Any] | None = Field(
+        default=None, validation_alias="Assign", serialization_alias="Assign"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -396,15 +536,33 @@ class ChoiceState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Choice"] = Field(default="Choice", alias="Type")
-    choices: list[ChoiceRule] = Field(alias="Choices")
-    default: str | None = Field(default=None, alias="Default")
-    comment: str | None = Field(default=None, alias="Comment")
-    input_path: str | None = Field(default=None, alias="InputPath")
-    output_path: str | None = Field(default=None, alias="OutputPath")
-    output: str | None = Field(default=None, alias="Output")
-    arguments: dict[str, Any] | None = Field(default=None, alias="Arguments")
-    assign: dict[str, Any] | None = Field(default=None, alias="Assign")
+    type: Literal["Choice"] = Field(
+        default="Choice", validation_alias="Type", serialization_alias="Type"
+    )
+    choices: list[ChoiceRule] = Field(
+        validation_alias="Choices", serialization_alias="Choices"
+    )
+    default: str | None = Field(
+        default=None, validation_alias="Default", serialization_alias="Default"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    input_path: str | None = Field(
+        default=None, validation_alias="InputPath", serialization_alias="InputPath"
+    )
+    output_path: str | None = Field(
+        default=None, validation_alias="OutputPath", serialization_alias="OutputPath"
+    )
+    output: str | None = Field(
+        default=None, validation_alias="Output", serialization_alias="Output"
+    )
+    arguments: dict[str, Any] | None = Field(
+        default=None, validation_alias="Arguments", serialization_alias="Arguments"
+    )
+    assign: dict[str, Any] | None = Field(
+        default=None, validation_alias="Assign", serialization_alias="Assign"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -438,19 +596,47 @@ class WaitState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Wait"] = Field(default="Wait", alias="Type")
-    next: str | None = Field(default=None, alias="Next")
-    end: bool | None = Field(default=None, alias="End")
-    comment: str | None = Field(default=None, alias="Comment")
-    input_path: str | None = Field(default=None, alias="InputPath")
-    output_path: str | None = Field(default=None, alias="OutputPath")
-    seconds: int | None = Field(default=None, alias="Seconds")
-    timestamp: str | None = Field(default=None, alias="Timestamp")
-    seconds_path: str | None = Field(default=None, alias="SecondsPath")
-    timestamp_path: str | None = Field(default=None, alias="TimestampPath")
-    output: str | None = Field(default=None, alias="Output")
-    arguments: dict[str, Any] | None = Field(default=None, alias="Arguments")
-    assign: dict[str, Any] | None = Field(default=None, alias="Assign")
+    type: Literal["Wait"] = Field(
+        default="Wait", validation_alias="Type", serialization_alias="Type"
+    )
+    next: str | None = Field(
+        default=None, validation_alias="Next", serialization_alias="Next"
+    )
+    end: bool | None = Field(
+        default=None, validation_alias="End", serialization_alias="End"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    input_path: str | None = Field(
+        default=None, validation_alias="InputPath", serialization_alias="InputPath"
+    )
+    output_path: str | None = Field(
+        default=None, validation_alias="OutputPath", serialization_alias="OutputPath"
+    )
+    seconds: int | None = Field(
+        default=None, validation_alias="Seconds", serialization_alias="Seconds"
+    )
+    timestamp: str | None = Field(
+        default=None, validation_alias="Timestamp", serialization_alias="Timestamp"
+    )
+    seconds_path: str | None = Field(
+        default=None, validation_alias="SecondsPath", serialization_alias="SecondsPath"
+    )
+    timestamp_path: str | None = Field(
+        default=None,
+        validation_alias="TimestampPath",
+        serialization_alias="TimestampPath",
+    )
+    output: str | None = Field(
+        default=None, validation_alias="Output", serialization_alias="Output"
+    )
+    arguments: dict[str, Any] | None = Field(
+        default=None, validation_alias="Arguments", serialization_alias="Arguments"
+    )
+    assign: dict[str, Any] | None = Field(
+        default=None, validation_alias="Assign", serialization_alias="Assign"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -487,11 +673,21 @@ class SucceedState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Succeed"] = Field(default="Succeed", alias="Type")
-    comment: str | None = Field(default=None, alias="Comment")
-    input_path: str | None = Field(default=None, alias="InputPath")
-    output_path: str | None = Field(default=None, alias="OutputPath")
-    output: str | None = Field(default=None, alias="Output")
+    type: Literal["Succeed"] = Field(
+        default="Succeed", validation_alias="Type", serialization_alias="Type"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    input_path: str | None = Field(
+        default=None, validation_alias="InputPath", serialization_alias="InputPath"
+    )
+    output_path: str | None = Field(
+        default=None, validation_alias="OutputPath", serialization_alias="OutputPath"
+    )
+    output: str | None = Field(
+        default=None, validation_alias="Output", serialization_alias="Output"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -517,12 +713,24 @@ class FailState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Fail"] = Field(default="Fail", alias="Type")
-    comment: str | None = Field(default=None, alias="Comment")
-    error: str | None = Field(default=None, alias="Error")
-    error_path: str | None = Field(default=None, alias="ErrorPath")
-    cause: str | None = Field(default=None, alias="Cause")
-    cause_path: str | None = Field(default=None, alias="CausePath")
+    type: Literal["Fail"] = Field(
+        default="Fail", validation_alias="Type", serialization_alias="Type"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    error: str | None = Field(
+        default=None, validation_alias="Error", serialization_alias="Error"
+    )
+    error_path: str | None = Field(
+        default=None, validation_alias="ErrorPath", serialization_alias="ErrorPath"
+    )
+    cause: str | None = Field(
+        default=None, validation_alias="Cause", serialization_alias="Cause"
+    )
+    cause_path: str | None = Field(
+        default=None, validation_alias="CausePath", serialization_alias="CausePath"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -555,19 +763,45 @@ class ParallelState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Parallel"] = Field(default="Parallel", alias="Type")
-    branches: list[StateMachine] = Field(alias="Branches")
-    next: str | None = Field(default=None, alias="Next")
-    end: bool | None = Field(default=None, alias="End")
-    comment: str | None = Field(default=None, alias="Comment")
-    input_path: str | None = Field(default=None, alias="InputPath")
-    output_path: str | None = Field(default=None, alias="OutputPath")
-    result_path: str | None = Field(default=None, alias="ResultPath")
-    output: str | None = Field(default=None, alias="Output")
-    arguments: dict[str, Any] | None = Field(default=None, alias="Arguments")
-    assign: dict[str, Any] | None = Field(default=None, alias="Assign")
-    retry: list[RetryConfig] | None = Field(default=None, alias="Retry")
-    catch: list[CatchConfig] | None = Field(default=None, alias="Catch")
+    type: Literal["Parallel"] = Field(
+        default="Parallel", validation_alias="Type", serialization_alias="Type"
+    )
+    branches: list[StateMachine] = Field(
+        validation_alias="Branches", serialization_alias="Branches"
+    )
+    next: str | None = Field(
+        default=None, validation_alias="Next", serialization_alias="Next"
+    )
+    end: bool | None = Field(
+        default=None, validation_alias="End", serialization_alias="End"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    input_path: str | None = Field(
+        default=None, validation_alias="InputPath", serialization_alias="InputPath"
+    )
+    output_path: str | None = Field(
+        default=None, validation_alias="OutputPath", serialization_alias="OutputPath"
+    )
+    result_path: str | None = Field(
+        default=None, validation_alias="ResultPath", serialization_alias="ResultPath"
+    )
+    output: str | None = Field(
+        default=None, validation_alias="Output", serialization_alias="Output"
+    )
+    arguments: dict[str, Any] | None = Field(
+        default=None, validation_alias="Arguments", serialization_alias="Arguments"
+    )
+    assign: dict[str, Any] | None = Field(
+        default=None, validation_alias="Assign", serialization_alias="Assign"
+    )
+    retry: list[RetryConfig] | None = Field(
+        default=None, validation_alias="Retry", serialization_alias="Retry"
+    )
+    catch: list[CatchConfig] | None = Field(
+        default=None, validation_alias="Catch", serialization_alias="Catch"
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:
@@ -614,29 +848,75 @@ class MapState(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    type: Literal["Map"] = Field(default="Map", alias="Type")
-    next: str | None = Field(default=None, alias="Next")
-    end: bool | None = Field(default=None, alias="End")
-    comment: str | None = Field(default=None, alias="Comment")
-    input_path: str | None = Field(default=None, alias="InputPath")
-    output_path: str | None = Field(default=None, alias="OutputPath")
-    result_path: str | None = Field(default=None, alias="ResultPath")
-    items_path: str | None = Field(default=None, alias="ItemsPath")
-    item_selector: dict[str, Any] | None = Field(default=None, alias="ItemSelector")
-    item_processor: ItemProcessor | None = Field(default=None, alias="ItemProcessor")
-    max_concurrency: int | None = Field(default=None, alias="MaxConcurrency")
-    parameters: dict[str, Any] | None = Field(default=None, alias="Parameters")
-    output: str | None = Field(default=None, alias="Output")
-    arguments: dict[str, Any] | None = Field(default=None, alias="Arguments")
-    assign: dict[str, Any] | None = Field(default=None, alias="Assign")
-    retry: list[RetryConfig] | None = Field(default=None, alias="Retry")
-    catch: list[CatchConfig] | None = Field(default=None, alias="Catch")
-    label: str | None = Field(default=None, alias="Label")
+    type: Literal["Map"] = Field(
+        default="Map", validation_alias="Type", serialization_alias="Type"
+    )
+    next: str | None = Field(
+        default=None, validation_alias="Next", serialization_alias="Next"
+    )
+    end: bool | None = Field(
+        default=None, validation_alias="End", serialization_alias="End"
+    )
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    input_path: str | None = Field(
+        default=None, validation_alias="InputPath", serialization_alias="InputPath"
+    )
+    output_path: str | None = Field(
+        default=None, validation_alias="OutputPath", serialization_alias="OutputPath"
+    )
+    result_path: str | None = Field(
+        default=None, validation_alias="ResultPath", serialization_alias="ResultPath"
+    )
+    items_path: str | None = Field(
+        default=None, validation_alias="ItemsPath", serialization_alias="ItemsPath"
+    )
+    item_selector: dict[str, Any] | None = Field(
+        default=None,
+        validation_alias="ItemSelector",
+        serialization_alias="ItemSelector",
+    )
+    item_processor: ItemProcessor | None = Field(
+        default=None,
+        validation_alias="ItemProcessor",
+        serialization_alias="ItemProcessor",
+    )
+    max_concurrency: int | None = Field(
+        default=None,
+        validation_alias="MaxConcurrency",
+        serialization_alias="MaxConcurrency",
+    )
+    parameters: dict[str, Any] | None = Field(
+        default=None, validation_alias="Parameters", serialization_alias="Parameters"
+    )
+    output: str | None = Field(
+        default=None, validation_alias="Output", serialization_alias="Output"
+    )
+    arguments: dict[str, Any] | None = Field(
+        default=None, validation_alias="Arguments", serialization_alias="Arguments"
+    )
+    assign: dict[str, Any] | None = Field(
+        default=None, validation_alias="Assign", serialization_alias="Assign"
+    )
+    retry: list[RetryConfig] | None = Field(
+        default=None, validation_alias="Retry", serialization_alias="Retry"
+    )
+    catch: list[CatchConfig] | None = Field(
+        default=None, validation_alias="Catch", serialization_alias="Catch"
+    )
+    label: str | None = Field(
+        default=None, validation_alias="Label", serialization_alias="Label"
+    )
     tolerated_failure_percentage: float | None = Field(
-        default=None, alias="ToleratedFailurePercentage"
+        default=None,
+        validation_alias="ToleratedFailurePercentage",
+        serialization_alias="ToleratedFailurePercentage",
     )
     tolerated_failure_count: int | None = Field(
-        default=None, alias="ToleratedFailureCount"
+        default=None,
+        validation_alias="ToleratedFailureCount",
+        serialization_alias="ToleratedFailureCount",
     )
 
     @model_serializer
@@ -709,8 +989,10 @@ class StateMachine(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True, frozen=True)
 
-    comment: str | None = Field(default=None, alias="Comment")
-    start_at: str = Field(alias="StartAt")
+    comment: str | None = Field(
+        default=None, validation_alias="Comment", serialization_alias="Comment"
+    )
+    start_at: str = Field(validation_alias="StartAt", serialization_alias="StartAt")
     states: dict[
         str,
         TaskState
@@ -721,12 +1003,20 @@ class StateMachine(BaseModel):
         | FailState
         | ParallelState
         | MapState,
-    ] = Field(alias="States")
+    ] = Field(validation_alias="States", serialization_alias="States")
     query_language: Literal["JSONata"] | None = Field(
-        default="JSONata", alias="QueryLanguage"
+        default="JSONata",
+        validation_alias="QueryLanguage",
+        serialization_alias="QueryLanguage",
     )
-    version: str | None = Field(default=None, alias="Version")
-    timeout_seconds: int | None = Field(default=None, alias="TimeoutSeconds")
+    version: str | None = Field(
+        default=None, validation_alias="Version", serialization_alias="Version"
+    )
+    timeout_seconds: int | None = Field(
+        default=None,
+        validation_alias="TimeoutSeconds",
+        serialization_alias="TimeoutSeconds",
+    )
 
     @model_serializer
     def _serialize(self) -> dict[str, Any]:

@@ -33,7 +33,7 @@ def _make_node(
             id="test-id",
             name=name,
             type=node_type,
-            typeVersion=1,
+            type_version=1,
             position=[0.0, 0.0],
             parameters=parameters or {},
         ),

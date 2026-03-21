@@ -23,11 +23,11 @@ def _node(
 ) -> ClassifiedNode:
     """Create a classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type=node_type,
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
         ),
@@ -125,8 +125,8 @@ class TestRetryBackoffConfig:
 
     def test_backoff_rate_on_default_retry(self) -> None:
         """Test backoff rate on default retry."""
-        default = RetryConfig(  # type: ignore[missing-argument]
-            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+        default = RetryConfig(
+            error_equals=["States.TaskFailed"],
             max_attempts=3,
             interval_seconds=2,
             backoff_rate=2.0,
@@ -139,8 +139,8 @@ class TestRetryBackoffConfig:
 
     def test_retry_with_jitter_strategy(self) -> None:
         """Test retry with jitter strategy."""
-        retry = RetryConfig(  # type: ignore[missing-argument]
-            error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+        retry = RetryConfig(
+            error_equals=["States.TaskFailed"],
             max_attempts=3,
             interval_seconds=1,
             backoff_rate=2.0,
@@ -152,11 +152,11 @@ class TestRetryBackoffConfig:
     def test_explicit_retry_from_node_settings(self) -> None:
         """Test explicit retry from node error settings."""
         node = ClassifiedNode(
-            node=N8nNode(  # type: ignore[missing-argument]
+            node=N8nNode(
                 id="API",
                 name="API",
                 type="n8n-nodes-base.awsS3",
-                type_version=1,  # type: ignore[unknown-argument]
+                type_version=1,
                 position=[0, 0],
                 retry_on_fail=True,
                 max_tries=5,

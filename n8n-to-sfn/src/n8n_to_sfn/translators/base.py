@@ -123,8 +123,8 @@ def build_error_handling(
             else 1000
         )
         retries.append(
-            RetryConfig(  # type: ignore[missing-argument]
-                error_equals=["States.ALL"],  # type: ignore[unknown-argument]
+            RetryConfig(
+                error_equals=["States.ALL"],
                 max_attempts=max_attempts,
                 interval_seconds=wait_ms // 1000,
                 backoff_rate=2.0,
@@ -135,9 +135,9 @@ def build_error_handling(
 
     if n8n_node.continue_on_fail and next_state_name:
         catches.append(
-            CatchConfig(  # type: ignore[missing-argument]
-                error_equals=["States.ALL"],  # type: ignore[unknown-argument]
-                next=next_state_name,  # type: ignore[unknown-argument]
+            CatchConfig(
+                error_equals=["States.ALL"],
+                next=next_state_name,
             )
         )
 

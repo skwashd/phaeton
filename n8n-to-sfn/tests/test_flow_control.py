@@ -28,7 +28,7 @@ def _fc_node(
             id=name,
             name=name,
             type=node_type,
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
             **kwargs,
@@ -62,7 +62,7 @@ class TestFlowControlTranslator:
     def test_cannot_translate_other(self) -> None:
         """Test can_translate returns False for non-flow-control nodes."""
         cn = ClassifiedNode(
-            node=N8nNode(id="x", name="x", type="x", type_version=1, position=[0, 0]),  # type: ignore[missing-argument, unknown-argument]
+            node=N8nNode(id="x", name="x", type="x", type_version=1, position=[0, 0]),
             classification=NodeClassification.AWS_NATIVE,
         )
         assert not self.translator.can_translate(cn)

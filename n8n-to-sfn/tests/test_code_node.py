@@ -18,11 +18,11 @@ def _code_node(
 ) -> ClassifiedNode:
     """Create a code classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type="n8n-nodes-base.code",
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params,
         ),

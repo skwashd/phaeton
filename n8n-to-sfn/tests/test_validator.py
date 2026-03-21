@@ -16,7 +16,7 @@ class TestValidator:
 
     def test_valid_state_machine(self) -> None:
         """Test valid state machine has no errors."""
-        sm = StateMachine(start_at="S", states={"S": PassState(end=True)})  # type: ignore[missing-argument, unknown-argument]
+        sm = StateMachine(start_at="S", states={"S": PassState(end=True)})
         errors = validate_asl(sm)
         assert errors == []
 
@@ -40,9 +40,9 @@ class TestValidator:
 
     def test_valid_complete_machine(self) -> None:
         """Test valid complete state machine has no errors."""
-        sm = StateMachine(  # type: ignore[missing-argument]
-            start_at="Start",  # type: ignore[unknown-argument]
-            states={  # type: ignore[unknown-argument]
+        sm = StateMachine(
+            start_at="Start",
+            states={
                 "Start": PassState(next="End"),
                 "End": PassState(end=True),
             },
@@ -52,11 +52,11 @@ class TestValidator:
 
     def test_valid_task_state(self) -> None:
         """Test valid task state has no errors."""
-        sm = StateMachine(  # type: ignore[missing-argument]
-            start_at="T",  # type: ignore[unknown-argument]
-            states={  # type: ignore[unknown-argument]
-                "T": TaskState(  # type: ignore[missing-argument]
-                    resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
+        sm = StateMachine(
+            start_at="T",
+            states={
+                "T": TaskState(
+                    resource="arn:aws:states:::lambda:invoke",
                     end=True,
                 ),
             },
@@ -66,9 +66,9 @@ class TestValidator:
 
     def test_valid_fail_state(self) -> None:
         """Test valid fail state has no errors."""
-        sm = StateMachine(  # type: ignore[missing-argument]
-            start_at="F",  # type: ignore[unknown-argument]
-            states={"F": FailState(error="Err", cause="Bad")},  # type: ignore[unknown-argument]
+        sm = StateMachine(
+            start_at="F",
+            states={"F": FailState(error="Err", cause="Bad")},
         )
         errors = validate_asl(sm)
         assert errors == []

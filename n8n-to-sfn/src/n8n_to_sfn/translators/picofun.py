@@ -24,8 +24,8 @@ from n8n_to_sfn.translators.picofun_operation_mapper import (
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_RETRY = RetryConfig(  # type: ignore[missing-argument]
-    error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+_DEFAULT_RETRY = RetryConfig(
+    error_equals=["States.TaskFailed"],
     interval_seconds=2,
     max_attempts=3,
     backoff_rate=2.0,
@@ -100,8 +100,8 @@ class PicoFunTranslator(BaseTranslator):
                 )
                 break  # Use first credential
 
-        state = TaskState(  # type: ignore[missing-argument]
-            resource="arn:aws:states:::lambda:invoke",  # type: ignore[unknown-argument]
+        state = TaskState(
+            resource="arn:aws:states:::lambda:invoke",
             arguments=arguments,
             end=True,
             retry=[_DEFAULT_RETRY],

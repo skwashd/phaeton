@@ -34,11 +34,11 @@ def _node(
 ) -> ClassifiedNode:
     """Create a classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type=node_type,
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
         ),
         classification=classification,
@@ -272,11 +272,11 @@ def _merge_node(
 ) -> ClassifiedNode:
     """Create a classified node for merge tests."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type=node_type,
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
         ),
@@ -525,11 +525,11 @@ def _sib_node(
 ) -> ClassifiedNode:
     """Create a classified node for SplitInBatches tests."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type=node_type,
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
         ),
@@ -834,11 +834,11 @@ class TestEngineOutputModel:
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
-                    node=N8nNode(  # type: ignore[missing-argument]
+                    node=N8nNode(
                         id="slack1",
                         name="slack1",
                         type="n8n-nodes-base.slack",
-                        type_version=1,  # type: ignore[unknown-argument]
+                        type_version=1,
                         position=[0, 0],
                     ),
                     classification=NodeClassification.PICOFUN_API,
@@ -867,11 +867,11 @@ class TestEngineOutputModel:
         analysis = WorkflowAnalysis(
             classified_nodes=[
                 ClassifiedNode(
-                    node=N8nNode(  # type: ignore[missing-argument]
+                    node=N8nNode(
                         id="slack1",
                         name="slack1",
                         type="n8n-nodes-base.slack",
-                        type_version=1,  # type: ignore[unknown-argument]
+                        type_version=1,
                         position=[0, 0],
                     ),
                     classification=NodeClassification.PICOFUN_API,

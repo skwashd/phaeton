@@ -33,11 +33,11 @@ def _node(
 ) -> ClassifiedNode:
     """Create a classified node with the given expressions."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type="n8n-nodes-base.set",
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters={},
         ),

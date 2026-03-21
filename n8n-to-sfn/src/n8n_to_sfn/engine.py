@@ -147,7 +147,7 @@ class TranslationEngine:
             node_state_names,
             entry_state_overrides,
         )
-        sm = StateMachine(start_at=start_at, states=all_states)  # type: ignore[missing-argument, unknown-argument]
+        sm = StateMachine(start_at=start_at, states=all_states)
 
         context = context.model_copy(update={"state_machine": sm})
 
@@ -394,9 +394,9 @@ class TranslationEngine:
                 )
 
             branches.append(
-                StateMachine(  # type: ignore[missing-argument]
-                    start_at=first_state_name,  # type: ignore[unknown-argument]
-                    states=branch_states,  # type: ignore[unknown-argument]
+                StateMachine(
+                    start_at=first_state_name,
+                    states=branch_states,
                     query_language=None,
                 )
             )
@@ -418,8 +418,8 @@ class TranslationEngine:
         merge_mode = meta.get("merge_mode", "append")
         parallel_name = node_state_names.get(merge_name, merge_name)
 
-        parallel_state = ParallelState(  # type: ignore[missing-argument]
-            branches=branches,  # type: ignore[unknown-argument]
+        parallel_state = ParallelState(
+            branches=branches,
             comment=f"Parallel merge ({merge_mode}): {merge_name}",
         )
 
@@ -595,7 +595,7 @@ class TranslationEngine:
             all_states[sib_state_name] = map_state.model_copy(
                 update={
                     "item_processor": ItemProcessor(
-                        processor_config=ProcessorConfig(mode="INLINE"),  # type: ignore[missing-argument, unknown-argument]
+                        processor_config=ProcessorConfig(mode="INLINE"),
                         start_at=first_state_name,
                         states=inner_states,
                     ),

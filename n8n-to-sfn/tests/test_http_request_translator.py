@@ -20,11 +20,11 @@ def _http_node(
 ) -> ClassifiedNode:
     """Create an HTTP Request classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type="n8n-nodes-base.httpRequest",
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
             credentials=credentials,
@@ -56,11 +56,11 @@ class TestHttpRequestTranslatorCanTranslate:
     def test_cannot_translate_other_node(self) -> None:
         """Test can_translate returns False for non-httpRequest nodes."""
         node = ClassifiedNode(
-            node=N8nNode(  # type: ignore[missing-argument]
+            node=N8nNode(
                 id="x",
                 name="x",
                 type="n8n-nodes-base.slack",
-                type_version=1,  # type: ignore[unknown-argument]
+                type_version=1,
                 position=[0, 0],
             ),
             classification=NodeClassification.PICOFUN_API,

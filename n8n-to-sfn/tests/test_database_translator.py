@@ -22,11 +22,11 @@ def _db_node(
 ) -> ClassifiedNode:
     """Create a database classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type=node_type,
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
             credentials=credentials,
@@ -73,11 +73,11 @@ class TestDatabaseTranslatorCanTranslate:
     def test_cannot_translate_other_node_type(self) -> None:
         """Test can_translate returns False for non-database node types."""
         node = ClassifiedNode(
-            node=N8nNode(  # type: ignore[missing-argument]
+            node=N8nNode(
                 id="x",
                 name="x",
                 type="n8n-nodes-base.httpRequest",
-                type_version=1,  # type: ignore[unknown-argument]
+                type_version=1,
                 position=[0, 0],
             ),
             classification=NodeClassification.AWS_NATIVE,

@@ -25,8 +25,8 @@ _ARN_SDK_BASE = "arn:aws:states:::aws-sdk"
 _ARN_LAMBDA_INVOKE = "arn:aws:states:::lambda:invoke"
 
 # Default retry applied to all AWS SDK task states unless the node overrides it.
-_DEFAULT_RETRY = RetryConfig(  # type: ignore[missing-argument]
-    error_equals=["States.TaskFailed"],  # type: ignore[unknown-argument]
+_DEFAULT_RETRY = RetryConfig(
+    error_equals=["States.TaskFailed"],
     interval_seconds=2,
     max_attempts=3,
     backoff_rate=2.0,
@@ -206,8 +206,8 @@ def _translate_sdk_service(
     arn = _build_sdk_arn(service, api_name)
     arguments = _extract_node_params(node, exclude_keys={"resource", "operation"})
 
-    state = TaskState(  # type: ignore[missing-argument]
-        resource=arn,  # type: ignore[unknown-argument]
+    state = TaskState(
+        resource=arn,
         comment=f"n8n {node.node.type} — {resource}.{operation}",
         arguments=arguments if arguments else None,
         end=True,
@@ -244,8 +244,8 @@ def _translate_lambda(
             "FunctionName will be absent from Arguments."
         )
 
-    state = TaskState(  # type: ignore[missing-argument]
-        resource=_ARN_LAMBDA_INVOKE,  # type: ignore[unknown-argument]
+    state = TaskState(
+        resource=_ARN_LAMBDA_INVOKE,
         comment="n8n n8n-nodes-base.awsLambda — invoke",
         arguments=arguments if arguments else None,
         end=True,
@@ -294,8 +294,8 @@ class AWSServiceTranslator(BaseTranslator):
                 f"AWSServiceTranslator received unrecognised node type {node_type!r}; "
                 "producing a no-op TaskState."
             )
-            state = TaskState(  # type: ignore[missing-argument]
-                resource=_build_sdk_arn("states", "noop"),  # type: ignore[unknown-argument]
+            state = TaskState(
+                resource=_build_sdk_arn("states", "noop"),
                 comment=f"Unrecognised AWS node: {node_type}",
                 end=True,
             )

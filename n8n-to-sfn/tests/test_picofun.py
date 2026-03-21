@@ -27,11 +27,11 @@ def _picofun_node(
 ) -> ClassifiedNode:
     """Create a PicoFun classified node for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type="n8n-nodes-base.slack",
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
             credentials=credentials,
@@ -64,7 +64,7 @@ class TestPicoFunTranslator:
     def test_cannot_translate_other(self) -> None:
         """Test can_translate returns False for non-PicoFun nodes."""
         node = ClassifiedNode(
-            node=N8nNode(id="x", name="x", type="x", type_version=1, position=[0, 0]),  # type: ignore[missing-argument, unknown-argument]
+            node=N8nNode(id="x", name="x", type="x", type_version=1, position=[0, 0]),
             classification=NodeClassification.FLOW_CONTROL,
         )
         assert not self.translator.can_translate(node)
@@ -150,11 +150,11 @@ def _picofun_node_with_mappings(
 ) -> ClassifiedNode:
     """Create a PicoFun classified node with operation mappings for testing."""
     return ClassifiedNode(
-        node=N8nNode(  # type: ignore[missing-argument]
+        node=N8nNode(
             id=name,
             name=name,
             type="n8n-nodes-base.slack",
-            type_version=1,  # type: ignore[unknown-argument]
+            type_version=1,
             position=[0, 0],
             parameters=params or {},
             credentials=credentials,
