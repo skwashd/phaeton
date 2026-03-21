@@ -65,11 +65,11 @@ class Packager:
         self._step_validate_asl(input_data)
         self._step_write_asl(input_data, output_dir)
         self._step_write_lambdas(input_data, output_dir)
-        self._step_write_picofun(input_data, output_dir)
+        picofun_output = self._step_write_picofun(input_data, output_dir)
         ssm_params = self._step_generate_ssm(input_data)
         iam_policy = self._step_generate_iam(input_data, ssm_params)
         webhook_warnings = self._step_write_cdk(
-            input_data, iam_policy, ssm_params, output_dir,
+            input_data, iam_policy, ssm_params, output_dir, picofun_output,
         )
         if webhook_warnings:
             updated_report = input_data.conversion_report.model_copy(
@@ -166,6 +166,7 @@ class Packager:
         iam_policy: dict,
         ssm_params: list,
         output_dir: Path,
+        picofun_output: PicoFunOutput | None = None,
     ) -> list[str]:
         """
         Write the CDK application.
@@ -176,6 +177,7 @@ class Packager:
         """
         _, warnings = self._cdk_writer.write(
             input_data, iam_policy, ssm_params, output_dir,
+            picofun_output=picofun_output,
         )
         for w in warnings:
             logger.warning(w)

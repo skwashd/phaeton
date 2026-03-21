@@ -25,6 +25,7 @@ from n8n_to_sfn_packager.writers.lambda_writer import (
     LayerSpec,
     analyze_shared_dependencies,
 )
+from n8n_to_sfn_packager.writers.picofun_writer import PicoFunOutput
 from n8n_to_sfn_packager.writers.ssm_writer import SSMWriter
 
 # 8 spaces: indentation level inside __init__ body
@@ -45,6 +46,7 @@ class CDKWriter:
         iam_policy: dict[str, Any],
         ssm_params: list[SSMParameterDefinition],
         output_dir: Path,
+        picofun_output: PicoFunOutput | None = None,
     ) -> tuple[Path, list[str]]:
         """
         Write the complete ``cdk/`` directory.
@@ -54,6 +56,7 @@ class CDKWriter:
             iam_policy: The generated IAM policy document.
             ssm_params: SSM parameter definitions.
             output_dir: Root output directory.
+            picofun_output: Optional PicoFun artifact metadata.
 
         Returns:
             Tuple of the created ``cdk/`` directory path and a list of
@@ -78,6 +81,7 @@ class CDKWriter:
             iam_policy,
             ssm_params,
             stack_prefix,
+            picofun_output=picofun_output,
         )
 
         self._write_credentials_doc(output_dir, input_data)
@@ -267,6 +271,7 @@ class CDKWriter:
         iam_policy: dict[str, Any],
         ssm_params: list[SSMParameterDefinition],
         stack_prefix: str,
+        picofun_output: PicoFunOutput | None = None,
     ) -> list[str]:
         """
         Write the main workflow stack.
@@ -275,17 +280,22 @@ class CDKWriter:
             Warnings about unauthenticated webhook handlers.
 
         """
+        has_picofun = any(
+            s.function_type == LambdaFunctionType.PICOFUN_API_CLIENT
+            for s in input_data.lambda_functions
+        )
         layers, _ = analyze_shared_dependencies(input_data.lambda_functions)
         lambda_code, warnings = self._wf_lambda_functions(input_data, layers)
 
         sections = [
-            self._wf_imports(input_data),
+            self._wf_imports(input_data, has_picofun=has_picofun),
             self._wf_class_header(stack_prefix),
             self._wf_vpc_lookup(input_data),
             self._wf_ssm_parameters(ssm_params),
             self._wf_dead_letter_queue(stack_prefix),
-            self._wf_lambda_layers(layers),
+            self._wf_lambda_layers(layers, picofun_output=picofun_output),
             lambda_code,
+            self._wf_picofun_construct(input_data, picofun_output),
             self._wf_state_machine(iam_policy, stack_prefix),
             self._wf_alarms(),
             self._wf_triggers(input_data),
@@ -298,7 +308,11 @@ class CDKWriter:
         return warnings
 
     @staticmethod
-    def _wf_imports(input_data: PackagerInput) -> str:
+    def _wf_imports(
+        input_data: PackagerInput,
+        *,
+        has_picofun: bool = False,
+    ) -> str:
         """Return import statements."""
         has_webhook_fns = any(
             s.function_type
@@ -341,6 +355,12 @@ class CDKWriter:
                 "from aws_cdk import aws_ssm as ssm",
                 "from aws_cdk import aws_stepfunctions as sfn",
                 "from constructs import Construct",
+            ]
+        )
+        if has_picofun:
+            lines.append("from construct import PicoFunConstruct")
+        lines.extend(
+            [
                 "",
                 "from stacks.shared_stack import SharedStack",
                 "",
@@ -423,12 +443,31 @@ class CDKWriter:
         )
 
     @staticmethod
-    def _wf_lambda_layers(layers: list[LayerSpec]) -> str:
+    def _wf_lambda_layers(
+        layers: list[LayerSpec],
+        picofun_output: PicoFunOutput | None = None,
+    ) -> str:
         """Return Lambda Layer constructs for shared dependencies."""
-        if not layers:
+        if not layers and not picofun_output:
             return ""
 
         parts = [_BODY + "# --- Lambda Layers (shared dependencies) ---\n"]
+
+        if picofun_output:
+            layer_path = picofun_output.layer_dir
+            parts.append(
+                _body(f"""\
+                    picofun_layer = lambda_.LayerVersion(
+                        self,
+                        "PicoFunLayer",
+                        code=lambda_.Code.from_asset(str(Path(__file__).parent.parent.parent / "{layer_path.name}")),
+                        compatible_runtimes=[lambda_.Runtime.PYTHON_3_12],
+                        description="PicoFun picorun runtime layer",
+                    )
+                """)
+                + "\n"
+            )
+
         for layer in layers:
             var_name = layer.layer_name.replace("-", "_") + "_layer"
             construct_id = (
@@ -483,13 +522,20 @@ class CDKWriter:
         warnings: list[str] = []
         if not input_data.lambda_functions:
             return "", warnings
+
+        non_picofun = [
+            s
+            for s in input_data.lambda_functions
+            if s.function_type != LambdaFunctionType.PICOFUN_API_CLIENT
+        ]
+
         parts: list[str] = [
             _BODY + "# --- Lambda Functions ---\n",
             _BODY + "lambda_functions = {}\n",
             "\n",
         ]
 
-        for spec in input_data.lambda_functions:
+        for spec in non_picofun:
             construct_id = spec.function_name.replace("_", "-").title().replace("-", "")
             comment = (
                 f"  # Source n8n node: {spec.source_node_name}"
@@ -603,6 +649,59 @@ class CDKWriter:
                     )
 
         return "".join(parts), warnings
+
+    @staticmethod
+    def _wf_picofun_construct(
+        input_data: PackagerInput,
+        picofun_output: PicoFunOutput | None,
+    ) -> str:
+        """Generate code to instantiate the PicoFun CDK construct."""
+        if not picofun_output:
+            return ""
+
+        picofun_functions = [
+            s
+            for s in input_data.lambda_functions
+            if s.function_type == LambdaFunctionType.PICOFUN_API_CLIENT
+        ]
+        if not picofun_functions:
+            return ""
+
+        parts: list[str] = [_BODY + "# --- PicoFun Construct ---\n"]
+
+        func_names = ", ".join(f'"{f.function_name}"' for f in picofun_functions)
+
+        vpc_lines = ""
+        if input_data.vpc_config:
+            vpc_lines = (
+                "            vpc=vpc,\n"
+                "            security_groups=[lambda_sg],\n"
+            )
+
+        parts.append(
+            _body(f"""\
+                picofun = PicoFunConstruct(
+                    self,
+                    "PicoFun",
+                    layer=picofun_layer,
+                    function_names=[{func_names}],
+            """)
+            + vpc_lines
+            + _body("""\
+                )
+            """)
+            + "\n"
+        )
+
+        for spec in picofun_functions:
+            parts.append(
+                _body(f"""\
+                    lambda_functions["{spec.function_name}"] = picofun.lambda_functions["{spec.function_name}"]
+                """)
+                + "\n"
+            )
+
+        return "".join(parts)
 
     @staticmethod
     def _wf_state_machine(

@@ -346,7 +346,7 @@ class TestWorkflowStack:
         """Test that Python Lambdas use lambda_.Function, not PythonFunction."""
         writer = CDKWriter()
         cdk_dir, _ = writer.write(
-            _minimal_input(),
+            _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
             tmp_path,
@@ -356,7 +356,7 @@ class TestWorkflowStack:
         assert "lambda_.Function(" in code
 
     def test_correct_number_of_functions_minimal(self, tmp_path: Path) -> None:
-        """Test that minimal input produces the correct number of functions."""
+        """Test that minimal input with only PicoFun functions has no regular Lambdas."""
         writer = CDKWriter()
         cdk_dir, _ = writer.write(
             _minimal_input(),
@@ -365,8 +365,8 @@ class TestWorkflowStack:
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        # Minimal input has 1 Python Lambda
-        assert code.count("lambda_.Function(") == 1
+        # Minimal input has 1 PICOFUN_API_CLIENT Lambda — skipped from regular section
+        assert code.count("lambda_.Function(") == 0
 
     def test_correct_number_of_functions_complex(self, tmp_path: Path) -> None:
         """Test that complex input produces the correct number of functions."""
@@ -378,8 +378,8 @@ class TestWorkflowStack:
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        # Complex: 2 Python Lambdas + 1 Node.js Lambda + 1 OAuth refresh Lambda
-        assert code.count("lambda_.Function(") == 4
+        # Complex: 1 webhook Python + 1 Node.js + 1 OAuth refresh (slack_api is PicoFun, skipped)
+        assert code.count("lambda_.Function(") == 3
 
     def test_webhook_function_url(self, tmp_path: Path) -> None:
         """Test that webhook function URL is configured."""
@@ -499,22 +499,22 @@ class TestWorkflowStack:
         assert "sub_process" in code
 
     def test_source_node_comments(self, tmp_path: Path) -> None:
-        """Test that source node comments are present."""
+        """Test that source node comments are present for non-PicoFun functions."""
         writer = CDKWriter()
         cdk_dir, _ = writer.write(
-            _minimal_input(),
+            _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        assert "Source n8n node: Slack" in code
+        assert "Source n8n node: Webhook" in code
 
     def test_python_function_has_bundling_options(self, tmp_path: Path) -> None:
         """Test that Python Lambda functions use BundlingOptions with pip install."""
         writer = CDKWriter()
         cdk_dir, _ = writer.write(
-            _minimal_input(),
+            _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
             tmp_path,
@@ -572,7 +572,7 @@ class TestObservability:
         """Test that Lambda functions include active X-Ray tracing."""
         writer = CDKWriter()
         cdk_dir, _ = writer.write(
-            _minimal_input(),
+            _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
             tmp_path,
@@ -584,7 +584,7 @@ class TestObservability:
         """Test that Lambda functions reference the DLQ."""
         writer = CDKWriter()
         cdk_dir, _ = writer.write(
-            _minimal_input(),
+            _complex_input(),
             _make_iam_policy(),
             _make_ssm_params(),
             tmp_path,
@@ -615,9 +615,9 @@ class TestObservability:
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        # 3 workflow Lambdas + 1 OAuth refresh Lambda = 4 total tracing entries
-        assert code.count("tracing=lambda_.Tracing.ACTIVE") == 4
-        assert code.count("dead_letter_queue=dlq") == 4
+        # 2 non-PicoFun Lambdas + 1 OAuth refresh Lambda = 3 total tracing entries
+        assert code.count("tracing=lambda_.Tracing.ACTIVE") == 3
+        assert code.count("dead_letter_queue=dlq") == 3
 
     def test_state_machine_xray_tracing(self, tmp_path: Path) -> None:
         """Test that state machine includes X-Ray tracing configuration."""
@@ -929,15 +929,16 @@ class TestVpcConfiguration:
         assert "HTTPS outbound" in code
 
     def test_lambda_vpc_params_python(self, tmp_path: Path) -> None:
-        """Test that Python Lambda functions include VPC parameters."""
+        """Test that VPC params appear for non-PicoFun Lambdas with VPC config."""
         writer = CDKWriter()
         cdk_dir, _ = writer.write(
-            _vpc_input(),
+            _vpc_multi_service_input(),
             _make_iam_policy(),
             _make_ssm_params(),
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
+        # Only cache_lookup (Node.js, non-PicoFun) gets regular VPC params
         assert "vpc=vpc," in code
         assert "vpc_subnets=vpc_subnets," in code
         assert "security_groups=[lambda_sg]," in code
@@ -952,9 +953,9 @@ class TestVpcConfiguration:
             tmp_path,
         )
         code = (cdk_dir / "stacks" / "workflow_stack.py").read_text()
-        # Both Python and Node.js lambdas should have VPC config
-        assert code.count("vpc=vpc,") == 2
-        assert code.count("security_groups=[lambda_sg],") == 2
+        # Only cache_lookup (non-PicoFun) gets regular VPC params; db_query is PicoFun
+        assert code.count("vpc=vpc,") == 1
+        assert code.count("security_groups=[lambda_sg],") == 1
 
     def test_no_vpc_params_without_config(self, tmp_path: Path) -> None:
         """Test that Lambda functions do not include VPC params without VPC config."""
