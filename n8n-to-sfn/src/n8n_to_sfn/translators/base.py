@@ -67,6 +67,7 @@ class TranslationContext(BaseModel):
     payload_size_limit: int = 256_000
     rate_limits: dict[str, int] = {}
     workflow_name: str = ""
+    spec_directory: str = ""
 
 
 class TranslationResult(BaseModel):
