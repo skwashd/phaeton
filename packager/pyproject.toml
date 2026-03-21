@@ -19,6 +19,7 @@ build-backend = "uv_build"
 
 [tool.uv.sources]
 phaeton-models = { path = "../shared/phaeton-models", editable = true }
+picofun = { git = "https://github.com/proactiveops/picofun.git", branch = "main" }
 
 [tool.ruff.lint]
 # Rules listed at https://github.com/charliermarsh/ruff#supported-rules
@@ -44,7 +45,7 @@ source = ["src/n8n_to_sfn_packager"]
 [dependency-groups]
 dev = [
     "aws-lambda-powertools==3.25.0",
-    "typer==0.12.5",
+    "typer==0.24.1",
     "boto3==1.42.68",
     "coverage==7.13.4",
     "pytest==9.0.2",

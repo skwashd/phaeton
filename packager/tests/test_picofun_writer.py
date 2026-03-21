@@ -35,7 +35,7 @@ def writer() -> PicoFunWriter:
     return PicoFunWriter()
 
 
-@patch("picofun.terraform_generator.TerraformGenerator")
+@patch("picofun.iac.terraform.TerraformGenerator")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Template")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Layer")
 @patch("n8n_to_sfn_packager.writers.picofun_writer._create_config")
@@ -64,7 +64,7 @@ def test_write_creates_layer_directory(
     assert result.layer_dir == tmp_path / "picofun_layer" / "layer"
 
 
-@patch("picofun.terraform_generator.TerraformGenerator")
+@patch("picofun.iac.terraform.TerraformGenerator")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Template")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Layer")
 @patch("n8n_to_sfn_packager.writers.picofun_writer._create_config")
@@ -95,7 +95,7 @@ def test_write_creates_cdk_construct(
     assert result.construct_file == tmp_path / "picofun_layer" / "main.tf"
 
 
-@patch("picofun.terraform_generator.TerraformGenerator")
+@patch("picofun.iac.terraform.TerraformGenerator")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Template")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Layer")
 @patch("n8n_to_sfn_packager.writers.picofun_writer._create_config")
@@ -126,7 +126,7 @@ def test_write_returns_output_metadata(
     assert result.construct_file == tmp_path / "picofun_layer" / "main.tf"
 
 
-@patch("picofun.terraform_generator.TerraformGenerator")
+@patch("picofun.iac.terraform.TerraformGenerator")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Template")
 @patch("n8n_to_sfn_packager.writers.picofun_writer.Layer")
 @patch("n8n_to_sfn_packager.writers.picofun_writer._create_config")

@@ -36,10 +36,7 @@ def _create_config(output_dir: Path) -> Config:
         Configured PicoFun Config instance.
 
     """
-    config: Config = Config.__new__(Config)
-    config.set_defaults()
-    config.output_dir = str(output_dir)
-    return config
+    return Config(output_dir=str(output_dir))
 
 
 class PicoFunWriter:
@@ -72,13 +69,13 @@ class PicoFunWriter:
         picofun_dir.mkdir(parents=True, exist_ok=True)
 
         config = _create_config(picofun_dir)
-        Layer(config).prepare()  # type: ignore[invalid-argument-type]
+        Layer(config).prepare()
         layer_dir = picofun_dir / "layer"
 
         lambda_names = [spec.function_name for spec in picofun_functions]
         template = Template(str(config.template_path))
 
-        from picofun.terraform_generator import TerraformGenerator
+        from picofun.iac.terraform import TerraformGenerator
 
         generator = TerraformGenerator(template, namespace, config)
         generator.generate(lambda_names)

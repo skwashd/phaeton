@@ -13,6 +13,7 @@ from typing import Any
 
 from picofun.config import Config
 from picofun.lambda_generator import LambdaGenerator
+from picofun.models import Endpoint as PicoFunEndpoint
 from picofun.spec import Spec
 from picofun.template import Template
 
@@ -68,9 +69,7 @@ def _extract_endpoints(raw: dict[str, Any]) -> list[Endpoint]:
 
 def _create_config() -> Config:
     """Create a PicoFun Config with defaults, bypassing TOML file requirement."""
-    config: Config = Config.__new__(Config)
-    config.set_defaults()
-    return config
+    return Config()
 
 
 class PicoFunBridge:
@@ -153,6 +152,9 @@ class PicoFunBridge:
         config = _create_config()
         template = Template(str(config.template_path))
         generator = LambdaGenerator(template, namespace, config)
-        return generator.render(
-            base_url, endpoint.method, endpoint.path, endpoint.details
+        pf_endpoint = PicoFunEndpoint(
+            method=endpoint.method,
+            path=endpoint.path,
+            extra=endpoint.details,
         )
+        return generator.render(base_url, pf_endpoint)

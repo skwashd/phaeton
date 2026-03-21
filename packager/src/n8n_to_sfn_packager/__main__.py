@@ -1,7 +1,5 @@
 """CLI entry point for the Packager."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import typer

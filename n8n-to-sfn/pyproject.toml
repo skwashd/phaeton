@@ -18,6 +18,9 @@ n8n-to-sfn = "n8n_to_sfn.cli:app"
 requires = ["uv-build==0.10.10"]
 build-backend = "uv_build"
 
+[tool.uv.sources]
+picofun = { git = "https://github.com/proactiveops/picofun.git", branch = "main" }
+
 [tool.ruff.lint]
 # Rules listed at https://github.com/charliermarsh/ruff#supported-rules
 select = ["B", "D", "E", "F", "G", "I", "N", "S", "W", "ANN" ,"BLE", "C4", "C90", "DTZ", "ERA", "PLW", "PT", "RET", "RUF", "SIM", "TRY", "UP"]
@@ -47,6 +50,6 @@ dev = [
     "pytest==9.0.2",
     "ruff==0.15.6",
     "ty==0.0.23",
-    "typer==0.12.5",
+    "typer==0.24.1",
     "types-boto3==1.42.68",
 ]
