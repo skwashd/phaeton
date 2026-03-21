@@ -61,6 +61,7 @@ class LambdaArtifact(BaseModel):
     handler_code: str
     dependencies: list[str] = []
     directory_name: str = ""
+    metadata: dict[str, Any] = {}
 
 
 class TriggerArtifact(BaseModel):

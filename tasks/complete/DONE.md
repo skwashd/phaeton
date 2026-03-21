@@ -7,3 +7,4 @@ TASK-0005-create-operation-mapper-module.md
 TASK-0004-create-picofun-bridge-module.md
 TASK-0010-create-picofun-writer-packager.md
 TASK-0018-adapter-tests-spec-mapping-passthrough.md
+TASK-0006-rewrite-picofun-translator.md
