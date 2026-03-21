@@ -1,4 +1,3 @@
-TASK-0009-add-picofun-dep-packager.md
 TASK-0008-populate-api-spec-operation-mappings-adapter.md
 TASK-0003-create-spec-fetcher-module.md
 TASK-0005-create-operation-mapper-module.md
