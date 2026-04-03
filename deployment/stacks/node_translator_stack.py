@@ -9,6 +9,8 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
 from constructs import Construct
 
+from stacks.bundling import bundled_code, powertools_layer
+
 
 class NodeTranslatorStack(cdk.Stack):
     """Deploy the Node Translator Lambda."""
@@ -23,10 +25,8 @@ class NodeTranslatorStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="phaeton_node_translator.handler.handler",
-            code=lambda_.Code.from_asset(
-                "../node-translator/src",
-                exclude=["*/cli.py", "*/__main__.py"],
-            ),
+            code=bundled_code("node-translator"),
+            layers=[powertools_layer(self)],
             memory_size=1024,
             timeout=cdk.Duration.seconds(120),
         )

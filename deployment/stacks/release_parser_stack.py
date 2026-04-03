@@ -11,6 +11,8 @@ from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
+from stacks.bundling import bundled_code, powertools_layer
+
 
 class ReleaseParserStack(cdk.Stack):
     """Deploy the Release Parser Lambda with S3 catalog bucket and daily schedule."""
@@ -32,10 +34,8 @@ class ReleaseParserStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="n8n_release_parser.handler.handler",
-            code=lambda_.Code.from_asset(
-                "../n8n-release-parser/src",
-                exclude=["*/cli.py", "*/__main__.py"],
-            ),
+            code=bundled_code("n8n-release-parser"),
+            layers=[powertools_layer(self)],
             memory_size=512,
             timeout=cdk.Duration.seconds(120),
             environment={

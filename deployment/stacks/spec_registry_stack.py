@@ -11,6 +11,8 @@ from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_s3_notifications as s3n
 from constructs import Construct
 
+from stacks.bundling import bundled_code
+
 
 class SpecRegistryStack(cdk.Stack):
     """Deploy the Spec Registry Lambda with KMS-encrypted S3 bucket and event notifications."""
@@ -41,10 +43,7 @@ class SpecRegistryStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="spec_registry.handler.handler",
-            code=lambda_.Code.from_asset(
-                "../spec-registry/src",
-                exclude=["*/cli.py", "*/__main__.py"],
-            ),
+            code=bundled_code("spec-registry"),
             memory_size=512,
             timeout=cdk.Duration.seconds(120),
             environment={

@@ -9,6 +9,8 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
 from constructs import Construct
 
+from stacks.bundling import bundled_code, powertools_layer
+
 
 class ExpressionTranslatorStack(cdk.Stack):
     """Deploy the Expression Translator Lambda."""
@@ -23,10 +25,8 @@ class ExpressionTranslatorStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="phaeton_expression_translator.handler.handler",
-            code=lambda_.Code.from_asset(
-                "../expression-translator/src",
-                exclude=["*/cli.py", "*/__main__.py"],
-            ),
+            code=bundled_code("expression-translator"),
+            layers=[powertools_layer(self)],
             memory_size=1024,
             timeout=cdk.Duration.seconds(120),
         )

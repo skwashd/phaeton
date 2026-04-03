@@ -1,0 +1,33 @@
+{
+  "workflow_name": "my-test-workflow",
+  "workflow": {
+    "name": "My Test Workflow",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "trigger-1",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [250, 300]
+      },
+      {
+        "parameters": {
+          "values": {
+            "string": [{"name": "message", "value": "hello"}]
+          }
+        },
+        "id": "set-1",
+        "name": "Set Data",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [450, 300]
+      }
+    ],
+    "connections": {
+      "Manual Trigger": {
+        "main": [[{"node": "Set Data", "type": "main", "index": 0}]]
+      }
+    }
+  }
+}

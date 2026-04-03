@@ -5,7 +5,7 @@ description = "AI-powered expression translator: converts n8n expressions to JSO
 readme = { text = "", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-    "phaeton-models @ file:///${PROJECT_ROOT}/../shared/phaeton-models",
+    "phaeton-models",
     "pydantic==2.12.5",
     "strands-agents==1.30.0",
     "strands-agents-builder==0.1.10",
@@ -19,6 +19,9 @@ override-dependencies = [
 [build-system]
 requires = ["uv-build==0.10.10"]
 build-backend = "uv_build"
+
+[tool.uv.sources]
+phaeton-models = { path = "../shared/phaeton-models", editable = true }
 
 [tool.ruff.lint]
 # Rules listed at https://github.com/charliermarsh/ruff#supported-rules

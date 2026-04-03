@@ -10,6 +10,8 @@ from aws_cdk import aws_stepfunctions as sfn
 from aws_cdk import aws_stepfunctions_tasks as tasks
 from constructs import Construct
 
+from stacks.bundling import bundled_adapter_code, powertools_layer
+
 
 class OrchestrationStack(cdk.Stack):
     """
@@ -38,7 +40,8 @@ class OrchestrationStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="handler.handler",
-            code=lambda_.Code.from_asset("functions/adapter"),
+            code=bundled_adapter_code(),
+            layers=[powertools_layer(self)],
             memory_size=256,
             timeout=cdk.Duration.seconds(30),
         )

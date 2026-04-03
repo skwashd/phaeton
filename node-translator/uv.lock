@@ -781,7 +781,7 @@ wheels = [
 [[package]]
 name = "phaeton-models"
 version = "0.1.0"
-source = { directory = "../shared/phaeton-models" }
+source = { editable = "../shared/phaeton-models" }
 dependencies = [
     { name = "pydantic" },
 ]
@@ -820,7 +820,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "phaeton-models", directory = "../shared/phaeton-models" },
+    { name = "phaeton-models", editable = "../shared/phaeton-models" },
     { name = "pydantic", specifier = "==2.12.5" },
     { name = "strands-agents", specifier = "==1.30.0" },
     { name = "strands-agents-builder", specifier = "==0.1.10" },

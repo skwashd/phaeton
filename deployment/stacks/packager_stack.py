@@ -9,6 +9,8 @@ from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_s3 as s3
 from constructs import Construct
 
+from stacks.bundling import bundled_code, powertools_layer
+
 
 class PackagerStack(cdk.Stack):
     """Deploy the Packager Lambda with S3 output bucket."""
@@ -30,10 +32,8 @@ class PackagerStack(cdk.Stack):
             runtime=lambda_.Runtime.PYTHON_3_13,
             architecture=lambda_.Architecture.ARM_64,
             handler="n8n_to_sfn_packager.handler.handler",
-            code=lambda_.Code.from_asset(
-                "../packager/src",
-                exclude=["*/cli.py", "*/__main__.py"],
-            ),
+            code=bundled_code("packager"),
+            layers=[powertools_layer(self)],
             memory_size=1024,
             timeout=cdk.Duration.seconds(300),
             ephemeral_storage_size=cdk.Size.gibibytes(1),

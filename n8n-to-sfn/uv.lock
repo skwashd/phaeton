@@ -366,7 +366,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "jsonschema", specifier = "==4.26.0" },
-    { name = "phaeton-models", directory = "../shared/phaeton-models" },
+    { name = "phaeton-models", editable = "../shared/phaeton-models" },
     { name = "picofun", git = "https://github.com/proactiveops/picofun.git?branch=main" },
     { name = "pydantic", specifier = "==2.12.5" },
 ]
@@ -404,7 +404,7 @@ wheels = [
 [[package]]
 name = "phaeton-models"
 version = "0.1.0"
-source = { directory = "../shared/phaeton-models" }
+source = { editable = "../shared/phaeton-models" }
 dependencies = [
     { name = "pydantic" },
 ]

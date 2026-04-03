@@ -1,7 +1,7 @@
 """CDK synthesis validation tests."""
 
 import aws_cdk as cdk
-from aws_cdk.assertions import Template
+from aws_cdk.assertions import Match, Template
 
 from stacks.expression_translator_stack import ExpressionTranslatorStack
 from stacks.node_translator_stack import NodeTranslatorStack
@@ -12,17 +12,44 @@ from stacks.spec_registry_stack import SpecRegistryStack
 from stacks.translation_engine_stack import TranslationEngineStack
 from stacks.workflow_analyzer_stack import WorkflowAnalyzerStack
 
+_BUNDLING_CONTEXT = {"aws:cdk:bundling-stacks": []}
+
+
+def _app() -> cdk.App:
+    """Create a CDK App with Docker bundling disabled for tests."""
+    return cdk.App(context=_BUNDLING_CONTEXT)
+
 
 def _synth_template(stack: cdk.Stack) -> Template:
     """Synthesize a stack and return its Template for assertions."""
     return Template.from_stack(stack)
 
 
+def _has_powertools_layer(template: Template) -> None:
+    """Assert that the Lambda function has the Powertools layer attached."""
+    template.has_resource_properties(
+        "AWS::Lambda::Function",
+        {
+            "Layers": Match.array_with(
+                [
+                    Match.object_like(
+                        {
+                            "Ref": Match.string_like_regexp(
+                                "SsmParameterValue.*powertools.*",
+                            ),
+                        },
+                    ),
+                ],
+            ),
+        },
+    )
+
+
 class TestReleaseParserStack:
     """Tests for the Release Parser stack."""
 
     def test_has_lambda_function(self):
-        app = cdk.App()
+        app = _app()
         stack = ReleaseParserStack(app, "TestReleaseParser")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -35,13 +62,13 @@ class TestReleaseParserStack:
         )
 
     def test_has_s3_bucket(self):
-        app = cdk.App()
+        app = _app()
         stack = ReleaseParserStack(app, "TestReleaseParser")
         template = _synth_template(stack)
         template.resource_count_is("AWS::S3::Bucket", 1)
 
     def test_has_daily_schedule_rule(self):
-        app = cdk.App()
+        app = _app()
         stack = ReleaseParserStack(app, "TestReleaseParser")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -49,13 +76,20 @@ class TestReleaseParserStack:
             {"ScheduleExpression": "rate(1 day)"},
         )
 
+    def test_has_powertools_layer(self) -> None:
+        """Verify the Powertools layer is attached."""
+        app = _app()
+        stack = ReleaseParserStack(app, "TestReleaseParser")
+        template = _synth_template(stack)
+        _has_powertools_layer(template)
+
 
 class TestSpecRegistryStack:
     """Tests for the Spec Registry stack."""
 
     def test_has_lambda_function(self) -> None:
         """Verify Lambda function name, architecture, and runtime."""
-        app = cdk.App()
+        app = _app()
         stack = SpecRegistryStack(app, "TestSpecRegistry")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -69,7 +103,7 @@ class TestSpecRegistryStack:
 
     def test_has_s3_bucket_with_kms_encryption(self) -> None:
         """Verify S3 bucket exists with KMS encryption and versioning."""
-        app = cdk.App()
+        app = _app()
         stack = SpecRegistryStack(app, "TestSpecRegistry")
         template = _synth_template(stack)
         template.resource_count_is("AWS::S3::Bucket", 1)
@@ -83,14 +117,14 @@ class TestSpecRegistryStack:
 
     def test_has_kms_key(self) -> None:
         """Verify KMS key is created for bucket encryption."""
-        app = cdk.App()
+        app = _app()
         stack = SpecRegistryStack(app, "TestSpecRegistry")
         template = _synth_template(stack)
         template.resource_count_is("AWS::KMS::Key", 1)
 
     def test_lambda_has_bucket_permissions(self) -> None:
         """Verify Lambda has read/write permissions on the S3 bucket."""
-        app = cdk.App()
+        app = _app()
         stack = SpecRegistryStack(app, "TestSpecRegistry")
         template = _synth_template(stack)
         # The policy has both S3 and KMS statements; verify the IAM policy
@@ -103,7 +137,7 @@ class TestSpecRegistryStack:
 
     def test_has_s3_event_notifications(self) -> None:
         """Verify S3 event notifications for .json and .yaml suffixes."""
-        app = cdk.App()
+        app = _app()
         stack = SpecRegistryStack(app, "TestSpecRegistry")
         template = _synth_template(stack)
         # CDK creates a custom resource for S3 notifications
@@ -137,12 +171,25 @@ class TestSpecRegistryStack:
             },
         )
 
+    def test_no_powertools_layer(self) -> None:
+        """Verify the Spec Registry Lambda does NOT have a Powertools layer."""
+        app = _app()
+        stack = SpecRegistryStack(app, "TestSpecRegistry")
+        template = _synth_template(stack)
+        template.has_resource_properties(
+            "AWS::Lambda::Function",
+            {
+                "FunctionName": "phaeton-spec-indexer",
+                "Layers": Match.absent(),
+            },
+        )
+
 
 class TestWorkflowAnalyzerStack:
     """Tests for the Workflow Analyzer stack."""
 
     def test_has_lambda_function(self):
-        app = cdk.App()
+        app = _app()
         stack = WorkflowAnalyzerStack(app, "TestWorkflowAnalyzer")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -154,6 +201,13 @@ class TestWorkflowAnalyzerStack:
             },
         )
 
+    def test_has_powertools_layer(self) -> None:
+        """Verify the Powertools layer is attached."""
+        app = _app()
+        stack = WorkflowAnalyzerStack(app, "TestWorkflowAnalyzer")
+        template = _synth_template(stack)
+        _has_powertools_layer(template)
+
 
 class TestTranslationEngineStack:
     """Tests for the Translation Engine stack."""
@@ -161,7 +215,7 @@ class TestTranslationEngineStack:
     @staticmethod
     def _create_stack() -> TranslationEngineStack:
         """Create a TranslationEngineStack with translator dependencies."""
-        app = cdk.App()
+        app = _app()
         node_stack = NodeTranslatorStack(app, "NodeTranslator")
         expr_stack = ExpressionTranslatorStack(app, "ExpressionTranslator")
         return TranslationEngineStack(
@@ -209,13 +263,19 @@ class TestTranslationEngineStack:
         policy_json = str(policies)
         assert "lambda:InvokeFunction" in policy_json
 
+    def test_has_powertools_layer(self) -> None:
+        """Verify the Powertools layer is attached."""
+        stack = self._create_stack()
+        template = _synth_template(stack)
+        _has_powertools_layer(template)
+
 
 class TestNodeTranslatorStack:
     """Tests for the Node Translator stack."""
 
     def test_has_lambda_function(self) -> None:
         """Verify Lambda function name, architecture, runtime, and memory."""
-        app = cdk.App()
+        app = _app()
         stack = NodeTranslatorStack(app, "TestNodeTranslator")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -231,7 +291,7 @@ class TestNodeTranslatorStack:
 
     def test_has_bedrock_policy(self) -> None:
         """Verify Bedrock InvokeModel IAM policy is attached."""
-        app = cdk.App()
+        app = _app()
         stack = NodeTranslatorStack(app, "TestNodeTranslator")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -249,13 +309,20 @@ class TestNodeTranslatorStack:
             },
         )
 
+    def test_has_powertools_layer(self) -> None:
+        """Verify the Powertools layer is attached."""
+        app = _app()
+        stack = NodeTranslatorStack(app, "TestNodeTranslator")
+        template = _synth_template(stack)
+        _has_powertools_layer(template)
+
 
 class TestExpressionTranslatorStack:
     """Tests for the Expression Translator stack."""
 
     def test_has_lambda_function(self) -> None:
         """Verify Lambda function name, architecture, runtime, and memory."""
-        app = cdk.App()
+        app = _app()
         stack = ExpressionTranslatorStack(app, "TestExpressionTranslator")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -271,7 +338,7 @@ class TestExpressionTranslatorStack:
 
     def test_has_bedrock_policy(self) -> None:
         """Verify Bedrock InvokeModel IAM policy is attached."""
-        app = cdk.App()
+        app = _app()
         stack = ExpressionTranslatorStack(app, "TestExpressionTranslator")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -289,12 +356,19 @@ class TestExpressionTranslatorStack:
             },
         )
 
+    def test_has_powertools_layer(self) -> None:
+        """Verify the Powertools layer is attached."""
+        app = _app()
+        stack = ExpressionTranslatorStack(app, "TestExpressionTranslator")
+        template = _synth_template(stack)
+        _has_powertools_layer(template)
+
 
 class TestPackagerStack:
     """Tests for the Packager stack."""
 
     def test_has_lambda_function(self):
-        app = cdk.App()
+        app = _app()
         stack = PackagerStack(app, "TestPackager")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -308,13 +382,13 @@ class TestPackagerStack:
         )
 
     def test_has_s3_bucket(self):
-        app = cdk.App()
+        app = _app()
         stack = PackagerStack(app, "TestPackager")
         template = _synth_template(stack)
         template.resource_count_is("AWS::S3::Bucket", 1)
 
     def test_has_ephemeral_storage(self):
-        app = cdk.App()
+        app = _app()
         stack = PackagerStack(app, "TestPackager")
         template = _synth_template(stack)
         template.has_resource_properties(
@@ -324,13 +398,20 @@ class TestPackagerStack:
             },
         )
 
+    def test_has_powertools_layer(self) -> None:
+        """Verify the Powertools layer is attached."""
+        app = _app()
+        stack = PackagerStack(app, "TestPackager")
+        template = _synth_template(stack)
+        _has_powertools_layer(template)
+
 
 class TestOrchestrationStack:
     """Tests for the Orchestration stack."""
 
     @staticmethod
     def _create_stack() -> OrchestrationStack:
-        app = cdk.App()
+        app = _app()
         analyzer_stack = WorkflowAnalyzerStack(app, "Analyzer")
         node_stack = NodeTranslatorStack(app, "NodeTranslator")
         expr_stack = ExpressionTranslatorStack(app, "ExpressionTranslator")
@@ -389,12 +470,18 @@ class TestOrchestrationStack:
         ]:
             assert state_name in defn_str, f"Missing state {state_name}"
 
+    def test_adapter_has_powertools_layer(self) -> None:
+        """Verify the adapter Lambda has the Powertools layer attached."""
+        stack = self._create_stack()
+        template = _synth_template(stack)
+        _has_powertools_layer(template)
+
 
 class TestFullAppSynth:
     """Test that the full app synthesizes without errors."""
 
     def test_all_stacks_synth(self):
-        app = cdk.App()
+        app = _app()
 
         ReleaseParserStack(app, "ReleaseParser")
         SpecRegistryStack(app, "SpecRegistry")

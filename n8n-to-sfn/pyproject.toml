@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "jsonschema==4.26.0",
-    "phaeton-models @ file:///${PROJECT_ROOT}/../shared/phaeton-models",
+    "phaeton-models",
     "picofun>=0.1.0",
     "pydantic==2.12.5",
 ]
@@ -19,6 +19,7 @@ requires = ["uv-build==0.10.10"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
+phaeton-models = { path = "../shared/phaeton-models", editable = true }
 picofun = { git = "https://github.com/proactiveops/picofun.git", branch = "main" }
 
 [tool.ruff.lint]
